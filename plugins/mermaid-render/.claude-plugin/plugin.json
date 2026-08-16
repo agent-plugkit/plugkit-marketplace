@@ -1,0 +1,8 @@
+{
+  "name": "mermaid-render",
+  "version": "0.2.0",
+  "description": "Turn Mermaid diagrams into expressive visuals with three built-in art directions and independent HTML or Imagent rendering.",
+  "author": {
+    "name": "Agent Plugkit"
+  }
+}

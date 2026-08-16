@@ -1,0 +1,8 @@
+{
+  "name": "plugkit",
+  "version": "0.1.0",
+  "description": "Official agent-plugkit maintenance plugin",
+  "author": {
+    "name": "Agent Plugkit"
+  }
+}

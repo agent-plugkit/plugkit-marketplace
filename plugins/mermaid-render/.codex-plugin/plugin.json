@@ -1,0 +1,24 @@
+{
+  "name": "mermaid-render",
+  "version": "0.2.0",
+  "description": "Turn Mermaid diagrams into expressive visuals with three built-in art directions and independent HTML or Imagent rendering.",
+  "author": {
+    "name": "Agent Plugkit"
+  },
+  "interface": {
+    "displayName": "Mermaid Render",
+    "shortDescription": "Expressive Mermaid in HTML or Imagent",
+    "longDescription": "Renders Mermaid diagrams through two independent paths: editable HTML composition or direct Imagent creation with optional node illustrations. Swiss Style, Neo-Brutalism, and JAPANESE MA are defined as art directions rather than rigid templates.",
+    "category": "Tooling",
+    "developerName": "Agent Plugkit",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Render this Mermaid diagram with a fitting style and mode."
+    ]
+  },
+  "skills": "./skills/"
+}

@@ -1,0 +1,25 @@
+name: agent-plugkit
+description: "Official agent-plugkit plugin marketplace"
+organization: "Agent Plugkit"
+
+categories:
+  - id: tooling
+    label: "Tooling"
+    description: "Developer tools and workflow helpers"
+  - id: integration
+    label: "Integration"
+    description: "External service and protocol integrations"
+  - id: quality
+    label: "Quality"
+    description: "Review, validation, and quality guardrails"
+  - id: general
+    label: "General"
+    description: "General plugins"
+
+platforms:
+  - name: "Agent Plugins"
+    manifest: "plugin.json"
+  - name: "Claude Code"
+    manifest: ".claude-plugin/plugin.json"
+  - name: "Codex"
+    manifest: ".codex-plugin/plugin.json"

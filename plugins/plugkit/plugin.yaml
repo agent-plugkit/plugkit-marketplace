@@ -1,0 +1,27 @@
+name: plugkit
+version: "0.1.0"
+description: "Official agent-plugkit maintenance plugin"
+author:
+  name: "Agent Plugkit"
+category: tooling
+tags:
+  - plugkit
+  - marketplace
+
+components:
+  skills:
+    - name: setup
+      path: skills/setup
+      description: "Guide agents to install, update, or uninstall the agent-plugkit CLI and bootstrap a marketplace repository."
+    - name: maintain
+      path: skills/maintain
+      description: "Guide agents to create, validate, build, and release plugkit plugins."
+
+platform:
+  codex:
+    interface:
+      displayName: "Plugkit"
+      shortDescription: "Setup and maintain agent-plugkit marketplaces"
+      longDescription: "Official guidance for installing agent-plugkit and maintaining agent-plugkit marketplace repositories."
+      category: "Tooling"
+      developerName: "Agent Plugkit"

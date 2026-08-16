@@ -1,0 +1,23 @@
+{
+  "name": "@agent-plugkit/plugkit-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Official Agent Plugkit plugin marketplace",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agent-plugkit/plugkit-marketplace.git"
+  },
+  "scripts": {
+    "build:plugins": "agent-plugkit build --all",
+    "build:index": "agent-plugkit index",
+    "validate": "agent-plugkit validate --all",
+    "check:public": "node scripts/check-public-tree.mjs",
+    "check": "npm run check:public && npm run build:plugins && npm run build:index && npm run validate",
+    "release:local": "npm run check && agent-plugkit release-local"
+  },
+  "devDependencies": {
+    "agent-plugkit": "^0.1.0"
+  }
+}

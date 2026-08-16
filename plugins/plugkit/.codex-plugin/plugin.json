@@ -1,0 +1,20 @@
+{
+  "name": "plugkit",
+  "version": "0.1.0",
+  "description": "Official agent-plugkit maintenance plugin",
+  "author": {
+    "name": "Agent Plugkit"
+  },
+  "interface": {
+    "displayName": "Plugkit",
+    "shortDescription": "Setup and maintain agent-plugkit marketplaces",
+    "longDescription": "Official guidance for installing agent-plugkit and maintaining agent-plugkit marketplace repositories.",
+    "category": "Tooling",
+    "developerName": "Agent Plugkit",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Help me use Plugkit."
+    ]
+  },
+  "skills": "./skills/"
+}

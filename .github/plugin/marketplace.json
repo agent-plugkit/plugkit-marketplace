@@ -1,0 +1,29 @@
+{
+  "name": "agent-plugkit",
+  "owner": {
+    "name": "Agent Plugkit"
+  },
+  "metadata": {
+    "description": "Official agent-plugkit plugin marketplace"
+  },
+  "plugins": [
+    {
+      "name": "mermaid-render",
+      "source": "./plugins/mermaid-render",
+      "description": "Turn Mermaid diagrams into expressive visuals with three built-in art directions and independent HTML or Imagent rendering.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Agent Plugkit"
+      }
+    },
+    {
+      "name": "plugkit",
+      "source": "./plugins/plugkit",
+      "description": "Official agent-plugkit maintenance plugin",
+      "version": "0.1.0",
+      "author": {
+        "name": "Agent Plugkit"
+      }
+    }
+  ]
+}

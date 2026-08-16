@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "plugkit",
+  "version": "0.1.0",
+  "description": "Official agent-plugkit maintenance plugin",
+  "author": {
+    "name": "Agent Plugkit"
+  },
+  "keywords": [
+    "plugkit",
+    "marketplace"
+  ]
+}

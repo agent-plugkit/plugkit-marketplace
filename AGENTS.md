@@ -1,0 +1,34 @@
+# AGENTS.md
+
+## Repository scope
+
+This repository is the official public Agent Plugkit marketplace. It contains plugin content and
+generated client indexes; it does not contain the `agent-plugkit` CLI implementation.
+
+## Source of truth
+
+- `marketplace.yaml` owns marketplace identity and metadata.
+- `plugins/*/plugin.yaml` and each plugin's component files are canonical.
+- Root and plugin JSON manifests plus `plugins/CATALOG.md` are generated artifacts.
+- Add only plugins that are intended for real use; schema coverage belongs in the CLI repository's tests.
+
+## Commands
+
+- Install: `npm ci`
+- Build and validate: `npm run check`
+- Local release package: `npm run release:local`
+- Public-tree check: `npm run check:public`
+
+## Completion definition
+
+- `npm run check` passes.
+- Generated artifacts are committed and `git status --short` shows no unexpected drift.
+- Plugin declarations, bundled files, generated manifests, and catalog entries agree.
+- Public content contains no internal plans, candidate evidence, credentials, or machine-local paths.
+
+## Editing rules
+
+- Never edit generated JSON or `plugins/CATALOG.md` manually.
+- Keep client-specific distribution metadata out of portable `plugin.json`.
+- Keep all declared component paths inside their plugin root.
+- Do not commit `dist/`, local release archives, internal task reports, or machine-generated evidence.
