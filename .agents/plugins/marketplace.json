@@ -20,6 +20,21 @@
       "category": "Tooling"
     },
     {
+      "name": "musepool",
+      "source": {
+        "source": "local",
+        "path": "./plugins/musepool"
+      },
+      "interface": {
+        "displayName": "Musepool"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "General"
+    },
+    {
       "name": "plugkit",
       "source": {
         "source": "local",

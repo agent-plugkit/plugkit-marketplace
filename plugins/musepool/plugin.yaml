@@ -1,0 +1,36 @@
+name: musepool
+version: "1.1.0"
+description: "Local design inspiration library: 28 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Local files only, no backend."
+author:
+  name: "Agent Plugkit"
+category: general
+tags:
+  - design
+  - inspiration
+  - musepool
+  - frontend
+  - poster
+  - infographic
+  - social
+  - academic
+
+components:
+  skills:
+    - name: musepool
+      path: skills/musepool
+      description: "Search a local library of 28 design seeds before creating websites, posters, infographics, social graphics, or academic illustrations, to avoid default AI aesthetics."
+
+platform:
+  codex:
+    interface:
+      displayName: "Musepool"
+      shortDescription: "Local design inspiration seeds"
+      longDescription: "A local-only design inspiration library with 28 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Search and read seeds from disk with no backend or network."
+      category: "General"
+      developerName: "Agent Plugkit"
+      capabilities:
+        - "Interactive"
+        - "Read"
+        - "Write"
+      defaultPrompt:
+        - "Search local design seeds for this visual task before designing."
