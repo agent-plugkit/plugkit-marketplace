@@ -1,14 +1,14 @@
 {
   "name": "musepool",
-  "version": "1.1.0",
-  "description": "Local design inspiration library: 28 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Local files only, no backend.",
+  "version": "1.2.0",
+  "description": "Local design inspiration library: 29 curated seeds, traceable composition recipes, and offline validation across frontend, poster, infographic, social, and academic illustration.",
   "author": {
     "name": "Agent Plugkit"
   },
   "interface": {
     "displayName": "Musepool",
-    "shortDescription": "Local design inspiration seeds",
-    "longDescription": "A local-only design inspiration library with 28 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Search and read seeds from disk with no backend or network.",
+    "shortDescription": "Local design seeds and recipes",
+    "longDescription": "A local-only design inspiration library with 29 curated seeds, machine-readable composition recipe drafts, and offline library validation across frontend, poster, infographic, social, and academic illustration.",
     "category": "General",
     "developerName": "Agent Plugkit",
     "capabilities": [
@@ -17,7 +17,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Search local design seeds for this visual task before designing."
+      "Search local design seeds, resolve a composition recipe, and inspect the result for this visual task."
     ]
   },
   "skills": "./skills/"
