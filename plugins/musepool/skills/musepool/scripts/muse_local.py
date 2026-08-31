@@ -6,7 +6,7 @@
   python3 scripts/muse_local.py list [--scenario frontend|poster|infographic|social|academic]
   python3 scripts/muse_local.py search "dark monochrome typography" [--scenario poster] [-n 5]
   python3 scripts/muse_local.py show <id|文件名>          # 打印完整 seed(含深度参考)
-  python3 scripts/muse_local.py recipe <id> [<id> ...] [--brief "..."]
+  python3 scripts/muse_local.py recipe <id> [<id> ...] [--carrier frontend|infographic] [--brief "..."]
   python3 scripts/muse_local.py validate
 
 search 在 gist / category / tags / core_dimensions 及 seed 正文上做大小写不敏感的
@@ -21,8 +21,10 @@ import sys
 from pathlib import Path, PurePosixPath
 from typing import Optional
 
-SEEDS_DIR = Path(__file__).resolve().parent.parent / "seeds"
+SKILL_DIR = Path(__file__).resolve().parent.parent
+SEEDS_DIR = SKILL_DIR / "seeds"
 INDEX = SEEDS_DIR / "index.json"
+CARRIER_ADAPTERS = SKILL_DIR / "references" / "carrier-adapters.json"
 SCENARIOS = ("frontend", "poster", "infographic", "social", "academic")
 CORE_DIMENSIONS = {
     "algorithms",
@@ -76,6 +78,18 @@ def load_index() -> list[dict]:
     except RuntimeError as exc:
         sys.stderr.write(f"muse_local: {exc}\n")
         sys.exit(2)
+
+
+def read_carrier_adapters() -> dict:
+    if not CARRIER_ADAPTERS.exists():
+        raise RuntimeError(f"找不到载体适配器 {CARRIER_ADAPTERS}")
+    try:
+        data = json.loads(CARRIER_ADAPTERS.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"无法读取载体适配器 {CARRIER_ADAPTERS}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise RuntimeError("载体适配器顶层必须是对象")
+    return data
 
 
 def flat_tags(tags) -> str:
@@ -173,7 +187,159 @@ def cmd_show(args) -> int:
     return 0
 
 
-def recipe_quality_gate() -> list[dict]:
+def is_non_empty_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def validate_adapter_records(
+    adapter_id: str,
+    field: str,
+    value: object,
+    required_fields: tuple[str, ...],
+) -> list[str]:
+    if not isinstance(value, list) or not value:
+        return [f"{adapter_id}.{field} 必须是非空数组"]
+
+    errors: list[str] = []
+    seen_ids: set[str] = set()
+    for position, record in enumerate(value, start=1):
+        label = f"{adapter_id}.{field}[{position}]"
+        if not isinstance(record, dict):
+            errors.append(f"{label} 必须是对象")
+            continue
+        for required in required_fields:
+            if not is_non_empty_string(record.get(required)):
+                errors.append(f"{label}.{required} 必须是非空字符串")
+        record_id = record.get("id")
+        if not is_non_empty_string(record_id):
+            continue
+        assert isinstance(record_id, str)
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", record_id):
+            errors.append(f"{label}.id 必须使用小写字母、数字和下划线")
+        if record_id in seen_ids:
+            errors.append(f"{adapter_id}.{field} 含重复 id {record_id}")
+        seen_ids.add(record_id)
+    return errors
+
+
+def validate_carrier_adapters(data: dict) -> list[str]:
+    errors: list[str] = []
+    if data.get("schema_version") != 1:
+        errors.append("载体适配器 schema_version 必须为 1")
+
+    adapters = data.get("adapters")
+    if not isinstance(adapters, dict) or not adapters:
+        return errors + ["载体适配器 adapters 必须是非空对象"]
+
+    quality_ids: set[str] = set()
+    for adapter_id, adapter in adapters.items():
+        if not is_non_empty_string(adapter_id) or not re.fullmatch(
+            r"[a-z][a-z0-9-]*", str(adapter_id)
+        ):
+            errors.append(f"载体适配器 id {adapter_id!r} 无效")
+            continue
+        if not isinstance(adapter, dict):
+            errors.append(f"{adapter_id} 必须是对象")
+            continue
+
+        for field in ("name", "purpose"):
+            if not is_non_empty_string(adapter.get(field)):
+                errors.append(f"{adapter_id}.{field} 必须是非空字符串")
+
+        applies_to = adapter.get("applies_to")
+        if not isinstance(applies_to, list) or not applies_to or any(
+            not is_non_empty_string(value) for value in applies_to
+        ):
+            errors.append(f"{adapter_id}.applies_to 必须是非空字符串数组")
+
+        errors.extend(
+            validate_adapter_records(
+                adapter_id,
+                "decisions",
+                adapter.get("decisions"),
+                ("id", "prompt"),
+            )
+        )
+        errors.extend(
+            validate_adapter_records(
+                adapter_id,
+                "constraints",
+                adapter.get("constraints"),
+                ("id", "rule", "evidence_hint"),
+            )
+        )
+        errors.extend(
+            validate_adapter_records(
+                adapter_id,
+                "simulation_scenarios",
+                adapter.get("simulation_scenarios"),
+                ("id", "brief"),
+            )
+        )
+        errors.extend(
+            validate_adapter_records(
+                adapter_id,
+                "quality_gate",
+                adapter.get("quality_gate"),
+                ("id", "question"),
+            )
+        )
+
+        simulations = adapter.get("simulation_scenarios")
+        if isinstance(simulations, list):
+            for position, scenario in enumerate(simulations, start=1):
+                if not isinstance(scenario, dict):
+                    continue
+                assertions = scenario.get("assertions")
+                if not isinstance(assertions, list) or not assertions or any(
+                    not is_non_empty_string(assertion) for assertion in assertions
+                ):
+                    errors.append(
+                        f"{adapter_id}.simulation_scenarios[{position}].assertions "
+                        "必须是非空字符串数组"
+                    )
+
+        gates = adapter.get("quality_gate")
+        if isinstance(gates, list):
+            for position, gate in enumerate(gates, start=1):
+                if not isinstance(gate, dict) or not is_non_empty_string(gate.get("id")):
+                    continue
+                gate_id = str(gate["id"])
+                if not gate_id.startswith(f"{adapter_id}_"):
+                    errors.append(
+                        f"{adapter_id}.quality_gate[{position}].id 必须以 {adapter_id}_ 开头"
+                    )
+                if gate_id in quality_ids:
+                    errors.append(f"载体适配器 quality_gate 含重复 id {gate_id}")
+                quality_ids.add(gate_id)
+    return errors
+
+
+def load_carrier_adapters() -> dict[str, dict]:
+    data = read_carrier_adapters()
+    errors = validate_carrier_adapters(data)
+    if errors:
+        raise RuntimeError("载体适配器无效: " + "; ".join(errors))
+    return data["adapters"]
+
+
+def build_carrier_adapter(adapter_id: str, adapter: dict) -> dict:
+    return {
+        "id": adapter_id,
+        "name": adapter["name"],
+        "source": "references/carrier-adapters.json",
+        "purpose": adapter["purpose"],
+        "applies_to": adapter["applies_to"],
+        "decisions": [
+            {"id": decision["id"], "prompt": decision["prompt"], "decision": None}
+            for decision in adapter["decisions"]
+        ],
+        "constraints": adapter["constraints"],
+        "simulation_scenarios": adapter["simulation_scenarios"],
+    }
+
+
+def recipe_quality_gate(adapter: Optional[dict] = None) -> list[dict]:
     checks = (
         ("references_inspected", "已用 show 读完每个参照的正文与深度参考"),
         ("reference_roles", "每个参照只承担已声明的维度,没有互相冲突"),
@@ -187,16 +353,44 @@ def recipe_quality_gate() -> list[dict]:
         ("artifact_inspection", "已在真实尺寸和缩略视图检查最终产物"),
         ("surface_quality", "界面类产物已检查关键状态、响应式、键盘焦点与可访问性"),
     )
-    return [
+    quality_gate = [
         {"id": check_id, "question": question, "status": None, "evidence": None}
         for check_id, question in checks
     ]
+    if adapter:
+        quality_gate.extend(
+            {
+                "id": check["id"],
+                "question": check["question"],
+                "status": None,
+                "evidence": None,
+            }
+            for check in adapter["quality_gate"]
+        )
+    return quality_gate
 
 
 def cmd_recipe(args) -> int:
     if len(args.targets) > 3:
         sys.stderr.write("muse_local: recipe 最多选择 3 个种子\n")
         return 2
+
+    adapter: Optional[dict] = None
+    carrier_adapter: Optional[dict] = None
+    if args.carrier:
+        try:
+            adapters = load_carrier_adapters()
+        except RuntimeError as exc:
+            sys.stderr.write(f"muse_local: {exc}\n")
+            return 2
+        adapter = adapters.get(args.carrier)
+        if adapter is None:
+            available = ", ".join(sorted(adapters))
+            sys.stderr.write(
+                f"muse_local: 未知载体适配器 {args.carrier};可用适配器: {available}\n"
+            )
+            return 2
+        carrier_adapter = build_carrier_adapter(args.carrier, adapter)
 
     entries = load_index()
     references = []
@@ -232,7 +426,7 @@ def cmd_recipe(args) -> int:
             "raw": args.brief,
             "goal": None,
             "audience": None,
-            "carrier": None,
+            "carrier": args.carrier,
             "size_or_ratio": None,
             "exact_content": [],
             "assets": [],
@@ -240,6 +434,7 @@ def cmd_recipe(args) -> int:
             "must_avoid": [],
         },
         "references": references,
+        "carrier_adapter": carrier_adapter,
         "synthesis": {
             "concept": None,
             "focal_event": None,
@@ -268,7 +463,7 @@ def cmd_recipe(args) -> int:
             "structural_changes": [],
             "reference_specific_elements_excluded": [],
         },
-        "quality_gate": recipe_quality_gate(),
+        "quality_gate": recipe_quality_gate(adapter),
     }
     print(json.dumps(recipe, ensure_ascii=False, indent=2))
     return 0
@@ -490,7 +685,13 @@ def cmd_validate(_args) -> int:
         sys.stderr.write(f"muse_local: {exc}\n")
         return 1
 
-    errors = validate_library(entries)
+    try:
+        adapter_data = read_carrier_adapters()
+    except RuntimeError as exc:
+        sys.stderr.write(f"muse_local: {exc}\n")
+        return 1
+
+    errors = validate_library(entries) + validate_carrier_adapters(adapter_data)
     if errors:
         for error in errors:
             sys.stderr.write(f"muse_local: {error}\n")
@@ -498,8 +699,10 @@ def cmd_validate(_args) -> int:
         return 1
 
     scenario_count = len({entry["scenario"] for entry in entries})
+    adapter_count = len(adapter_data["adapters"])
     print(
-        f"musepool: {len(entries)} 个种子 / {scenario_count} 个场景,索引与正文一致"
+        f"musepool: {len(entries)} 个种子 / {scenario_count} 个场景 / "
+        f"{adapter_count} 个载体适配器,索引与正文一致,适配器结构一致"
     )
     return 0
 
@@ -521,9 +724,10 @@ def main() -> int:
 
     r = sub.add_parser("recipe", help="从 1–3 个种子生成机器可读的合成配方草案")
     r.add_argument("targets", nargs="+", help="1–3 个 seed id 或文件名片段")
+    r.add_argument("--carrier", help="注入 frontend 或 infographic 载体适配约束")
     r.add_argument("--brief", help="保留原始设计需求,不自动改写")
 
-    sub.add_parser("validate", help="校验索引、seed 元数据、正文结构与文件集合")
+    sub.add_parser("validate", help="校验索引、seed、载体适配器与文件集合")
 
     args = p.parse_args()
     return {

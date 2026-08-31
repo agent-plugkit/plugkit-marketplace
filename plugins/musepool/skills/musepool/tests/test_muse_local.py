@@ -11,6 +11,7 @@ from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 SCRIPT = SKILL_DIR / "scripts" / "muse_local.py"
+ADAPTERS = SKILL_DIR / "references" / "carrier-adapters.json"
 
 
 class MuseLocalCliTests(unittest.TestCase):
@@ -78,7 +79,77 @@ class MuseLocalCliTests(unittest.TestCase):
         self.assertIn("focal_event", recipe["synthesis"])
         self.assertIn("release_zone", recipe["synthesis"])
         self.assertIn("structural_changes", recipe["originality"])
+        self.assertIsNone(recipe["carrier_adapter"])
         self.assertGreaterEqual(len(recipe["quality_gate"]), 8)
+
+    def test_frontend_carrier_adapter_extends_the_recipe_contract(self) -> None:
+        result = self.run_cli(
+            "recipe",
+            "mC1nkP2t",
+            "--carrier",
+            "frontend",
+            "--brief",
+            "为本地优先笔记工具设计响应式网页首屏",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        recipe = json.loads(result.stdout)
+        adapter = recipe["carrier_adapter"]
+        self.assertEqual(recipe["brief"]["carrier"], "frontend")
+        self.assertEqual(adapter["id"], "frontend")
+        self.assertEqual(adapter["source"], "references/carrier-adapters.json")
+        self.assertIn(
+            "semantic_content_layer",
+            {decision["id"] for decision in adapter["decisions"]},
+        )
+        self.assertIn(
+            "responsive_focal_release",
+            {constraint["id"] for constraint in adapter["constraints"]},
+        )
+        self.assertIn(
+            "narrow_viewport_long_copy",
+            {scenario["id"] for scenario in adapter["simulation_scenarios"]},
+        )
+        self.assertIn(
+            "frontend_semantic_content",
+            {check["id"] for check in recipe["quality_gate"]},
+        )
+
+    def test_infographic_carrier_adapter_preserves_facts_and_export_surface(self) -> None:
+        result = self.run_cli(
+            "recipe",
+            "mC1nkP2t",
+            "--carrier",
+            "infographic",
+            "--brief",
+            "解释城市雨水从屋顶流向土壤和河流的路径",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        recipe = json.loads(result.stdout)
+        adapter = recipe["carrier_adapter"]
+        self.assertEqual(recipe["brief"]["carrier"], "infographic")
+        self.assertIn(
+            "authoritative_data",
+            {decision["id"] for decision in adapter["decisions"]},
+        )
+        self.assertIn(
+            "deterministic_marks",
+            {constraint["id"] for constraint in adapter["constraints"]},
+        )
+        self.assertIn(
+            "opaque_substrate_export",
+            {scenario["id"] for scenario in adapter["simulation_scenarios"]},
+        )
+        self.assertIn(
+            "infographic_data_fidelity",
+            {check["id"] for check in recipe["quality_gate"]},
+        )
+
+    def test_recipe_rejects_an_unknown_carrier_adapter(self) -> None:
+        result = self.run_cli("recipe", "mC1nkP2t", "--carrier", "poster")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("可用适配器: frontend, infographic", result.stderr)
 
     def test_recipe_rejects_more_than_three_references(self) -> None:
         result = self.run_cli(
@@ -92,6 +163,7 @@ class MuseLocalCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("29 个种子", result.stdout)
         self.assertIn("5 个场景", result.stdout)
+        self.assertIn("2 个载体适配器", result.stdout)
         self.assertIn("索引与正文一致", result.stdout)
 
     def test_validate_detects_index_metadata_drift(self) -> None:
@@ -108,6 +180,23 @@ class MuseLocalCliTests(unittest.TestCase):
             any("frontmatter core_dimensions 与索引不一致" in error for error in errors),
             errors,
         )
+
+    def test_validate_detects_carrier_adapter_contract_drift(self) -> None:
+        spec = importlib.util.spec_from_file_location("muse_local_under_test", SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        adapters = copy.deepcopy(module.read_carrier_adapters())
+        del adapters["adapters"]["frontend"]["constraints"]
+        errors = module.validate_carrier_adapters(adapters)
+        self.assertTrue(
+            any("frontend.constraints 必须是非空数组" in error for error in errors),
+            errors,
+        )
+
+        self.assertTrue(ADAPTERS.is_file())
 
 
 if __name__ == "__main__":

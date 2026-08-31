@@ -29,6 +29,8 @@ python3 scripts/muse_local.py search "monochrome grid"        # 跨场景关键�
 python3 scripts/muse_local.py search "dashboard" --scenario infographic
 python3 scripts/muse_local.py show <id或文件名片段>            # 打印完整 seed + 深度参考
 python3 scripts/muse_local.py recipe <id> [<id> ...] --brief "原始需求"
+python3 scripts/muse_local.py recipe <id> --carrier frontend --brief "网页需求"
+python3 scripts/muse_local.py recipe <id> --carrier infographic --brief "信息图需求"
 python3 scripts/muse_local.py validate                         # 校验完整种子库
 ```
 
@@ -38,8 +40,10 @@ python3 scripts/muse_local.py validate                         # 校验完整种
 2. **广搜。** 按场景 `list` 或跨场景 `search`(英文关键词,按问题搜而非按风格搜:"number density hierarchy" 而非 "minimal grid")。把候选摘要看完,不急于设计。
 3. **定 wow,选维度。** 挑 1–3 个有意外强点的种子:一个大胆的布局决策、一个出人意料的配色、或一个偏执打磨的微交互,胜过三个安全平庸的参照。决定深读哪些维度。
 4. **取深。** `show` 读完整种子:正文各维度即实现级细节;若文末有 `Dimensional References`(代码级参考),一并精读。seed 是全局锚点,维度细节是工艺——两者都要,只有梗概丢工艺,只有细节丢结构。
-5. **锁 recipe。** 运行 `recipe` 生成 1–3 个种子的机器可读草案,完整填写参照角色、借用约束、单一焦点、释放区、色彩/字体/布局/图像/动效/工艺、实现要求、原创性改变与检查证据。详细契约见 [references/composition-recipe.md](references/composition-recipe.md)。有空字段就不要进入实现。
+5. **锁 recipe。** 运行 `recipe` 生成 1–3 个种子的机器可读草案,完整填写参照角色、借用约束、单一焦点、释放区、色彩/字体/布局/图像/动效/工艺、实现要求、原创性改变与检查证据。frontend 或 infographic 产物必须同时传对应 `--carrier`,把载体决策、硬约束、模拟场景和质量门注入同一份 recipe。详细契约见 [references/composition-recipe.md](references/composition-recipe.md)。有空字段就不要进入实现。
 6. **实现并检查。** 让所有高能元素服务于一个 `focal_event`,同时保留一个明显更安静的 `release_zone`;按参照实现,再在真实尺寸和缩略视图检查。界面类产物同时检查关键状态、内容极值、响应式、键盘焦点与可访问性。
+
+载体适配不是第二套风格。`references/carrier-adapters.json` 是 frontend 与 infographic 适配约束的单一权威;通过 `recipe --carrier ...` 读取,不要复制到 seed、提示词或实现说明里再维护一份。
 
 ## 默认陷阱(必须避开)
 

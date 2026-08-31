@@ -45,7 +45,8 @@
 运行：
 
 ```bash
-python3 scripts/muse_local.py recipe <id> [<id> ...] --brief "用户原始需求"
+python3 scripts/muse_local.py recipe <id> [<id> ...] \
+  [--carrier frontend|infographic] --brief "用户原始需求"
 ```
 
 命令输出固定 JSON 草案。进入实现前，所有适用的 `null`、空数组和空对象都要被实际决定替换；不适用项写明原因，不能静默略过。
@@ -61,7 +62,19 @@ python3 scripts/muse_local.py recipe <id> [<id> ...] --brief "用户原始需求
 
 动效、材质和“不完美”只在内容与参照支持时使用。随机纹理、抖动或错位不得掩盖构图问题；需要重试时，已确认的构图、焦点、色板和工艺强度保持稳定。
 
-## 5. 原创性防火墙
+## 5. 应用载体适配器
+
+frontend 或 infographic 产物必须传对应 `--carrier`。命令会从 `carrier-adapters.json` 注入一个 `carrier_adapter`，并把该载体的检查合并进 `quality_gate`。这个文件是适配约束的单一权威；文档、seed 和提示词只引用输出，不复制规则。
+
+- 填完 `carrier_adapter.decisions` 中的每个 `decision`；不适用时写出原因；
+- 保留全部 `constraints`，发现与用户目标冲突时返回需求或设计阶段确认，不能静默删除；
+- 用 `simulation_scenarios` 的真实极值输入验证最终产物，而不是只检查 recipe JSON；
+- frontend 的功能文字、数据和控件留在语义层，装饰性印版分层实现；
+- infographic 的数据、标记、路径和标签由确定性规则生成，生成式图像只承担非事实背景。
+
+`carrier_adapter` 约束载体事实，不提供第二套审美。色彩、排版、构图和工艺仍来自所选 seed；两者对同一决策发生冲突时，不做平均折中。
+
+## 6. 原创性防火墙
 
 参照提供的是视觉语法，不是待描摹的模板。不得复刻独特的对象排列、标题断行、标识、文案、边框系统、插画或签名。
 
@@ -79,7 +92,7 @@ python3 scripts/muse_local.py recipe <id> [<id> ...] --brief "用户原始需求
 
 用户要求“原样照着做”时，保留其目标与内容，转译系统级品质；不要复制可识别构图。
 
-## 6. 最终检查
+## 7. 最终检查
 
 实现后同时看真实尺寸和缩略视图；界面类产物再覆盖关键状态、内容极值、响应式、键盘焦点和可访问性。
 
@@ -93,7 +106,9 @@ python3 scripts/muse_local.py recipe <id> [<id> ...] --brief "用户原始需求
 6. 至少四项结构变量已主动改变，没有复制专有表达；
 7. 最终产物而非 recipe 本身通过了目标尺寸检查。
 
-`python3 scripts/muse_local.py validate` 只证明本地种子库结构一致，不能替代对最终视觉产物的人工检查。
+存在 `carrier_adapter` 时，再逐个运行其 `simulation_scenarios`，并为新增的载体质量门记录直接证据。recipe 输出或单元测试通过不能替代真实断点、内容极值、输入数据与导出文件检查。
+
+`python3 scripts/muse_local.py validate` 只证明本地种子库与载体适配器结构一致，不能替代对最终视觉产物的人工检查。
 
 ## 方法来源
 

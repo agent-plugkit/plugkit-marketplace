@@ -1,0 +1,310 @@
+{
+  "schema_version": 1,
+  "adapters": {
+    "frontend": {
+      "name": "前端界面适配器",
+      "purpose": "把已解析的视觉 recipe 转译为响应式、语义化界面，不把功能内容烘焙进装饰性位图层。",
+      "applies_to": [
+        "website",
+        "web-app",
+        "landing-page",
+        "dashboard",
+        "desktop-web-ui"
+      ],
+      "decisions": [
+        {
+          "id": "delivery_surface",
+          "prompt": "本次界面包含哪些路由、状态、视口和主题？"
+        },
+        {
+          "id": "semantic_content_layer",
+          "prompt": "哪些精确文案、数据、控件和阅读顺序必须保留为语义 DOM，而不是图片像素？"
+        },
+        {
+          "id": "visual_layer_model",
+          "prompt": "recipe 的底层、主视觉层、强调层和叠印分别如何映射到 CSS、SVG、Canvas 或位图资产？"
+        },
+        {
+          "id": "responsive_behavior",
+          "prompt": "焦点事件、释放区、裁切和字体层级在每个已声明断点如何重组？"
+        },
+        {
+          "id": "content_extremes",
+          "prompt": "构图必须承受哪些最长、最短、空、加载和错误内容状态？"
+        },
+        {
+          "id": "interaction_states",
+          "prompt": "需要哪些悬停、焦点、激活、选中、加载和错误状态，各由哪一视觉层负责？"
+        },
+        {
+          "id": "motion_fallback",
+          "prompt": "动效解释什么关系，用户要求减少动态时显示哪个等价状态？"
+        },
+        {
+          "id": "accessibility_evidence",
+          "prompt": "用哪些对比度、标题、阅读顺序、键盘、焦点和替代文本检查形成证据？"
+        },
+        {
+          "id": "performance_budget",
+          "prompt": "用什么加载、渲染和动画预算约束字体、图片、SVG 滤镜、Canvas 和纹理层？"
+        },
+        {
+          "id": "asset_fallback",
+          "prompt": "字体、图片、脚本或增强渲染层失败时，界面如何保留内容与层级？"
+        }
+      ],
+      "constraints": [
+        {
+          "id": "semantic_content",
+          "rule": "精确文案、数据、标题、链接和控件保留在语义 DOM 中；只把非功能图像或纹理位图化。",
+          "evidence_hint": "检查 DOM，并确认禁用图片和 Canvas 后任务与阅读顺序仍可理解。"
+        },
+        {
+          "id": "plate_layer_separation",
+          "rule": "把底层、主层和强调层映射为可独立控制的 CSS、SVG、Canvas 或资产层；不得把整个界面压平成一张图片。",
+          "evidence_hint": "逐层禁用视觉层，确认实际职责与 recipe 声明一致。"
+        },
+        {
+          "id": "responsive_focal_release",
+          "rule": "为每个支持断点分别解析焦点事件与释放区；不得通过在窄屏隐藏必要内容来保留桌面裁切。",
+          "evidence_hint": "截取最小与最大支持视口，确认焦点、释放区和精确文案仍可识别。"
+        },
+        {
+          "id": "stable_texture",
+          "rule": "程序纹理、网点原点和不完美随机种子在多次渲染间保持稳定；变化不得移动锚点、文字或点击目标。",
+          "evidence_hint": "比较重复渲染，确认只有允许的材质变化发生改变。"
+        },
+        {
+          "id": "accessible_interactions",
+          "rule": "交互元素必须具备语义角色、可见键盘焦点、可用目标尺寸，以及与视觉层级一致的阅读顺序。",
+          "evidence_hint": "仅使用键盘完成主要旅程并检查无障碍树。"
+        },
+        {
+          "id": "reduced_motion",
+          "rule": "动效可以揭示既有关系，但不能成为理解内容的必要条件；必须提供等价的 reduced-motion 状态。",
+          "evidence_hint": "启用 prefers-reduced-motion 运行同一旅程并比较信息完整性。"
+        },
+        {
+          "id": "bounded_render_cost",
+          "rule": "声明性能预算，把高成本滤镜、Canvas 循环、纹理分辨率和动画层限制在真正需要的表面。",
+          "evidence_hint": "记录资产体积，并在最慢支持设备等级上采集代表性运行轨迹或帧率证据。"
+        },
+        {
+          "id": "graceful_fallback",
+          "rule": "字体、图片或增强渲染失败可以降低工艺，但不能丢失精确内容、控件、层级或任务完成能力。",
+          "evidence_hint": "分别阻断每类可选资产一次，验证可用降级路径。"
+        }
+      ],
+      "simulation_scenarios": [
+        {
+          "id": "narrow_viewport_long_copy",
+          "brief": "在最小支持视口渲染最长的真实标题、工具标签和正文。",
+          "assertions": [
+            "没有精确内容被裁掉或只存在于位图中。",
+            "重排后仍只有一个焦点事件。",
+            "较低信息压力的释放区仍可见，且没有形成无意义空洞。"
+          ]
+        },
+        {
+          "id": "keyboard_reduced_motion",
+          "brief": "启用减少动态后，仅使用键盘完成主要交互。",
+          "assertions": [
+            "焦点顺序遵循语义阅读顺序。",
+            "焦点指示在所有视觉层上都清晰可见。",
+            "没有信息或任务依赖动画。"
+          ]
+        },
+        {
+          "id": "font_and_asset_failure",
+          "brief": "分别阻断自定义字体、图像和增强渲染层。",
+          "assertions": [
+            "精确内容和控件仍可用。",
+            "降级字体仍保留可用层级。",
+            "页面不残留图片形状的空洞或损坏的点击目标。"
+          ]
+        }
+      ],
+      "quality_gate": [
+        {
+          "id": "frontend_semantic_content",
+          "question": "精确文案、数据和控件保持语义化，禁用装饰渲染层后仍可使用。"
+        },
+        {
+          "id": "frontend_responsive_composition",
+          "question": "每个支持断点都保留一个焦点事件、一个更安静的释放区和完整内容。"
+        },
+        {
+          "id": "frontend_accessibility",
+          "question": "阅读顺序、对比度、键盘焦点、目标尺寸和替代内容均有直接证据。"
+        },
+        {
+          "id": "frontend_motion_fallback",
+          "question": "减少动态状态保留相同信息和任务完成能力。"
+        },
+        {
+          "id": "frontend_performance",
+          "question": "字体、媒体、滤镜、Canvas 和动画层均在声明预算内。"
+        },
+        {
+          "id": "frontend_asset_fallback",
+          "question": "字体、图片和增强渲染失败只降低工艺，不破坏层级或行为。"
+        }
+      ]
+    },
+    "infographic": {
+      "name": "信息图适配器",
+      "purpose": "把已解析的视觉 recipe 转译为确定性说明图，使事实、编码、标签和导出表面均可验证。",
+      "applies_to": [
+        "infographic",
+        "data-report",
+        "diagram",
+        "dashboard-visual",
+        "scientific-explainer"
+      ],
+      "decisions": [
+        {
+          "id": "authoritative_data",
+          "prompt": "哪些已提供的数据集、事实、标签、单位和关系是权威输入，哪些内容禁止推断？"
+        },
+        {
+          "id": "encoding_map",
+          "prompt": "各字段或关系分别映射到哪些位置、长度、面积、形状、线型、颜色和注释？"
+        },
+        {
+          "id": "layout_algorithm",
+          "prompt": "用哪些确定性的比例尺、排序、路由、避碰和聚合规则放置标记与连接线？"
+        },
+        {
+          "id": "label_strategy",
+          "prompt": "在最密集支持内容下，标签如何关联、换行、缩写、避让或提升层级？"
+        },
+        {
+          "id": "source_and_notes",
+          "prompt": "哪些来源、时间范围、单位、限制和变换说明必须显示，哪些应明确标记为不适用？"
+        },
+        {
+          "id": "content_extremes",
+          "prompt": "如何表示空值、零、负值、离群值、重复值、长标签和密集节点？"
+        },
+        {
+          "id": "accessibility_equivalent",
+          "prompt": "用哪些非颜色编码以及文字或表格等价物表达相同事实？"
+        },
+        {
+          "id": "export_targets",
+          "prompt": "必须验证哪些像素尺寸、印刷尺寸、色彩模式、底色、透明度和文件格式？"
+        },
+        {
+          "id": "illustration_boundary",
+          "prompt": "哪些图像只承担说明背景，绝不能改变数据标记、标签或所声明关系？"
+        }
+      ],
+      "constraints": [
+        {
+          "id": "authoritative_inputs",
+          "rule": "把已提供的数据、标签、单位和关系视为不可变输入；记录变换，禁止用看似合理的值填补缺口。",
+          "evidence_hint": "将每个渲染标签和值与机器可读输入快照逐项比较。"
+        },
+        {
+          "id": "deterministic_marks",
+          "rule": "依据显式规则确定性生成比例尺、标记、路径、箭头、标签和图例；生成式图像可以装饰背景，但不能控制事实几何。",
+          "evidence_hint": "对同一输入渲染两次，比较标记位置、路径、标签和顺序。"
+        },
+        {
+          "id": "explicit_encoding_map",
+          "rule": "记录每种视觉编码并在产物中保持一致；装饰性叠印不得暗示未声明的数值或类别。",
+          "evidence_hint": "把每个可见变化追溯到一项编码，或明确标记为非数据装饰。"
+        },
+        {
+          "id": "redundant_encoding",
+          "rule": "类别、状态或方向不得只依赖颜色；必须配合位置、形状、线型、标签或符号。",
+          "evidence_hint": "检查灰度或色觉模拟，确认各项差异仍可恢复。"
+        },
+        {
+          "id": "label_association",
+          "rule": "标签必须在视觉上关联到正确标记或路径，并按声明规则处理重叠、换行和截断。",
+          "evidence_hint": "使用最长标签和最密集节点集，在最终尺寸逐项检查关联。"
+        },
+        {
+          "id": "source_provenance",
+          "rule": "产物提出有来源的定量或事实主张时，必须显示来源、单位、时间范围和限制；纯教学示意图应逐项明确标记不适用。",
+          "evidence_hint": "将可见说明或明确的不适用决定与权威输入对应。"
+        },
+        {
+          "id": "export_surface",
+          "rule": "明确决定底色与透明度，保留已声明的墨色或颜色职责，并验证最终导出文件而不是只看编辑画布。",
+          "evidence_hint": "检查导出产物的尺寸、Alpha 通道、背景、颜色数量或模式及可读性。"
+        },
+        {
+          "id": "accessible_equivalent",
+          "rule": "对无法仅从图像恢复的事实内容，提供简洁文字说明或结构化表格。",
+          "evidence_hint": "将替代表达与同一权威输入及关系进行比较。"
+        }
+      ],
+      "simulation_scenarios": [
+        {
+          "id": "long_labels_dense_nodes",
+          "brief": "在最小目标尺寸渲染最密集支持节点集和最长真实标签。",
+          "assertions": [
+            "每个标签仍关联正确标记或路径。",
+            "避碰遵循声明规则，而不是随机位移。",
+            "主要说明路径仍可识别。"
+          ]
+        },
+        {
+          "id": "null_zero_negative_values",
+          "brief": "当领域允许时，同时渲染空值、零、负值和离群输入。",
+          "assertions": [
+            "空值没有被静默转换为零。",
+            "负值和离群值保留比例尺语义。",
+            "注释和替代表达说明所有裁剪或聚合。"
+          ]
+        },
+        {
+          "id": "grayscale_color_vision",
+          "brief": "检查灰度和代表性色觉模拟。",
+          "assertions": [
+            "不依赖色相时，类别、状态和方向仍可区分。",
+            "文字和标记保持足够对比度。",
+            "印版叠加没有创造未声明的数据类别。"
+          ]
+        },
+        {
+          "id": "opaque_substrate_export",
+          "brief": "使用已声明底色和透明度策略，导出最小位图目标及主要印刷或矢量目标。",
+          "assertions": [
+            "尺寸、Alpha 通道和背景与 recipe 一致。",
+            "标签和细路径在最终尺寸仍可读。",
+            "导出色板保留全部声明职责，没有意外多色。"
+          ]
+        }
+      ],
+      "quality_gate": [
+        {
+          "id": "infographic_data_fidelity",
+          "question": "渲染值、标签、单位和关系与权威输入及记录的变换一致。"
+        },
+        {
+          "id": "infographic_deterministic_geometry",
+          "question": "标记、路径、箭头、标签和顺序可由声明规则复现。"
+        },
+        {
+          "id": "infographic_encoding_accessibility",
+          "question": "每项差异都有非颜色提示及等价文字或表格表达。"
+        },
+        {
+          "id": "infographic_label_integrity",
+          "question": "最长标签与最密集内容在最终尺寸仍保持可读且关联明确。"
+        },
+        {
+          "id": "infographic_provenance",
+          "question": "来源、单位、时间范围和限制已经提供，或明确标记不适用。"
+        },
+        {
+          "id": "infographic_export_surface",
+          "question": "导出尺寸、底色、透明度、色板及细节可读性与 recipe 一致。"
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "musepool",
   "version": "1.2.0",
-  "description": "Local design inspiration library: 29 curated seeds, traceable composition recipes, and offline validation across frontend, poster, infographic, social, and academic illustration.",
+  "description": "Local design inspiration library: 29 curated seeds, traceable composition recipes, frontend and infographic carrier adapters, and offline validation across five visual scenarios.",
   "author": {
     "name": "Agent Plugkit"
   }
