@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>城市切片 · 数字封面</title>
+<style>
+/* 独立的 3:4 双色构图。形态是创作内容；三段文字来自示例简报。 */
+*{box-sizing:border-box}
+html,body{margin:0;background:#f1eee5}
+.cover{position:relative;width:1080px;height:1440px;overflow:hidden;background:#f1eee5;color:#2148b8;font-family:"PingFang SC","Noto Sans CJK SC",sans-serif}
+h1{position:absolute;z-index:1;left:65px;top:100px;margin:0;font-size:216px;letter-spacing:-.06em;font-weight:700;line-height:1}
+.subtitle{position:absolute;left:72px;bottom:68px;margin:0;font-size:28px;letter-spacing:.09em;line-height:1.5}
+.issue{position:absolute;right:72px;top:52px;margin:0;font:500 24px/1.3 "Helvetica Neue",Arial,sans-serif;letter-spacing:.13em;color:#c65f38}
+.art{position:absolute;left:0;top:340px;width:1080px;height:922px}
+</style>
+</head>
+<body>
+<main class="cover" aria-label="城市切片，虚构刊物封面">
+<p class="issue">VOL. 01</p>
+<h1>城市切片</h1>
+<svg class="art" viewBox="0 0 1080 922" aria-label="由街道、窗和阶梯构成的抽象城市" role="img">
+<defs>
+  <pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="#2148b8"/></pattern>
+  <clipPath id="corner"><path d="M72 84H560V324H1008V842H72Z"/></clipPath>
+</defs>
+<!-- 主印版：不对称的大形态建立焦点，纸面街道把它切成可读片段。 -->
+<path d="M72 84H560V324H1008V842H72Z" fill="#2148b8"/>
+<path d="M650 22H1008V262H650Z" fill="url(#dots)"/>
+<path d="M718 82H954V264H718Z" fill="#c65f38"/>
+<path d="M792 130V265M860 130V265M928 130V265" fill="none" stroke="#f1eee5" stroke-width="13"/>
+<g clip-path="url(#corner)" fill="none" stroke="#f1eee5">
+  <path d="M-25 420H566V710H1138" stroke-width="48"/>
+  <path d="M222 0V341M222 489V1000" stroke-width="25"/>
+  <path d="M300 142H472M300 203H472M300 264H472" stroke-width="13"/>
+  <path d="M654 382V631M722 382V631M790 382V631M858 382V631M926 382V631" stroke-width="12"/>
+</g>
+<!-- 白色拱窗与阶梯是形态变化；暖色只在关键转折处出现。 -->
+<path d="M300 842V641a96 96 0 0 1 192 0v201Z" fill="#f1eee5"/>
+<path d="M300 842V794H350V746H400V698H452V651H492V842Z" fill="#c65f38"/>
+<circle cx="566" cy="420" r="66" fill="#c65f38"/>
+<circle cx="566" cy="420" r="28" fill="#f1eee5"/>
+<path d="M72 884H1008" stroke="#2148b8" stroke-width="2"/>
+<path d="M73 872V896M1007 872V896" stroke="#2148b8" stroke-width="2"/>
+</svg>
+<p class="subtitle">沿着日常路线，重新发现城市。</p>
+</main>
+</body>
+</html>

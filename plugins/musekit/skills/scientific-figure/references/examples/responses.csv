@@ -1,0 +1,9 @@
+condition,sample,response_ms
+A,1,12
+A,2,14
+A,3,13
+A,4,15
+B,1,18
+B,2,20
+B,3,17
+B,4,21

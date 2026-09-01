@@ -6,27 +6,10 @@
   "description": "Official agent-plugkit plugin marketplace",
   "plugins": [
     {
-      "name": "mermaid-render",
-      "source": "./plugins/mermaid-render",
-      "description": "Turn Mermaid diagrams into expressive visuals with three built-in art directions and independent HTML or Imagent rendering.",
-      "version": "0.2.0",
-      "author": {
-        "name": "Agent Plugkit"
-      },
-      "category": "tooling",
-      "tags": [
-        "mermaid",
-        "diagram",
-        "visualization",
-        "html",
-        "imagent"
-      ]
-    },
-    {
-      "name": "musepool",
-      "source": "./plugins/musepool",
-      "description": "Local design inspiration library: 29 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Local files only, no backend.",
-      "version": "1.1.1",
+      "name": "musekit",
+      "source": "./plugins/musekit",
+      "description": "设计灵感与场景制作工具箱：29 个本地种子，以及界面、平面、图解和学术图的独立制作 Skill。",
+      "version": "0.1.0",
       "author": {
         "name": "Agent Plugkit"
       },
@@ -34,12 +17,10 @@
       "tags": [
         "design",
         "inspiration",
-        "musepool",
-        "frontend",
-        "poster",
-        "infographic",
-        "social",
-        "academic"
+        "ui",
+        "graphic",
+        "diagram",
+        "scientific-figure"
       ]
     },
     {

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>社区观察</title>
+<style>
+/* 独立示例：借用 seed 的色彩职责，按检索任务建立响应式列表。 */
+:root{--ink:#1e2947;--muted:#677087;--blue:#2148b8;--warm:#ae4d28;--line:#dce1ed;--surface:#f7f8fc}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:Inter,"PingFang SC","Noto Sans CJK SC",sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--warm);outline-offset:4px}
+.shell{max-width:1120px;margin:auto;padding:0 40px}
+header{border-bottom:1px solid var(--line);background:#fff}
+.header-inner{display:flex;align-items:center;justify-content:space-between;min-height:88px;gap:20px}
+.brand{display:flex;align-items:center;gap:13px;font-weight:650;font-size:18px}
+.mark{width:26px;height:26px;border:2px solid var(--blue);border-radius:50%;position:relative}
+.mark:after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:var(--warm);right:-5px;bottom:-2px;border:3px solid #fff}
+.header-note{font-size:13px;color:var(--muted);letter-spacing:.08em}
+main{padding-bottom:52px}
+.intro{padding:62px 0 46px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px}
+.eyebrow{font-size:12px;letter-spacing:.18em;color:var(--blue);margin:0 0 20px}
+h1{font-size:52px;font-weight:600;letter-spacing:-.035em;line-height:1.14;margin:0 0 20px}
+.subtitle{font-size:17px;line-height:1.8;color:var(--muted);margin:0}
+.issue{color:var(--blue);text-align:right;flex-shrink:0}
+.issue strong{display:block;font-size:48px;font-weight:400;letter-spacing:-.06em}
+.issue span{font-size:12px;letter-spacing:.09em}
+.collection{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.tools{padding:26px 30px 22px;border-bottom:1px solid var(--line)}
+.search-label{display:block;font-size:13px;font-weight:600;margin-bottom:10px}
+.search-wrap{display:flex;align-items:center;position:relative}
+.search-icon{position:absolute;left:16px;width:19px;height:19px;color:var(--muted);pointer-events:none}
+input{width:100%;height:52px;padding:0 18px 0 48px;border:1px solid #b8c3da;background:#fafbfe;border-radius:8px;color:var(--ink)}
+input::placeholder{color:#626f86}
+.filter-line{display:flex;align-items:center;justify-content:space-between;margin-top:24px;gap:18px;flex-wrap:wrap}
+.filters{display:flex;gap:6px}
+.filters button{min-height:44px;min-width:68px;padding:8px 18px;border:1px solid transparent;background:transparent;border-radius:7px;color:var(--muted)}
+.filters button:hover{background:#f0f3fa}
+.filters button[aria-pressed=true]{background:var(--blue);color:#fff}
+#count{font-size:13px;color:var(--muted);margin:0}
+#records{list-style:none;margin:0;padding:0 30px}
+.record{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:20px;padding:26px 0;border-bottom:1px solid var(--line)}
+.record:last-child{border-bottom:0}
+.record[hidden]{display:none}
+.symbol{height:54px;width:54px;display:grid;place-items:center;border-radius:12px;background:#f0f3fa;color:var(--blue)}
+.symbol svg{width:30px;height:30px}
+h2{margin:0 0 9px;font-size:20px;font-weight:600;line-height:1.45}
+.metadata{display:flex;gap:14px;align-items:center;font-size:13px;color:var(--muted);line-height:1.6}
+.category{color:var(--blue)}
+.category:after{content:"";display:inline-block;height:10px;width:1px;margin-left:14px;background:var(--line)}
+time{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.empty{text-align:center;padding:64px 24px 58px}
+.empty h2{font-size:22px}
+.empty p{color:var(--muted);font-size:14px;line-height:1.7}
+.clear{min-height:44px;padding:10px 20px;margin-top:12px;border:1px solid var(--blue);border-radius:7px;color:var(--blue);background:#fff}
+.clear:hover{background:#f0f3fa}
+footer{display:flex;justify-content:space-between;gap:20px;padding:26px 0 0;color:var(--muted);font-size:12px;line-height:1.8}
+.footer-dot{display:inline-block;width:6px;height:6px;margin-right:7px;background:var(--warm);border-radius:50%}
+@media(max-width:640px){
+.shell{padding:0 22px}.header-inner{min-height:72px}.header-note{font-size:11px}
+.intro{padding:40px 0 30px}.eyebrow{margin-bottom:16px}h1{font-size:38px}.subtitle{font-size:15px}.issue{display:none}
+.collection{border-radius:12px}.tools{padding:22px 18px 18px}.filter-line{gap:16px;margin-top:18px}.filters{gap:2px;flex-wrap:wrap}.filters button{min-width:56px;padding:8px 10px}
+#records{padding:0 18px}.record{grid-template-columns:44px minmax(0,1fr);gap:12px;padding:22px 0}.symbol{width:42px;height:42px;border-radius:10px}.symbol svg{width:26px;height:26px}
+h2{font-size:18px}.metadata{gap:9px;font-size:12px}.category:after{margin-left:9px}time{grid-column:2;font-size:12px;margin-top:-4px}
+footer{display:block}footer span{display:block}
+}
+</style>
+</head>
+<body>
+<header><div class="shell header-inner"><div class="brand"><i class="mark" aria-hidden="true"></i>社区观察</div><span class="header-note">日常 / 记录 / 发现</span></div></header>
+<main class="shell">
+<section class="intro" aria-labelledby="title">
+<div><p class="eyebrow">NEIGHBOURHOOD NOTES</p><h1 id="title">社区观察</h1><p class="subtitle">沿着日常路线，记录城市的细小变化。</p></div>
+<div class="issue" aria-label="四条示例记录"><strong>04</strong><span>条观察记录</span></div>
+</section>
+<section class="collection" aria-label="浏览观察记录">
+<div class="tools">
+<label class="search-label" for="search">搜索观察记录</label>
+<div class="search-wrap"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></svg><input id="search" type="search" placeholder="搜索标题或地点" autocomplete="off"></div>
+<div class="filter-line"><div class="filters" role="group" aria-label="按类别筛选"><button type="button" aria-pressed="true">全部</button><button type="button" aria-pressed="false">街道</button><button type="button" aria-pressed="false">植物</button><button type="button" aria-pressed="false">声音</button></div><p id="count" role="status" aria-live="polite">共 4 条记录</p></div>
+</div>
+<ul id="records">
+<li class="record" data-category="植物"><div class="symbol" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 29V13M16 21C5 22 3 13 4 6c9 0 13 5 12 15ZM16 16c0-9 5-13 12-13 1 8-3 14-12 13Z"/></svg></div><div><h2>台阶边的新芽</h2><div class="metadata"><span class="category">植物</span><span class="place">东侧步道</span></div></div><time datetime="2026-05-04">2026-05-04</time></li>
+<li class="record" data-category="街道"><div class="symbol" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 28 13 4M19 4l9 24M16 6v4m0 5v4m0 5v4"/></svg></div><div><h2>雨后的街角</h2><div class="metadata"><span class="category">街道</span><span class="place">桥下路口</span></div></div><time datetime="2026-05-05">2026-05-05</time></li>
+<li class="record" data-category="声音"><div class="symbol" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12v8m5-13v18m6-22v26m6-22v18m5-13v8"/></svg></div><div><h2>清晨的自行车铃</h2><div class="metadata"><span class="category">声音</span><span class="place">河岸</span></div></div><time datetime="2026-05-06">2026-05-06</time></li>
+<li class="record" data-category="植物"><div class="symbol" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 29c14-7 1-17 15-26M14 24c-7 2-11-2-11-8 7-1 12 1 11 8Zm4-13c-6 1-9-2-9-7 6-1 10 1 9 7Zm-1 9c7 1 12-3 12-9-8 0-12 3-12 9Z"/></svg></div><div><h2>墙边的常春藤</h2><div class="metadata"><span class="category">植物</span><span class="place">旧书店</span></div></div><time datetime="2026-05-07">2026-05-07</time></li>
+</ul>
+<div class="empty" id="empty" hidden><h2>没有找到匹配的观察</h2><p>试试其他关键词，或清除筛选查看全部记录。</p><button class="clear" id="clear" type="button">清除筛选</button></div>
+</section>
+<footer><span><i class="footer-dot" aria-hidden="true"></i>虚构示例内容</span><span>从一条熟悉的路，开始新的观察。</span></footer>
+</main>
+<script>
+const search = document.querySelector('#search');
+const filters = Array.from(document.querySelectorAll('.filters button'));
+const records = Array.from(document.querySelectorAll('.record'));
+let category = '全部';
+function update() {
+  const query = search.value.trim().toLocaleLowerCase();
+  let count = 0;
+  for (const record of records) {
+    const text = record.querySelector('h2').textContent + ' ' + record.querySelector('.place').textContent;
+    const matches = (category === '全部' || record.dataset.category === category) && text.toLocaleLowerCase().includes(query);
+    record.hidden = !matches;
+    if (matches) count++;
+  }
+  for (const button of filters) button.setAttribute('aria-pressed', String(button.textContent === category));
+  document.querySelector('#count').textContent = '共 ' + count + ' 条记录';
+  document.querySelector('#empty').hidden = count > 0;
+}
+search.addEventListener('input', update);
+for (const button of filters) button.addEventListener('click', () => { category = button.textContent; update(); });
+document.querySelector('#clear').addEventListener('click', () => { category = '全部'; search.value = ''; update(); search.focus(); });
+</script>
+</body>
+</html>

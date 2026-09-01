@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>异步任务的状态与恢复</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#f5f4ef}
+svg{display:block;width:1600px;height:1160px;font-family:"PingFang SC","Noto Sans CJK SC",Arial,sans-serif}
+text{text-rendering:optimizeLegibility}
+</style>
+</head>
+<body>
+<!-- 独立示例：坐标服务本图内容，原始关系见同名 .mmd。 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160" role="img" aria-labelledby="title">
+<title id="title">异步任务的状态与恢复</title>
+<defs>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#2148b8" stroke-width="1.5" stroke-linejoin="round"/></marker>
+<marker id="warm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#b45431" stroke-width="1.5" stroke-linejoin="round"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#687186" stroke-width="1.5" stroke-linejoin="round"/></marker>
+</defs>
+<rect width="1600" height="1160" fill="#f5f4ef"/>
+<text x="72" y="64" font-size="16" fill="#2148b8" font-weight="500" text-anchor="start"><tspan x="72" dy="0">04 / STATE</tspan></text>
+<text x="72" y="155" font-size="56" fill="#1f2a44" font-weight="600" text-anchor="start"><tspan x="72" dy="0">异步任务的状态与恢复</tspan></text>
+<text x="76" y="209" font-size="23" fill="#687186" font-weight="400" text-anchor="start"><tspan x="76" dy="0">突出运行状态，同时保留重试、耗尽与取消的不同出口。</tspan></text>
+<path d="M72 251H1528" fill="none" stroke="#cdd4df" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"/>
+<rect x="170" y="437" width="280" height="118" rx="12" fill="#fff" stroke="#cdd4df" stroke-width="1.5"/>
+<text x="197" y="482" font-size="28" fill="#1f2a44" font-weight="500" text-anchor="start"><tspan x="197" dy="0">queued</tspan></text>
+<text x="197" y="519" font-size="20" fill="#687186" font-weight="400" text-anchor="start"><tspan x="197" dy="0">排队</tspan></text>
+<rect x="618" y="410" width="414" height="238" rx="12" fill="#2148b8" stroke="none" stroke-width="1.5"/>
+<text x="656" y="472" font-size="44" fill="#fff" font-weight="500" text-anchor="start"><tspan x="656" dy="0">running</tspan></text>
+<text x="656" y="516" font-size="24" fill="#dce4ff" font-weight="400" text-anchor="start"><tspan x="656" dy="0">运行中</tspan></text>
+<path d="M656 550H994" fill="none" stroke="#6984d1" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"/>
+<text x="656" y="595" font-size="22" fill="#fff" font-weight="400" text-anchor="start"><tspan x="656" dy="0">成功 / 重试 / 耗尽</tspan></text>
+<rect x="1230" y="386" width="298" height="112" rx="12" fill="#fff" stroke="#2148b8" stroke-width="1.5"/>
+<text x="1260" y="430" font-size="28" fill="#2148b8" font-weight="500" text-anchor="start"><tspan x="1260" dy="0">done</tspan></text>
+<text x="1260" y="466" font-size="20" fill="#687186" font-weight="400" text-anchor="start"><tspan x="1260" dy="0">完成</tspan></text>
+<rect x="1230" y="696" width="298" height="112" rx="12" fill="#efe1d8" stroke="none" stroke-width="1.5"/>
+<text x="1260" y="740" font-size="28" fill="#b45431" font-weight="500" text-anchor="start"><tspan x="1260" dy="0">failed</tspan></text>
+<text x="1260" y="777" font-size="20" fill="#b45431" font-weight="400" text-anchor="start"><tspan x="1260" dy="0">失败</tspan></text>
+<rect x="170" y="842" width="280" height="112" rx="12" fill="#e7e9ef" stroke="none" stroke-width="1.5"/>
+<text x="197" y="886" font-size="28" fill="#1f2a44" font-weight="500" text-anchor="start"><tspan x="197" dy="0">cancelled</tspan></text>
+<text x="197" y="923" font-size="20" fill="#687186" font-weight="400" text-anchor="start"><tspan x="197" dy="0">取消</tspan></text>
+<circle cx="88" cy="496" r="9" fill="#1f2a44" aria-label="初始状态"/>
+<path d="M99 496H170" fill="none" stroke="#2148b8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#blue)" aria-label="初始状态 → queued：接收任务"/>
+<text x="129" y="538" font-size="20" fill="#1f2a44" font-weight="400" text-anchor="middle"><tspan x="129" dy="0">接收任务</tspan></text>
+<path d="M450 496H618" fill="none" stroke="#2148b8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#blue)" aria-label="queued → running：Worker 领取"/>
+<text x="534" y="476" font-size="19" fill="#2148b8" font-weight="400" text-anchor="middle"><tspan x="534" dy="0">Worker 领取</tspan></text>
+<path d="M1032 449H1230" fill="none" stroke="#2148b8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#blue)" aria-label="running → done：处理成功"/>
+<text x="1130" y="428" font-size="20" fill="#2148b8" font-weight="400" text-anchor="middle"><tspan x="1130" dy="0">处理成功</tspan></text>
+<path d="M1032 588H1130V752H1230" fill="none" stroke="#b45431" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#warm)" aria-label="running → failed：次数耗尽"/>
+<rect x="1089" y="655" width="82" height="61" rx="0" fill="#f5f4ef" stroke="none" stroke-width="1.5"/>
+<text x="1130" y="679" font-size="20" fill="#b45431" font-weight="400" text-anchor="middle"><tspan x="1130" dy="0">次数</tspan><tspan x="1130" dy="29">耗尽</tspan></text>
+<path d="M822 410V329H310V437" fill="none" stroke="#b45431" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#warm)" aria-label="running → queued：可重试错误，等待后重新排队"/>
+<rect x="409" y="277" width="468" height="42" rx="0" fill="#f5f4ef" stroke="none" stroke-width="1.5"/>
+<text x="643" y="307" font-size="22" fill="#b45431" font-weight="500" text-anchor="middle"><tspan x="643" dy="0">可重试错误，等待后重新排队</tspan></text>
+<path d="M310 555V842" fill="none" stroke="#687186" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#muted)" aria-label="queued → cancelled：用户取消"/>
+<text x="338" y="716" font-size="22" fill="#687186" font-weight="400" text-anchor="start"><tspan x="338" dy="0">用户取消</tspan></text>
+<path d="M1379 498V565" fill="none" stroke="#687186" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#muted)" aria-label="done → 终止状态"/>
+<g aria-label="终止状态"><circle cx="1379" cy="578" r="12" fill="#f5f4ef" stroke="#1f2a44" stroke-width="2"/><circle cx="1379" cy="578" r="7" fill="#1f2a44"/></g>
+<path d="M1379 808V917" fill="none" stroke="#687186" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#muted)" aria-label="failed → 终止状态"/>
+<g aria-label="终止状态"><circle cx="1379" cy="930" r="12" fill="#f5f4ef" stroke="#1f2a44" stroke-width="2"/><circle cx="1379" cy="930" r="7" fill="#1f2a44"/></g>
+<path d="M310 954V1013" fill="none" stroke="#687186" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#muted)" aria-label="cancelled → 终止状态"/>
+<g aria-label="终止状态"><circle cx="310" cy="1026" r="12" fill="#f5f4ef" stroke="#1f2a44" stroke-width="2"/><circle cx="310" cy="1026" r="7" fill="#1f2a44"/></g>
+<path d="M825 648V828" fill="none" stroke="#cdd4df" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7" aria-hidden="true"/>
+<rect x="613" y="828" width="450" height="126" rx="8" fill="#fff" stroke="#cdd4df" stroke-width="1.5"/>
+<text x="641" y="861" font-size="14" fill="#687186" font-weight="400" text-anchor="start"><tspan x="641" dy="0">RUNNING · 注释</tspan></text>
+<text x="641" y="899" font-size="22" fill="#1f2a44" font-weight="500" text-anchor="start"><tspan x="641" dy="0">任务号唯一</tspan></text>
+<text x="641" y="932" font-size="22" fill="#1f2a44" font-weight="500" text-anchor="start"><tspan x="641" dy="0">状态变化写审计</tspan></text>
+<path d="M72 1072H1528" fill="none" stroke="#cdd4df" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"/>
+<text x="76" y="1115" font-size="20" fill="#687186" font-weight="400" text-anchor="start"><tspan x="76" dy="0">重试返回 queued；取消仅从 queued 发起。</tspan></text>
+<text x="1528" y="1115" font-size="16" fill="#687186" font-weight="400" text-anchor="end"><tspan x="1528" dy="0">独立示例 · 异步任务</tspan></text>
+</svg>
+</body>
+</html>

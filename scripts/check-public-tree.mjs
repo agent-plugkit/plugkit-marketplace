@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const self = 'scripts/check-public-tree.mjs';
-const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf-8' })
-  .split('\0')
-  .filter(Boolean);
+const files = [...new Set(
+  execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+    cwd: root,
+    encoding: 'utf-8',
+  }).split('\0').filter(Boolean),
+)].filter((path) => existsSync(join(root, path)));
 const findings = [];
 
-for (const path of tracked) {
+for (const path of files) {
   if (path === 'DESIGN.md' || path.startsWith('specs/') || path.endsWith('/.DS_Store') || path === '.DS_Store') {
     findings.push(`${path}: internal or machine-local path is not allowed`);
   }
@@ -35,5 +38,5 @@ if (findings.length > 0) {
   console.error(`Public repository check failed:\n${findings.map((item) => `- ${item}`).join('\n')}`);
   process.exitCode = 1;
 } else {
-  console.log(`Public repository check passed (${tracked.length} tracked files).`);
+  console.log(`Public repository check passed (${files.length} working-tree files).`);
 }

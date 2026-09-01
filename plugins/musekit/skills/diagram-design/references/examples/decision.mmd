@@ -1,0 +1,9 @@
+flowchart TD
+  START[借阅申请] --> COMPLETE{资料完整？}
+  COMPLETE -->|否| WAIT[等待补充]
+  WAIT -->|补充后重新提交| START
+  COMPLETE -->|是| STOCK{库存足够？}
+  STOCK -->|是| APPROVE[批准借阅]
+  STOCK -->|否| RESERVE{允许预约？}
+  RESERVE -->|是| QUEUE[加入候补]
+  RESERVE -->|否| REJECT[暂不借出]

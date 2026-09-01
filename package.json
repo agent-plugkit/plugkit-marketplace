@@ -13,11 +13,13 @@
     "build:plugins": "agent-plugkit build --all",
     "build:index": "agent-plugkit index",
     "validate": "agent-plugkit validate --all",
+    "test:plugins": "node --test tests/*.test.mjs",
     "check:public": "node scripts/check-public-tree.mjs",
-    "check": "npm run check:public && npm run build:plugins && npm run build:index && npm run validate",
+    "check": "npm run check:public && npm run build:plugins && npm run build:index && npm run validate && npm run test:plugins",
     "release:local": "npm run check && agent-plugkit release-local"
   },
   "devDependencies": {
-    "agent-plugkit": "^0.1.0"
+    "agent-plugkit": "^0.1.0",
+    "yaml": "^2.9.0"
   }
 }

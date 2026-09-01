@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>城市切片 · 混合制作示例</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #e5e5e1;
+      }
+
+      svg {
+        display: block;
+        width: min(100vw, 1080px);
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440" viewBox="0 0 1080 1440" role="img" aria-labelledby="cover-title cover-description">
+      <title id="cover-title">城市切片，虚构刊物封面</title>
+      <desc id="cover-description">雨后旧城照片与精确中文排版组合而成的混合制作示例。</desc>
+      <style>
+        text { font-family: "Helvetica Neue", "PingFang SC", sans-serif; }
+        .serif { font-family: "Songti SC", "Noto Serif CJK SC", serif; }
+      </style>
+      <defs>
+        <clipPath id="photo-window">
+          <rect x="391" y="221" width="620" height="1005" />
+        </clipPath>
+      </defs>
+
+      <rect width="1080" height="1440" fill="#e5e5e1" />
+      <text x="72" y="96" font-size="26" letter-spacing="3" fill="#20211e">VOL. 01</text>
+      <path d="M72 128H1010" stroke="#20211e" stroke-width="1.4" />
+
+      <image href="city-scene.png" x="391" y="221" width="620" height="1005" preserveAspectRatio="xMidYMid slice" clip-path="url(#photo-window)" />
+      <path d="M376 196V224M362 210H390" stroke="#20211e" stroke-width="1.3" />
+
+      <text class="serif" x="69" y="416" font-size="145" font-weight="400" fill="#20211e">
+        <tspan x="69">城市</tspan>
+        <tspan x="69" dy="183">切片</tspan>
+      </text>
+      <path d="M72 722H312" stroke="#a3a99b" stroke-width="1" />
+      <text class="serif" x="72" y="842" font-size="29" letter-spacing="1" fill="#20211e">
+        <tspan x="72">沿着日常路线，</tspan>
+        <tspan x="72" dy="53">重新发现城市。</tspan>
+      </text>
+
+      <path d="M72 1268H1010" stroke="#20211e" stroke-width="1.2" />
+    </svg>
+  </body>
+</html>

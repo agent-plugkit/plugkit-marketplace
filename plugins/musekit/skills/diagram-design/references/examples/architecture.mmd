@@ -1,0 +1,23 @@
+flowchart LR
+  subgraph ENTRY[入口]
+    WEB[浏览器]
+    IMPORT[批量导入]
+  end
+  subgraph PROCESS[处理]
+    API[接收 API]
+    Q[任务队列]
+    WORKER[处理 Worker]
+  end
+  subgraph DATA[数据]
+    STORE[素材存储]
+    INDEX[索引]
+  end
+  WEB -->|上传| API
+  IMPORT -->|导入| API
+  API -->|保存素材| STORE
+  API -->|相同任务号不重复提交| Q
+  Q -->|消费| WORKER
+  STORE -->|读取素材| WORKER
+  WORKER -->|写回| INDEX
+  WEB -->|查询| INDEX
+  API ~~~ Q

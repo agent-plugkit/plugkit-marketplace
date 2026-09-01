@@ -1,0 +1,46 @@
+name: musekit
+version: "0.1.0"
+description: "设计灵感与场景制作工具箱：29 个本地种子，以及界面、平面、图解和学术图的独立制作 Skill。"
+author:
+  name: "Agent Plugkit"
+category: general
+tags:
+  - design
+  - inspiration
+  - ui
+  - graphic
+  - diagram
+  - scientific-figure
+
+components:
+  skills:
+    - name: musepool
+      path: skills/musepool
+      description: "搜索与比较本地设计种子，提炼可移植的 Markdown seed 简报。"
+    - name: ui-design
+      path: skills/ui-design
+      description: "从用户任务、信息架构和设计参考出发，设计并实现可用的前端界面。"
+    - name: graphic-design
+      path: skills/graphic-design
+      description: "制作海报、杂志封面、社媒图文等平面作品，按内容重新组织构图。"
+    - name: diagram-design
+      path: skills/diagram-design
+      description: "把 Mermaid 或关系说明制作成精美且信息完整的图解，默认自定义 HTML/CSS/SVG 并从浏览器导出 PNG。"
+    - name: scientific-figure
+      path: skills/scientific-figure
+      description: "基于原始资料制作学术数据图与科学示意图，核对数据编码、标注和出版尺寸。"
+
+platform:
+  codex:
+    interface:
+      displayName: "Musekit"
+      shortDescription: "从灵感到场景作品"
+      longDescription: "用 Musepool 探索 29 个本地设计种子，再由界面、平面、图解或学术图 Skill 完成制作与检查。每个场景有自己的方法，也可直接使用用户参考或既有设计系统。"
+      category: "General"
+      developerName: "Agent Plugkit"
+      capabilities:
+        - "Interactive"
+        - "Read"
+        - "Write"
+      defaultPrompt:
+        - "为这项设计找到合适的灵感，并用对应场景的方法完成作品。"

@@ -1,0 +1,14 @@
+stateDiagram-v2
+  [*] --> queued: 接收任务
+  queued --> running: Worker 领取
+  running --> done: 处理成功
+  running --> queued: 可重试错误，等待后重新排队
+  running --> failed: 次数耗尽
+  queued --> cancelled: 用户取消
+  done --> [*]
+  failed --> [*]
+  cancelled --> [*]
+  note right of running
+    任务号唯一
+    状态变化写审计
+  end note

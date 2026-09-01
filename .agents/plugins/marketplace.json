@@ -5,28 +5,13 @@
   },
   "plugins": [
     {
-      "name": "mermaid-render",
+      "name": "musekit",
       "source": {
         "source": "local",
-        "path": "./plugins/mermaid-render"
+        "path": "./plugins/musekit"
       },
       "interface": {
-        "displayName": "Mermaid Render"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tooling"
-    },
-    {
-      "name": "musepool",
-      "source": {
-        "source": "local",
-        "path": "./plugins/musepool"
-      },
-      "interface": {
-        "displayName": "Musepool"
+        "displayName": "Musekit"
       },
       "policy": {
         "installation": "AVAILABLE",

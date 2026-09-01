@@ -1,7 +1,6 @@
 # 插件目录
 
-- **mermaid-render** (v0.2.0) [Skill]: Turn Mermaid diagrams into expressive visuals with three built-in art directions and independent HTML or Imagent rendering.
-- **musepool** (v1.1.1) [Skill]: Local design inspiration library: 29 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Local files only, no backend.
+- **musekit** (v0.1.0) [Skill]: 设计灵感与场景制作工具箱：29 个本地种子，以及界面、平面、图解和学术图的独立制作 Skill。
 - **plugkit** (v0.1.0) [Skill]: Official agent-plugkit maintenance plugin
 
 _由 CLI 自动生成，请勿手动编辑。_

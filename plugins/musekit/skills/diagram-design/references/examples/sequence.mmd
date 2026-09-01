@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  actor U as 访问者
+  participant UI as 前端
+  participant S as 服务
+  participant DB as 存储
+  U->>UI: 提交预订
+  UI->>S: 请求号 + 资源编号
+  S->>DB: 检查剩余库存
+  DB-->>S: 剩余数量
+  alt 剩余数量为 0
+    S-->>UI: 已满，保持原输入
+    UI-->>U: 显示候补入口
+  else 剩余数量大于 0
+    S->>DB: 占用资源并保存请求号
+    S-->>UI: 确认编号
+    UI-->>U: 展示预订成功
+  end
+  Note over S,DB: 同一请求号只处理一次
