@@ -39,6 +39,8 @@
   A brand designer's portfolio presenting 13 years of work (2010-2023). The narrative flows: black hero with oversized title → horizontal scrolling work gallery → split intro with conversational headline → orange kinetic type section with client list. The tone is confident, playful, and craft-focused.
 - **`poster/arts-center-b3lygtwe.md`** — arts center(核心维度:imagery, components, typography)
   An arts center homepage presenting upcoming events and artist programs. The narrative flows from a distinctive organic-shaped hero carousel through thematic "Wander" navigation tags to a dark, grounded footer. The site positions itself as an unconventional cultural institution through its deliberate
+- **`poster/editorial-print-system-mc1nkp2t.md`** — one/two-ink editorial print system(核心维度:color, layout, typography, craft)
+  A reusable one- and two-ink editorial print system for posters, zines, covers, packaging, and social graphics. It combines adaptive neutral paper, assigned ink plates, mechanically reproduced imagery, asymmetric type-image tension, one decisive focal event, and a quieter release zone.
 
 ## 信息图 `infographic`
 

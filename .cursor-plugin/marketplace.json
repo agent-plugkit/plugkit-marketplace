@@ -19,8 +19,8 @@
     {
       "name": "musepool",
       "source": "./plugins/musepool",
-      "description": "Local design inspiration library: 28 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Local files only, no backend.",
-      "version": "1.1.0",
+      "description": "Local design inspiration library: 29 curated seeds across frontend (including desktop tools), poster, infographic, social, and academic illustration. Local files only, no backend.",
+      "version": "1.1.1",
       "author": {
         "name": "Agent Plugkit"
       }
