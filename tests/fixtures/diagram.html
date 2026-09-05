@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>图解编辑回归样例</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          18px/1.5 Arial,
+          "PingFang SC",
+          sans-serif;
+        color: #142c47;
+      }
+      #art {
+        width: 1280px;
+        height: 960px;
+        background: #f5f4ef;
+        position: relative;
+      }
+      header {
+        position: absolute;
+        left: 32px;
+        top: 28px;
+        width: 1216px;
+        height: 94px;
+        border-bottom: 1px solid #ccc;
+      }
+      h1 {
+        margin: 0;
+        font-size: 32px;
+      }
+      .body {
+        position: absolute;
+        inset: 0;
+      }
+      .group {
+        position: absolute;
+        background: #e4eaf3;
+        border: 1px solid #aebdd1;
+        border-radius: 12px;
+      }
+      .group > h2 {
+        font-size: 15px;
+        margin: 14px 18px;
+      }
+      .node {
+        position: absolute;
+        background: #fff;
+        padding: 18px;
+        border: 1px solid #758cab;
+        border-radius: 9px;
+      }
+      .node h3 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+      .node p {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .label {
+        position: absolute;
+        padding: 4px 8px;
+        background: #f5f4ef;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      footer {
+        position: absolute;
+        left: 32px;
+        top: 900px;
+        width: 1216px;
+        font-size: 14px;
+        border-top: 1px solid #ccc;
+        padding-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="art" data-diagram>
+      <header data-diagram-region="header">
+        <h1>从提交到归档</h1>
+        <span>长文案、嵌套分组与回路</span>
+      </header>
+      <main class="body" data-diagram-region="body">
+        <section
+          class="group"
+          data-diagram-group="outer"
+          style="left: 40px; top: 210px; width: 740px; height: 570px"
+        >
+          <h2>处理区域</h2>
+          <article
+            class="node"
+            data-diagram-node="A"
+            style="left: 24px; top: 65px; width: 250px"
+          >
+            <h3>接收请求</h3>
+            <p>
+              包含长中文说明、字体回退和需要完整保留的
+              resource_identifier_for_request_validation。
+            </p>
+          </article>
+          <article
+            class="node"
+            data-diagram-node="B"
+            style="left: 440px; top: 65px; width: 250px"
+          >
+            <h3>检查库存</h3>
+            <p>读取状态，确定是否继续。</p>
+          </article>
+          <section
+            class="group"
+            data-diagram-group="nested"
+            style="left: 250px; top: 350px; width: 420px; height: 180px"
+          >
+            <h2>异步处理</h2>
+            <article
+              class="node"
+              data-diagram-node="C"
+              style="left: 24px; top: 55px; width: 330px"
+            >
+              <h3>完成处理</h3>
+              <p>保存结果与审计记录。</p>
+            </article>
+          </section>
+        </section>
+        <article
+          class="node"
+          data-diagram-node="D"
+          style="left: 990px; top: 615px; width: 220px"
+        >
+          <h3>归档</h3>
+          <p>保留可查询记录。</p>
+        </article>
+        <div class="label" data-diagram-label="e1">提交完整请求</div>
+        <div class="label" data-diagram-label="e2">库存可用</div>
+        <div class="label" data-diagram-label="e3">归档结果</div>
+        <div class="label" data-diagram-label="retry">等待后再次检查</div>
+      </main>
+      <footer data-diagram-region="footer">
+        虚构示例 · 所有文字与关系在编辑中保持不变
+      </footer>
+    </div>
+    <script id="diagram-config" type="application/json">
+      {
+        "version": 1,
+        "name": "editor-regression",
+        "edges": [
+          { "id": "e1", "from": "A", "to": "B" },
+          {
+            "id": "e2",
+            "from": "B",
+            "to": "C",
+            "fromPort": { "side": "bottom" },
+            "toPort": { "side": "top" }
+          },
+          { "id": "e3", "from": "C", "to": "D" },
+          {
+            "id": "retry",
+            "from": "B",
+            "to": "B",
+            "kind": "loop",
+            "fromPort": { "side": "top" },
+            "toPort": { "side": "right" }
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

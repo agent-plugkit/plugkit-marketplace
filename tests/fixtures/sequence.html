@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>重试时序</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          18px/1.5 Arial,
+          sans-serif;
+      }
+      header {
+        height: 90px;
+        border-bottom: 1px solid #bbb;
+        padding: 20px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .actors {
+        display: grid;
+        grid-template-columns: 260px 260px;
+        gap: 220px;
+        padding: 0 40px;
+      }
+      .actor {
+        padding: 20px;
+        background: white;
+        height: 84px;
+      }
+      .plot {
+        position: relative;
+        height: 570px;
+      }
+      .branch {
+        position: absolute;
+        left: 40px;
+        top: 170px;
+        width: 740px;
+        height: 280px;
+        background: #e2eaf8;
+      }
+      .row {
+        position: absolute;
+        left: 0;
+        width: 1px;
+        height: 1px;
+      }
+      .label {
+        position: absolute;
+        font-size: 16px;
+        padding: 3px 6px;
+        background: #f5f4ef;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-diagram
+      style="
+        position: relative;
+        width: 920px;
+        height: 840px;
+        background: #f5f4ef;
+      "
+    >
+      <header data-diagram-region="header"><h1>重试与返回</h1></header>
+      <main data-diagram-region="body" style="position: relative">
+        <div class="actors">
+          <article class="actor" data-diagram-node="A" data-diagram-actor>
+            调用方
+          </article>
+          <article class="actor" data-diagram-node="B" data-diagram-actor>
+            服务
+          </article>
+        </div>
+        <div class="plot">
+          <div class="row" data-diagram-row="r1" style="top: 70px"></div>
+          <section class="branch" data-diagram-group="retry">
+            <div
+              data-diagram-node="caption"
+              style="position: absolute; left: 18px; top: 12px"
+            >
+              可恢复错误
+            </div>
+            <div class="row" data-diagram-row="r2" style="top: 75px"></div>
+            <div class="row" data-diagram-row="r3" style="top: 205px"></div>
+          </section>
+          <div class="label" data-diagram-label="call">提交请求</div>
+          <div class="label" data-diagram-label="self">
+            验证请求标识<br />并执行重试
+          </div>
+          <div class="label" data-diagram-label="return">返回结果</div>
+        </div>
+      </main>
+    </div>
+    <script type="application/json" id="diagram-config">
+      {
+        "version": 1,
+        "edges": [
+          {
+            "id": "call",
+            "kind": "sequence",
+            "from": "A",
+            "to": "B",
+            "row": "r1"
+          },
+          {
+            "id": "self",
+            "kind": "sequence",
+            "from": "B",
+            "to": "B",
+            "row": "r2"
+          },
+          {
+            "id": "return",
+            "kind": "sequence",
+            "from": "B",
+            "to": "A",
+            "row": "r3",
+            "dash": "6 5"
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

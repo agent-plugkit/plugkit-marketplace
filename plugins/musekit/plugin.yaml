@@ -1,5 +1,5 @@
 name: musekit
-version: "0.1.0"
+version: "0.2.1"
 description: "设计灵感与场景制作工具箱：29 个本地种子，以及界面、平面、图解和学术图的独立制作 Skill。"
 author:
   name: "Agent Plugkit"
@@ -25,7 +25,7 @@ components:
       description: "制作海报、杂志封面、社媒图文等平面作品，按内容重新组织构图。"
     - name: diagram-design
       path: skills/diagram-design
-      description: "把 Mermaid 或关系说明制作成精美且信息完整的图解，默认自定义 HTML/CSS/SVG 并从浏览器导出 PNG。"
+      description: "把 Mermaid 或关系说明制作成可直接微调的图解，内置尺寸测量、连线跟随、布局编辑和离线 PNG 导出。"
     - name: scientific-figure
       path: skills/scientific-figure
       description: "基于原始资料制作学术数据图与科学示意图，核对数据编码、标注和出版尺寸。"

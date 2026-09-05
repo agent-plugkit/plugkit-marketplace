@@ -1,0 +1,764 @@
+<!doctype html>
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width,initial-scale=1" name="viewport" />
+    <title>资源预订的两条路径</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: #f5f4ef;
+      }
+      svg {
+        display: block;
+        width: 1600px;
+        height: 1480px;
+        font-family: "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+      }
+      text {
+        text-rendering: optimizeLegibility;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 独立示例：坐标服务本图内容，原始关系见同名 .mmd。 -->
+    <div
+      data-diagram=""
+      style="width: 1600px; height: 1480px; position: relative"
+    >
+      <svg
+        aria-labelledby="title"
+        data-diagram-surface=""
+        height="1480"
+        viewbox="0 0 1600 1480"
+        width="1600"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title id="title">资源预订的两条路径</title>
+        <defs>
+          <marker
+            id="blue"
+            markerheight="7"
+            markerwidth="7"
+            orient="auto-start-reverse"
+            refx="9"
+            refy="5"
+            viewbox="0 0 10 10"
+          >
+            <path
+              d="M1 1L9 5L1 9"
+              fill="none"
+              stroke="#2148b8"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+            ></path>
+          </marker>
+          <marker
+            id="warm"
+            markerheight="7"
+            markerwidth="7"
+            orient="auto-start-reverse"
+            refx="9"
+            refy="5"
+            viewbox="0 0 10 10"
+          >
+            <path
+              d="M1 1L9 5L1 9"
+              fill="none"
+              stroke="#b45431"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+            ></path>
+          </marker>
+          <marker
+            id="muted"
+            markerheight="7"
+            markerwidth="7"
+            orient="auto-start-reverse"
+            refx="9"
+            refy="5"
+            viewbox="0 0 10 10"
+          >
+            <path
+              d="M1 1L9 5L1 9"
+              fill="none"
+              stroke="#687186"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+            ></path>
+          </marker>
+        </defs>
+        <rect
+          data-diagram-background=""
+          fill="#f5f4ef"
+          height="1480"
+          width="1600"
+        ></rect>
+        <g data-diagram-region="header">
+          <text
+            fill="#2148b8"
+            font-size="16"
+            font-weight="500"
+            text-anchor="start"
+            x="72"
+            y="64"
+          >
+            <tspan dy="0" x="72">03 / SEQUENCE</tspan>
+          </text>
+          <text
+            fill="#1f2a44"
+            font-size="56"
+            font-weight="600"
+            text-anchor="start"
+            x="72"
+            y="155"
+          >
+            <tspan dy="0" x="72">资源预订的两条路径</tspan>
+          </text>
+          <text
+            fill="#687186"
+            font-size="23"
+            font-weight="400"
+            text-anchor="start"
+            x="76"
+            y="209"
+          >
+            <tspan dy="0" x="76">
+              库存为零与库存可用，共享前半段检查，各自返回清楚的结果。
+            </tspan>
+          </text>
+          <path
+            aria-hidden="true"
+            d="M72 251H1528"
+            fill="none"
+            stroke="#cdd4df"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1"
+          ></path>
+        </g>
+        <g data-diagram-region="body">
+          <g data-diagram-group="available">
+            <rect
+              data-diagram-frame=""
+              fill="#e9eef9"
+              height="305"
+              rx="8"
+              stroke="none"
+              stroke-width="1.5"
+              width="1456"
+              x="72"
+              y="921"
+            ></rect>
+            <g data-diagram-row="row7">
+              <rect
+                fill="transparent"
+                height="1"
+                width="1456"
+                x="72"
+                y="1019.5"
+              ></rect>
+            </g>
+            <g data-diagram-row="row8">
+              <rect
+                fill="transparent"
+                height="1"
+                width="1456"
+                x="72"
+                y="1098.5"
+              ></rect>
+            </g>
+            <g data-diagram-row="row9">
+              <rect
+                fill="transparent"
+                height="1"
+                width="1456"
+                x="72"
+                y="1177.5"
+              ></rect>
+            </g>
+            <g data-diagram-node="title-available">
+              <text
+                fill="#2148b8"
+                font-size="18"
+                font-weight="500"
+                text-anchor="start"
+                x="96"
+                y="953"
+              >
+                <tspan dy="0" x="96">剩余数量大于 0</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-group="empty">
+            <rect
+              data-diagram-frame=""
+              fill="#efe4dc"
+              height="207"
+              rx="8"
+              stroke="none"
+              stroke-width="1.5"
+              width="1456"
+              x="72"
+              y="684"
+            ></rect>
+            <g data-diagram-row="row5">
+              <rect
+                fill="transparent"
+                height="1"
+                width="1456"
+                x="72"
+                y="779.5"
+              ></rect>
+            </g>
+            <g data-diagram-row="row6">
+              <rect
+                fill="transparent"
+                height="1"
+                width="1456"
+                x="72"
+                y="858.5"
+              ></rect>
+            </g>
+            <g data-diagram-node="title-empty">
+              <text
+                fill="#b45431"
+                font-size="18"
+                font-weight="500"
+                text-anchor="start"
+                x="96"
+                y="716"
+              >
+                <tspan dy="0" x="96">剩余数量为 0</tspan>
+              </text>
+            </g>
+          </g>
+
+          <g data-diagram-actor="" data-diagram-node="U">
+            <rect
+              data-diagram-frame=""
+              fill="#fff"
+              height="80"
+              rx="12"
+              stroke="none"
+              stroke-width="1.5"
+              width="238"
+              x="72"
+              y="281"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#1f2a44"
+                font-size="26"
+                font-weight="500"
+                text-anchor="middle"
+                x="191"
+                y="331"
+              >
+                <tspan dy="0" x="191">访问者</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-actor="" data-diagram-node="UI">
+            <rect
+              data-diagram-frame=""
+              fill="#fff"
+              height="80"
+              rx="12"
+              stroke="none"
+              stroke-width="1.5"
+              width="238"
+              x="480"
+              y="281"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#1f2a44"
+                font-size="26"
+                font-weight="500"
+                text-anchor="middle"
+                x="599"
+                y="331"
+              >
+                <tspan dy="0" x="599">前端</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-actor="" data-diagram-node="S">
+            <rect
+              data-diagram-frame=""
+              fill="#2148b8"
+              height="80"
+              rx="12"
+              stroke="none"
+              stroke-width="1.5"
+              width="238"
+              x="880"
+              y="281"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#fff"
+                font-size="26"
+                font-weight="500"
+                text-anchor="middle"
+                x="999"
+                y="331"
+              >
+                <tspan dy="0" x="999">服务</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-actor="" data-diagram-node="DB">
+            <rect
+              data-diagram-frame=""
+              fill="#fff"
+              height="80"
+              rx="12"
+              stroke="none"
+              stroke-width="1.5"
+              width="238"
+              x="1288"
+              y="281"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#1f2a44"
+                font-size="26"
+                font-weight="500"
+                text-anchor="middle"
+                x="1407"
+                y="331"
+              >
+                <tspan dy="0" x="1407">存储</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-node="NOTE">
+            <rect
+              data-diagram-frame=""
+              fill="#fff"
+              height="78"
+              rx="8"
+              stroke="#cdd4df"
+              stroke-width="1.5"
+              width="651"
+              x="877"
+              y="1260"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#687186"
+                font-size="14"
+                font-weight="400"
+                text-anchor="start"
+                x="903"
+                y="1290"
+              >
+                <tspan dy="0" x="903">服务 / 存储 · 注释</tspan>
+              </text>
+              <text
+                fill="#1f2a44"
+                font-size="22"
+                font-weight="500"
+                text-anchor="start"
+                x="903"
+                y="1319"
+              >
+                <tspan dy="0" x="903">同一请求号只处理一次</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-row="row1">
+            <rect
+              fill="transparent"
+              height="1"
+              width="1456"
+              x="72"
+              y="431.5"
+            ></rect>
+          </g>
+          <g data-diagram-row="row2">
+            <rect
+              fill="transparent"
+              height="1"
+              width="1456"
+              x="72"
+              y="503.5"
+            ></rect>
+          </g>
+          <g data-diagram-row="row3">
+            <rect
+              fill="transparent"
+              height="1"
+              width="1456"
+              x="72"
+              y="575.5"
+            ></rect>
+          </g>
+          <g data-diagram-row="row4">
+            <rect
+              fill="transparent"
+              height="1"
+              width="1456"
+              x="72"
+              y="649.5"
+            ></rect>
+          </g>
+          <g data-diagram-label="e1">
+            <text
+              fill="#1f2a44"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="395"
+              y="414"
+            >
+              <tspan dy="0" x="395">01 提交预订</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e2">
+            <text
+              fill="#1f2a44"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="799"
+              y="486"
+            >
+              <tspan dy="0" x="799">02 请求号 + 资源编号</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e3">
+            <text
+              fill="#1f2a44"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="1203"
+              y="558"
+            >
+              <tspan dy="0" x="1203">03 检查剩余库存</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e4">
+            <text
+              fill="#1f2a44"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="1203"
+              y="632"
+            >
+              <tspan dy="0" x="1203">04 剩余数量</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e5">
+            <text
+              fill="#b45431"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="799"
+              y="762"
+            >
+              <tspan dy="0" x="799">05 已满，保持原输入</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e6">
+            <text
+              fill="#b45431"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="395"
+              y="841"
+            >
+              <tspan dy="0" x="395">06 显示候补入口</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e7">
+            <text
+              fill="#1f2a44"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="1203"
+              y="1002"
+            >
+              <tspan dy="0" x="1203">07 占用资源并保存请求号</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e8">
+            <text
+              fill="#1f2a44"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="799"
+              y="1081"
+            >
+              <tspan dy="0" x="799">08 确认编号</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e9">
+            <text
+              fill="#1f2a44"
+              font-size="23"
+              font-weight="400"
+              text-anchor="middle"
+              x="395"
+              y="1160"
+            >
+              <tspan dy="0" x="395">09 展示预订成功</tspan>
+            </text>
+          </g>
+        </g>
+        <g data-diagram-region="footer">
+          <path
+            aria-hidden="true"
+            d="M72 1390H1528"
+            fill="none"
+            stroke="#cdd4df"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1"
+          ></path>
+          <text
+            fill="#687186"
+            font-size="18"
+            font-weight="400"
+            text-anchor="start"
+            x="76"
+            y="1430"
+          >
+            <tspan dy="0" x="76">时间自上而下</tspan>
+          </text>
+          <path
+            aria-hidden="true"
+            d="M440 1423H500"
+            fill="none"
+            marker-end="url(#blue)"
+            stroke="#2148b8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+          ></path>
+          <text
+            fill="#687186"
+            font-size="18"
+            font-weight="400"
+            text-anchor="start"
+            x="520"
+            y="1430"
+          >
+            <tspan dy="0" x="520">请求</tspan>
+          </text>
+          <path
+            aria-hidden="true"
+            d="M690 1423H750"
+            fill="none"
+            marker-end="url(#blue)"
+            stroke="#2148b8"
+            stroke-dasharray="8 7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+          ></path>
+          <text
+            fill="#687186"
+            font-size="18"
+            font-weight="400"
+            text-anchor="start"
+            x="770"
+            y="1430"
+          >
+            <tspan dy="0" x="770">返回</tspan>
+          </text>
+          <text
+            fill="#687186"
+            font-size="16"
+            font-weight="400"
+            text-anchor="end"
+            x="1528"
+            y="1430"
+          >
+            <tspan dy="0" x="1528">独立示例 · 资源预订</tspan>
+          </text>
+        </g>
+      </svg>
+    </div>
+    <script id="diagram-config" type="application/json">
+      {
+        "version": 1,
+        "name": "sequence",
+        "gap": 24,
+        "edges": [
+          {
+            "id": "e1",
+            "from": "U",
+            "to": "UI",
+            "color": "#2148b8",
+            "width": 2.5,
+            "fromPort": {
+              "side": "bottom",
+              "at": 0.5
+            },
+            "toPort": {
+              "side": "bottom",
+              "at": 0.5
+            },
+            "kind": "sequence",
+            "row": "row1"
+          },
+          {
+            "id": "e2",
+            "from": "UI",
+            "to": "S",
+            "color": "#2148b8",
+            "width": 2.5,
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row2"
+          },
+          {
+            "id": "e3",
+            "from": "S",
+            "to": "DB",
+            "color": "#2148b8",
+            "width": 2.5,
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row3"
+          },
+          {
+            "id": "e4",
+            "from": "DB",
+            "to": "S",
+            "color": "#2148b8",
+            "width": 2.5,
+            "dash": "8 7",
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row4"
+          },
+          {
+            "id": "e5",
+            "from": "S",
+            "to": "UI",
+            "color": "#b45431",
+            "width": 2.5,
+            "dash": "8 7",
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row5"
+          },
+          {
+            "id": "e6",
+            "from": "UI",
+            "to": "U",
+            "color": "#b45431",
+            "width": 2.5,
+            "dash": "8 7",
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row6"
+          },
+          {
+            "id": "e7",
+            "from": "S",
+            "to": "DB",
+            "color": "#2148b8",
+            "width": 2.5,
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row7"
+          },
+          {
+            "id": "e8",
+            "from": "S",
+            "to": "UI",
+            "color": "#2148b8",
+            "width": 2.5,
+            "dash": "8 7",
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row8"
+          },
+          {
+            "id": "e9",
+            "from": "UI",
+            "to": "U",
+            "color": "#2148b8",
+            "width": 2.5,
+            "dash": "8 7",
+            "fromPort": {
+              "side": "left",
+              "at": 1
+            },
+            "toPort": {
+              "side": "left",
+              "at": 1
+            },
+            "kind": "sequence",
+            "row": "row9"
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

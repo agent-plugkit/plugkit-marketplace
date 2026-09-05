@@ -11,7 +11,7 @@ Musekit 将设计灵感与场景制作分开：
 | `musepool` | 探索 29 个本地设计种子，输出 Markdown seed 简报 |
 | `ui-design` | 设计并实现前端界面，验证真实交互和响应式布局 |
 | `graphic-design` | 制作海报、杂志封面和社媒图文等平面作品 |
-| `diagram-design` | 从 Mermaid 或关系说明制作精美图解，以自定义 HTML/CSS/SVG 完成排版并从浏览器导出图片 |
+| `diagram-design` | 从 Mermaid 或关系说明制作精美图解，共用测量与连线代码，成品内置离线布局编辑和 PNG 导出 |
 | `scientific-figure` | 基于原始资料制作学术数据图和科学示意图 |
 
 可以先探索灵感，也可以直接制作。四个制作 Skill 都能使用 seed、用户参考或已有设计系统，默认交付实际作品。种子分类为 `ui`、`graphic`、`information`，只帮助检索，不限定作品布局或技术栈。
@@ -19,6 +19,8 @@ Musekit 将设计灵感与场景制作分开：
 例如：“用 Musepool 提炼一个有清楚色彩职责的方向，再制作社区观察记录界面。”同一个 seed 也可以交给其他场景使用，由制作 Skill 重新判断版面与表达。
 
 完整示例包含[观察记录界面](plugins/musekit/skills/ui-design/references/examples.md)、[刊物封面](plugins/musekit/skills/graphic-design/references/examples.md)、[四种图解](plugins/musekit/skills/diagram-design/references/examples.md)和[学术数据图](plugins/musekit/skills/scientific-figure/references/examples.md)，各自附输入、选择理由与可编辑源文件。
+
+Musekit `0.2.1` 的图解默认支持在成品中点击“编辑布局”，调整模块、分组、连线与标签，按编号定位或删除折点，保存新 HTML 后可离线继续编辑。制作端只需按[接入协议](plugins/musekit/skills/diagram-design/references/protocol.md)标记作品，再用随 Skill 分发的 Python 封装脚本内嵌运行资源；使用者直接在桌面 Chrome 或 Edge 打开文件。[布局编辑说明](plugins/musekit/skills/diagram-design/references/editor.md)包含保存和导出操作。
 
 ### 从旧设计插件迁移
 
@@ -47,12 +49,17 @@ must not be edited by hand.
 
 ```bash
 npm ci
+npx playwright install chromium
 npm run check
 npm run release:local
 ```
 
-`npm run check` regenerates all plugin artifacts and indexes, validates the complete marketplace,
-and checks that the public repository contains no internal planning or machine-local material.
+`npm run check` checks the bundled diagram runtime and examples, regenerates plugin manifests and
+indexes, validates the marketplace, and runs geometry, packaging and browser tests. It also checks
+that public content contains no internal planning or machine-local material. Browser evidence and
+downloads go to the system temporary directory. After changing diagram runtime sources or example
+artwork in `references/examples/source/`, run `npm run build:diagram` before the check. Consumers of
+the packaged skill do not need Node.js or browser test dependencies.
 
 ## License
 

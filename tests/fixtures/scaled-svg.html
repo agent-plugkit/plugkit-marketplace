@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nested SVG transforms</title>
+    <style>
+      body {
+        margin: 0;
+      }
+      svg {
+        display: block;
+      }
+      text {
+        font: 18px Arial;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-diagram
+      style="
+        position: relative;
+        width: 1200px;
+        height: 800px;
+        background: #f5f4ef;
+      "
+    >
+      <svg
+        data-diagram-surface
+        width="1200"
+        height="800"
+        viewBox="0 0 1200 800"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <g data-diagram-region="header">
+          <text x="40" y="50">Nested SVG transforms</text>
+        </g>
+        <g data-diagram-region="body">
+          <g
+            data-diagram-group="outer"
+            transform="translate(80 130) scale(1.2)"
+          >
+            <rect data-diagram-frame width="600" height="400" fill="#e2eaf8" />
+            <g
+              data-diagram-group="inner"
+              transform="translate(30 40) scale(1.25)"
+            >
+              <rect
+                data-diagram-frame
+                width="220"
+                height="140"
+                fill="#ccd8ee"
+              />
+              <g data-diagram-node="A" transform="translate(20 25)">
+                <rect data-diagram-frame width="160" height="80" fill="white" />
+                <g data-diagram-content><text x="16" y="40">Request</text></g>
+              </g>
+            </g>
+            <g data-diagram-node="B" transform="translate(330 260)">
+              <rect data-diagram-frame width="180" height="90" fill="white" />
+              <g data-diagram-content><text x="16" y="40">Response</text></g>
+            </g>
+          </g>
+          <g data-diagram-label="edge1">
+            <rect x="800" y="650" width="150" height="44" fill="white" />
+            <text x="800" y="680">Measured ports</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <script type="application/json" id="diagram-config">
+      {
+        "version": 1,
+        "edges": [
+          {
+            "id": "edge1",
+            "from": "A",
+            "to": "B",
+            "fromPort": { "side": "right" },
+            "toPort": { "side": "left" }
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

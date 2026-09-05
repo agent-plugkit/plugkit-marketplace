@@ -10,16 +10,22 @@
     "url": "git+https://github.com/agent-plugkit/plugkit-marketplace.git"
   },
   "scripts": {
+    "build:diagram": "node scripts/build-diagram.mjs",
+    "check:diagram": "node scripts/build-diagram.mjs --check",
+    "test:browser": "playwright test",
     "build:plugins": "agent-plugkit build --all",
     "build:index": "agent-plugkit index",
     "validate": "agent-plugkit validate --all",
     "test:plugins": "node --test tests/*.test.mjs",
     "check:public": "node scripts/check-public-tree.mjs",
-    "check": "npm run check:public && npm run build:plugins && npm run build:index && npm run validate && npm run test:plugins",
+    "check": "npm run check:public && npm run check:diagram && npm run build:plugins && npm run build:index && npm run validate && npm run test:plugins && npm run test:browser",
     "release:local": "npm run check && agent-plugkit release-local"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "agent-plugkit": "^0.1.0",
+    "esbuild": "0.28.2",
+    "html-to-image": "1.11.13",
     "yaml": "^2.9.0"
   }
 }

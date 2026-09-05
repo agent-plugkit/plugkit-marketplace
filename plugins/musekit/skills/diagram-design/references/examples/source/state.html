@@ -1,0 +1,727 @@
+<!doctype html>
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width,initial-scale=1" name="viewport" />
+    <title>异步任务的状态与恢复</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: #f5f4ef;
+      }
+      svg {
+        display: block;
+        width: 1600px;
+        height: 1160px;
+        font-family: "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+      }
+      text {
+        text-rendering: optimizeLegibility;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 独立示例：坐标服务本图内容，原始关系见同名 .mmd。 -->
+    <div
+      data-diagram=""
+      style="width: 1600px; height: 1160px; position: relative"
+    >
+      <svg
+        aria-labelledby="title"
+        data-diagram-surface=""
+        height="1160"
+        viewbox="0 0 1600 1160"
+        width="1600"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title id="title">异步任务的状态与恢复</title>
+        <defs>
+          <marker
+            id="blue"
+            markerheight="7"
+            markerwidth="7"
+            orient="auto-start-reverse"
+            refx="9"
+            refy="5"
+            viewbox="0 0 10 10"
+          >
+            <path
+              d="M1 1L9 5L1 9"
+              fill="none"
+              stroke="#2148b8"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+            ></path>
+          </marker>
+          <marker
+            id="warm"
+            markerheight="7"
+            markerwidth="7"
+            orient="auto-start-reverse"
+            refx="9"
+            refy="5"
+            viewbox="0 0 10 10"
+          >
+            <path
+              d="M1 1L9 5L1 9"
+              fill="none"
+              stroke="#b45431"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+            ></path>
+          </marker>
+          <marker
+            id="muted"
+            markerheight="7"
+            markerwidth="7"
+            orient="auto-start-reverse"
+            refx="9"
+            refy="5"
+            viewbox="0 0 10 10"
+          >
+            <path
+              d="M1 1L9 5L1 9"
+              fill="none"
+              stroke="#687186"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+            ></path>
+          </marker>
+        </defs>
+        <rect
+          data-diagram-background=""
+          fill="#f5f4ef"
+          height="1160"
+          width="1600"
+        ></rect>
+        <g data-diagram-region="header">
+          <text
+            fill="#2148b8"
+            font-size="16"
+            font-weight="500"
+            text-anchor="start"
+            x="72"
+            y="64"
+          >
+            <tspan dy="0" x="72">04 / STATE</tspan>
+          </text>
+          <text
+            fill="#1f2a44"
+            font-size="56"
+            font-weight="600"
+            text-anchor="start"
+            x="72"
+            y="155"
+          >
+            <tspan dy="0" x="72">异步任务的状态与恢复</tspan>
+          </text>
+          <text
+            fill="#687186"
+            font-size="23"
+            font-weight="400"
+            text-anchor="start"
+            x="76"
+            y="209"
+          >
+            <tspan dy="0" x="76">
+              突出运行状态，同时保留重试、耗尽与取消的不同出口。
+            </tspan>
+          </text>
+          <path
+            aria-hidden="true"
+            d="M72 251H1528"
+            fill="none"
+            stroke="#cdd4df"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1"
+          ></path>
+        </g>
+        <g data-diagram-region="body">
+          <g data-diagram-node="queued" transform="translate(40 0)">
+            <rect
+              data-diagram-frame=""
+              fill="#fff"
+              height="118"
+              rx="12"
+              stroke="#cdd4df"
+              stroke-width="1.5"
+              width="280"
+              x="170"
+              y="437"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#1f2a44"
+                font-size="28"
+                font-weight="500"
+                text-anchor="start"
+                x="197"
+                y="482"
+              >
+                <tspan dy="0" x="197">queued</tspan>
+              </text>
+              <text
+                fill="#687186"
+                font-size="20"
+                font-weight="400"
+                text-anchor="start"
+                x="197"
+                y="519"
+              >
+                <tspan dy="0" x="197">排队</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-node="running">
+            <rect
+              data-diagram-frame=""
+              fill="#2148b8"
+              height="238"
+              rx="12"
+              stroke="none"
+              stroke-width="1.5"
+              width="414"
+              x="618"
+              y="410"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#fff"
+                font-size="44"
+                font-weight="500"
+                text-anchor="start"
+                x="656"
+                y="472"
+              >
+                <tspan dy="0" x="656">running</tspan>
+              </text>
+              <text
+                fill="#dce4ff"
+                font-size="24"
+                font-weight="400"
+                text-anchor="start"
+                x="656"
+                y="516"
+              >
+                <tspan dy="0" x="656">运行中</tspan>
+              </text>
+              <path
+                aria-hidden="true"
+                d="M656 550H994"
+                fill="none"
+                stroke="#6984d1"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1"
+              ></path>
+              <text
+                fill="#fff"
+                font-size="22"
+                font-weight="400"
+                text-anchor="start"
+                x="656"
+                y="595"
+              >
+                <tspan dy="0" x="656">成功 / 重试 / 耗尽</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-node="done">
+            <rect
+              data-diagram-frame=""
+              fill="#fff"
+              height="112"
+              rx="12"
+              stroke="#2148b8"
+              stroke-width="1.5"
+              width="298"
+              x="1230"
+              y="386"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#2148b8"
+                font-size="28"
+                font-weight="500"
+                text-anchor="start"
+                x="1260"
+                y="430"
+              >
+                <tspan dy="0" x="1260">done</tspan>
+              </text>
+              <text
+                fill="#687186"
+                font-size="20"
+                font-weight="400"
+                text-anchor="start"
+                x="1260"
+                y="466"
+              >
+                <tspan dy="0" x="1260">完成</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-node="failed">
+            <rect
+              data-diagram-frame=""
+              fill="#efe1d8"
+              height="112"
+              rx="12"
+              stroke="none"
+              stroke-width="1.5"
+              width="298"
+              x="1230"
+              y="696"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#b45431"
+                font-size="28"
+                font-weight="500"
+                text-anchor="start"
+                x="1260"
+                y="740"
+              >
+                <tspan dy="0" x="1260">failed</tspan>
+              </text>
+              <text
+                fill="#b45431"
+                font-size="20"
+                font-weight="400"
+                text-anchor="start"
+                x="1260"
+                y="777"
+              >
+                <tspan dy="0" x="1260">失败</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-node="cancelled" transform="translate(40 0)">
+            <rect
+              data-diagram-frame=""
+              fill="#e7e9ef"
+              height="112"
+              rx="12"
+              stroke="none"
+              stroke-width="1.5"
+              width="280"
+              x="170"
+              y="842"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#1f2a44"
+                font-size="28"
+                font-weight="500"
+                text-anchor="start"
+                x="197"
+                y="886"
+              >
+                <tspan dy="0" x="197">cancelled</tspan>
+              </text>
+              <text
+                fill="#687186"
+                font-size="20"
+                font-weight="400"
+                text-anchor="start"
+                x="197"
+                y="923"
+              >
+                <tspan dy="0" x="197">取消</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-node="NOTE">
+            <rect
+              data-diagram-frame=""
+              fill="#fff"
+              height="126"
+              rx="8"
+              stroke="#cdd4df"
+              stroke-width="1.5"
+              width="450"
+              x="613"
+              y="828"
+            ></rect>
+            <g data-diagram-content="">
+              <text
+                fill="#687186"
+                font-size="14"
+                font-weight="400"
+                text-anchor="start"
+                x="641"
+                y="861"
+              >
+                <tspan dy="0" x="641">RUNNING · 注释</tspan>
+              </text>
+              <text
+                fill="#1f2a44"
+                font-size="22"
+                font-weight="500"
+                text-anchor="start"
+                x="641"
+                y="899"
+              >
+                <tspan dy="0" x="641">任务号唯一</tspan>
+              </text>
+              <text
+                fill="#1f2a44"
+                font-size="22"
+                font-weight="500"
+                text-anchor="start"
+                x="641"
+                y="932"
+              >
+                <tspan dy="0" x="641">状态变化写审计</tspan>
+              </text>
+            </g>
+          </g>
+          <g data-diagram-locked="" data-diagram-node="start">
+            <circle
+              aria-label="初始状态"
+              cx="88"
+              cy="496"
+              fill="#1f2a44"
+              r="9"
+            ></circle>
+          </g>
+          <g
+            aria-label="终止状态"
+            data-diagram-locked=""
+            data-diagram-node="end-done"
+          >
+            <circle
+              cx="1379"
+              cy="578"
+              fill="#f5f4ef"
+              r="12"
+              stroke="#1f2a44"
+              stroke-width="2"
+            ></circle>
+            <circle cx="1379" cy="578" fill="#1f2a44" r="7"></circle>
+          </g>
+          <g
+            aria-label="终止状态"
+            data-diagram-locked=""
+            data-diagram-node="end-failed"
+          >
+            <circle
+              cx="1379"
+              cy="930"
+              fill="#f5f4ef"
+              r="12"
+              stroke="#1f2a44"
+              stroke-width="2"
+            ></circle>
+            <circle cx="1379" cy="930" fill="#1f2a44" r="7"></circle>
+          </g>
+          <g
+            aria-label="终止状态"
+            data-diagram-locked=""
+            data-diagram-node="end-cancelled"
+            transform="translate(40 0)"
+          >
+            <circle
+              cx="310"
+              cy="1026"
+              fill="#f5f4ef"
+              r="12"
+              stroke="#1f2a44"
+              stroke-width="2"
+            ></circle>
+            <circle cx="310" cy="1026" fill="#1f2a44" r="7"></circle>
+          </g>
+          <g data-diagram-label="e1">
+            <text
+              fill="#1f2a44"
+              font-size="20"
+              font-weight="400"
+              text-anchor="middle"
+              x="129"
+              y="538"
+            >
+              <tspan dy="0" x="129">接收任务</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e2">
+            <text
+              fill="#2148b8"
+              font-size="19"
+              font-weight="400"
+              text-anchor="middle"
+              x="534"
+              y="476"
+            >
+              <tspan dy="0" x="534">Worker 领取</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e3">
+            <text
+              fill="#2148b8"
+              font-size="20"
+              font-weight="400"
+              text-anchor="middle"
+              x="1130"
+              y="428"
+            >
+              <tspan dy="0" x="1130">处理成功</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e4">
+            <rect
+              fill="#f5f4ef"
+              height="61"
+              rx="0"
+              stroke="none"
+              stroke-width="1.5"
+              width="82"
+              x="1089"
+              y="655"
+            ></rect>
+            <text
+              fill="#b45431"
+              font-size="20"
+              font-weight="400"
+              text-anchor="middle"
+              x="1130"
+              y="679"
+            >
+              <tspan dy="0" x="1130">次数</tspan>
+              <tspan dy="29" x="1130">耗尽</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e5">
+            <rect
+              fill="#f5f4ef"
+              height="42"
+              rx="0"
+              stroke="none"
+              stroke-width="1.5"
+              width="468"
+              x="409"
+              y="277"
+            ></rect>
+            <text
+              fill="#b45431"
+              font-size="22"
+              font-weight="500"
+              text-anchor="middle"
+              x="643"
+              y="307"
+            >
+              <tspan dy="0" x="643">可重试错误，等待后重新排队</tspan>
+            </text>
+          </g>
+          <g data-diagram-label="e6">
+            <text
+              fill="#687186"
+              font-size="22"
+              font-weight="400"
+              text-anchor="start"
+              x="338"
+              y="716"
+            >
+              <tspan dy="0" x="338">用户取消</tspan>
+            </text>
+          </g>
+        </g>
+        <g data-diagram-region="footer">
+          <path
+            aria-hidden="true"
+            d="M72 1072H1528"
+            fill="none"
+            stroke="#cdd4df"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1"
+          ></path>
+          <text
+            fill="#687186"
+            font-size="20"
+            font-weight="400"
+            text-anchor="start"
+            x="76"
+            y="1115"
+          >
+            <tspan dy="0" x="76">重试返回 queued；取消仅从 queued 发起。</tspan>
+          </text>
+          <text
+            fill="#687186"
+            font-size="16"
+            font-weight="400"
+            text-anchor="end"
+            x="1528"
+            y="1115"
+          >
+            <tspan dy="0" x="1528">独立示例 · 异步任务</tspan>
+          </text>
+        </g>
+      </svg>
+    </div>
+    <script id="diagram-config" type="application/json">
+      {
+        "version": 1,
+        "name": "state",
+        "gap": 24,
+        "edges": [
+          {
+            "id": "e1",
+            "from": "start",
+            "to": "queued",
+            "color": "#2148b8",
+            "width": 2.5,
+            "fromPort": {
+              "side": "right",
+              "at": 0.5
+            },
+            "toPort": {
+              "side": "left",
+              "at": 0.5
+            }
+          },
+          {
+            "id": "e2",
+            "from": "queued",
+            "to": "running",
+            "color": "#2148b8",
+            "width": 2.5,
+            "fromPort": {
+              "side": "right",
+              "at": 0.5
+            },
+            "toPort": {
+              "side": "left",
+              "at": 0.3613
+            }
+          },
+          {
+            "id": "e3",
+            "from": "running",
+            "to": "done",
+            "color": "#2148b8",
+            "width": 2.5,
+            "fromPort": {
+              "side": "right",
+              "at": 0.1639
+            },
+            "toPort": {
+              "side": "left",
+              "at": 0.5625
+            }
+          },
+          {
+            "id": "e4",
+            "from": "running",
+            "to": "failed",
+            "color": "#b45431",
+            "width": 2.5,
+            "fromPort": {
+              "side": "right",
+              "at": 0.7479
+            },
+            "toPort": {
+              "side": "left",
+              "at": 0.5
+            }
+          },
+          {
+            "id": "e5",
+            "from": "running",
+            "to": "queued",
+            "color": "#b45431",
+            "width": 2.5,
+            "fromPort": {
+              "side": "top",
+              "at": 0.4928
+            },
+            "toPort": {
+              "side": "top",
+              "at": 0.5
+            }
+          },
+          {
+            "id": "e6",
+            "from": "queued",
+            "to": "cancelled",
+            "color": "#687186",
+            "width": 2.5,
+            "fromPort": {
+              "side": "bottom",
+              "at": 0.5
+            },
+            "toPort": {
+              "side": "top",
+              "at": 0.5
+            }
+          },
+          {
+            "id": "e7",
+            "from": "done",
+            "to": "end-done",
+            "color": "#687186",
+            "width": 2.5,
+            "fromPort": {
+              "side": "bottom",
+              "at": 0.5
+            },
+            "toPort": {
+              "side": "top",
+              "at": 0.5
+            }
+          },
+          {
+            "id": "e8",
+            "from": "failed",
+            "to": "end-failed",
+            "color": "#687186",
+            "width": 2.5,
+            "fromPort": {
+              "side": "bottom",
+              "at": 0.5
+            },
+            "toPort": {
+              "side": "top",
+              "at": 0.5
+            }
+          },
+          {
+            "id": "e9",
+            "from": "cancelled",
+            "to": "end-cancelled",
+            "color": "#687186",
+            "width": 2.5,
+            "fromPort": {
+              "side": "bottom",
+              "at": 0.5
+            },
+            "toPort": {
+              "side": "top",
+              "at": 0.5
+            }
+          },
+          {
+            "id": "note-link",
+            "from": "running",
+            "to": "NOTE",
+            "color": "#cdd4df",
+            "dash": "8 7",
+            "width": 1.5,
+            "arrow": false,
+            "fromPort": {
+              "side": "bottom"
+            },
+            "toPort": {
+              "side": "top"
+            }
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

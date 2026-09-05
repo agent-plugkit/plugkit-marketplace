@@ -11,7 +11,7 @@
       "name": "musekit",
       "source": "./plugins/musekit",
       "description": "设计灵感与场景制作工具箱：29 个本地种子，以及界面、平面、图解和学术图的独立制作 Skill。",
-      "version": "0.1.0",
+      "version": "0.2.1",
       "author": {
         "name": "Agent Plugkit"
       }
