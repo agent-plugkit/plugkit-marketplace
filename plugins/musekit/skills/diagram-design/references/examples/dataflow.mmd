@@ -1,0 +1,15 @@
+flowchart LR
+  Events["采集事件：页面访问与操作事件"]
+  Consent["检查授权：按事件携带的授权状态分流"]
+  Discard["丢弃事件：未获授权的数据不再流转"]
+  Mask["移除标识：去掉直接标识字段，保留统计维度"]
+  Store["事件仓库：保存去标识后的事件"]
+  Aggregate["聚合指标：按日期与页面计算计数"]
+  Report["分析报表：读取事件明细与聚合指标"]
+  Events -->|事件与授权状态| Consent
+  Consent -->|未授权| Discard
+  Consent -->|已授权| Mask
+  Mask -->|去标识事件| Store
+  Mask -->|统计维度| Aggregate
+  Store -->|事件明细| Report
+  Aggregate -->|聚合结果| Report

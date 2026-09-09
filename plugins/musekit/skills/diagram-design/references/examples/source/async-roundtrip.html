@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>请求返回之后，任务继续</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          18px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          "PingFang SC",
+          Arial,
+          sans-serif;
+        color: #173445;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 48px;
+        line-height: 1.25;
+        letter-spacing: -1px;
+      }
+      header {
+        position: absolute;
+        left: 56px;
+        right: 56px;
+        top: 40px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid #bac9ca;
+      }
+      header .kicker {
+        font: 600 13px/1.5 monospace;
+        letter-spacing: 2px;
+        color: #2d7774;
+        margin-bottom: 12px;
+      }
+      header p {
+        font-size: 20px;
+        color: #556e77;
+        margin-top: 15px;
+      }
+      .body {
+        position: absolute;
+        inset: 0;
+      }
+      .node {
+        position: absolute;
+        width: 230px;
+        padding: 22px;
+        background: #fffef8;
+        border: 1px solid #a8bdba;
+        border-radius: 10px;
+      }
+      .node h2 {
+        font-size: 25px;
+        line-height: 1.3;
+        margin: 8px 0 12px;
+      }
+      .node p {
+        font-size: 17px;
+        color: #4d676f;
+        overflow-wrap: anywhere;
+      }
+      .number {
+        font: 600 12px monospace;
+        letter-spacing: 1px;
+        color: #4e827c;
+      }
+      .accent {
+        background: #175b5b;
+        color: white;
+        border-color: #175b5b;
+      }
+      .accent p,
+      .accent .number {
+        color: #d8efdf;
+      }
+      .muted-node {
+        background: #eee7dd;
+        border-color: #cabba8;
+      }
+      .label {
+        position: absolute;
+        background: #f3f4ec;
+        padding: 4px 10px;
+        font-size: 16px;
+        white-space: nowrap;
+        border-radius: 4px;
+      }
+      footer {
+        position: absolute;
+        left: 56px;
+        right: 56px;
+        font-size: 16px;
+        color: #546c74;
+        border-top: 1px solid #bac9ca;
+        padding-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-diagram
+      style="
+        width: 1440px;
+        height: 1600px;
+        position: relative;
+        background: #f3f4ec;
+      "
+    >
+      <header data-diagram-region="header">
+        <div class="kicker">06 / ASYNC ROUNDTRIP</div>
+        <h1>请求返回之后，任务继续</h1>
+        <p>快速确认、后台处理与结果查询，沿同一条时间线阅读。</p>
+      </header>
+      <main class="body" data-diagram-region="body">
+        <article
+          class="node"
+          data-diagram-node="Client"
+          data-diagram-title="客户端"
+          data-diagram-actor
+          style="
+            left: 70px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">客户端</h2>
+        </article>
+        <article
+          class="node accent"
+          data-diagram-node="API"
+          data-diagram-title="任务 API"
+          data-diagram-actor
+          style="
+            left: 340px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">任务 API</h2>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Queue"
+          data-diagram-title="任务队列"
+          data-diagram-actor
+          style="
+            left: 610px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">任务队列</h2>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Worker"
+          data-diagram-title="处理器"
+          data-diagram-actor
+          style="
+            left: 880px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">处理器</h2>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Store"
+          data-diagram-title="结果存储"
+          data-diagram-actor
+          style="
+            left: 1150px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">结果存储</h2>
+        </article>
+        <div
+          data-diagram-row="row1"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 385px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e1">01 · 提交任务</div>
+        <div
+          data-diagram-row="row2"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 473px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e2">02 · 任务入队</div>
+        <div
+          data-diagram-row="row3"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 561px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e3">03 · 已接收</div>
+        <div
+          data-diagram-row="row4"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 649px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e4">04 · 202 与任务号</div>
+        <div
+          data-diagram-row="row5"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 737px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e5">05 · 交付任务</div>
+        <div
+          data-diagram-row="row6"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 825px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e6">06 · 处理任务</div>
+        <div
+          data-diagram-row="row7"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 913px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e7">07 · 写入结果</div>
+        <div
+          data-diagram-row="row8"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1001px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e8">08 · 确认消费</div>
+        <div
+          data-diagram-row="row9"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1089px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e9">09 · 按任务号查询</div>
+        <div
+          data-diagram-row="row10"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1177px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e10">10 · 读取状态与结果</div>
+        <div
+          data-diagram-row="row11"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1265px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e11">11 · 返回结果</div>
+        <div
+          data-diagram-row="row12"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1353px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e12">12 · 展示结果</div>
+      </main>
+      <footer data-diagram-region="footer" style="top: 1510px">
+        读图顺序：01–04 接收与确认，05–08 后台处理，09–12 按任务号读取结果。
+      </footer>
+    </div>
+    <script type="application/json" id="diagram-config">
+      {
+        "version": 1,
+        "name": "async-roundtrip",
+        "portDistribution": "spread",
+        "rowGap": 28,
+        "edges": [
+          {
+            "id": "e1",
+            "from": "Client",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row1",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e2",
+            "from": "API",
+            "to": "Queue",
+            "kind": "sequence",
+            "row": "row2",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e3",
+            "from": "Queue",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row3",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e4",
+            "from": "API",
+            "to": "Client",
+            "kind": "sequence",
+            "row": "row4",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e5",
+            "from": "Queue",
+            "to": "Worker",
+            "kind": "sequence",
+            "row": "row5",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e6",
+            "from": "Worker",
+            "to": "Worker",
+            "kind": "sequence",
+            "row": "row6",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e7",
+            "from": "Worker",
+            "to": "Store",
+            "kind": "sequence",
+            "row": "row7",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e8",
+            "from": "Worker",
+            "to": "Queue",
+            "kind": "sequence",
+            "row": "row8",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e9",
+            "from": "Client",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row9",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e10",
+            "from": "API",
+            "to": "Store",
+            "kind": "sequence",
+            "row": "row10",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e11",
+            "from": "Store",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row11",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e12",
+            "from": "API",
+            "to": "Client",
+            "kind": "sequence",
+            "row": "row12",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

@@ -18,9 +18,11 @@ Musekit 将设计灵感与场景制作分开：
 
 例如：“用 Musepool 提炼一个有清楚色彩职责的方向，再制作社区观察记录界面。”同一个 seed 也可以交给其他场景使用，由制作 Skill 重新判断版面与表达。
 
-完整示例包含[观察记录界面](plugins/musekit/skills/ui-design/references/examples.md)、[刊物封面](plugins/musekit/skills/graphic-design/references/examples.md)、[四种图解](plugins/musekit/skills/diagram-design/references/examples.md)和[学术数据图](plugins/musekit/skills/scientific-figure/references/examples.md)，各自附输入、选择理由与可编辑源文件。
+完整示例包含[观察记录界面](plugins/musekit/skills/ui-design/references/examples.md)、[刊物封面](plugins/musekit/skills/graphic-design/references/examples.md)、[六种图解](plugins/musekit/skills/diagram-design/references/examples.md)和[学术数据图](plugins/musekit/skills/scientific-figure/references/examples.md)，各自附输入、选择理由与可编辑源文件。
 
-Musekit `0.2.1` 的图解默认支持在成品中点击“编辑布局”，调整模块、分组、连线与标签，按编号定位或删除折点，保存新 HTML 后可离线继续编辑。制作端只需按[接入协议](plugins/musekit/skills/diagram-design/references/protocol.md)标记作品，再用随 Skill 分发的 Python 封装脚本内嵌运行资源；使用者直接在桌面 Chrome 或 Edge 打开文件。[布局编辑说明](plugins/musekit/skills/diagram-design/references/editor.md)包含保存和导出操作。
+Musekit `0.3.0` 的图解成品支持节点查找与直接关系定位，内置按错误和提示分组的布局诊断。点击“编辑布局”可调整模块、分组、连线与标签，按编号定位或删除折点；属性区与对象列表独立滚动，窄窗口使用底部双栏。保存新 HTML 后可离线继续编辑，使用者直接在桌面 Chrome 或 Edge 打开文件。[布局编辑说明](plugins/musekit/skills/diagram-design/references/editor.md)包含保存和 PNG 导出操作。
+
+制作端按[接入协议](plugins/musekit/skills/diagram-design/references/protocol.md)标记作品，再用随 Skill 分发的 Python 封装脚本内嵌运行资源。新模板默认分散自动连线端点，旧图缺省配置保持原行为；[验证后交付](plugins/musekit/skills/diagram-design/references/html.md#验证后交付)可先封装、检查并保存证据，通过后再替换成品，严格模式还会阻止带提示的交付。
 
 ### 从旧设计插件迁移
 

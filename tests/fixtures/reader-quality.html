@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        font:
+          18px/1.5 Arial,
+          sans-serif;
+        color: #223;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      .node {
+        position: absolute;
+        width: 130px;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid #567;
+        border-radius: 8px;
+      }
+      .node h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .node p {
+        font-size: 14px;
+        margin: 8px 0 0;
+      }
+      .label {
+        position: absolute;
+        background: #fff;
+        padding: 4px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-diagram
+      style="
+        width: 850px;
+        height: 650px;
+        position: relative;
+        background: #eff3f6;
+      "
+    >
+      <header
+        data-diagram-region="header"
+        style="position: absolute; left: 40px; top: 24px; height: 60px"
+      >
+        <h1>节点关系</h1>
+      </header>
+      <main data-diagram-region="body" style="position: absolute; inset: 0">
+        <div
+          class="node"
+          data-diagram-node="A"
+          data-diagram-title="审批"
+          style="left: 40px; top: 200px"
+        >
+          <h2>审批</h2>
+          <p>接收请求</p>
+        </div>
+        <div
+          class="node"
+          data-diagram-node="B"
+          data-diagram-title="审批"
+          style="left: 600px; top: 200px"
+        >
+          <h2>审批</h2>
+          <p>重复名称</p>
+        </div>
+        <div
+          class="node"
+          data-diagram-node="C"
+          data-diagram-title="孤立节点"
+          style="left: 320px; top: 470px"
+        >
+          <h2>孤立节点</h2>
+          <p>没有关联</p>
+        </div>
+      </main>
+    </div>
+    <script type="application/json" id="diagram-config">
+      {
+        "version": 1,
+        "name": "reader-quality",
+        "edges": [
+          { "id": "e1", "from": "A", "to": "B" },
+          { "id": "e2", "from": "A", "to": "B" },
+          { "id": "e3", "from": "B", "to": "A", "arrow": false }
+        ]
+      }
+    </script>
+  </body>
+</html>

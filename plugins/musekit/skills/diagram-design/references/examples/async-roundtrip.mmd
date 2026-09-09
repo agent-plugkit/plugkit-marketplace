@@ -1,0 +1,18 @@
+sequenceDiagram
+  participant Client as 客户端
+  participant API as 任务 API
+  participant Queue as 任务队列
+  participant Worker as 处理器
+  participant Store as 结果存储
+  Client->>API: 提交任务
+  API->>Queue: 任务入队
+  Queue-->>API: 已接收
+  API-->>Client: 202 与任务号
+  Queue->>Worker: 交付任务
+  Worker->>Worker: 处理任务
+  Worker->>Store: 写入结果
+  Worker-->>Queue: 确认消费
+  Client->>API: 按任务号查询
+  API->>Store: 读取状态与结果
+  Store-->>API: 返回结果
+  API-->>Client: 展示结果

@@ -87,3 +87,40 @@ SVG 不自动重新断行；运行代码测量所有内容并限制外框最小�
 封装后的页面提供 `window.museDiagram.ready`、`getState()` 和 `getGeometry()`，用于经授权的浏览器检查；`getGeometry()` 返回画布坐标下的节点、端点、标签边界与问题列表。`data-diagram-ready="true"` 表示初始化完成，`data-diagram-error` 给出初始化错误。几何无提示仍需实际查看与语义核对。
 
 维护运行代码时修改 `src/`，从仓库运行 `npm run build:diagram` 更新 bundle 与示例。作者只运行 [prepare_diagram.py](../scripts/prepare_diagram.py)，不需要自行构建运行资源。
+
+## 自动端点分散
+
+`diagram-config.portDistribution` 可选 `"center"` 或 `"spread"`，缺省为 `center`，协议与保存状态仍为 v1。新制作起点显式设置 `spread`；重新封装旧 HTML 不自动补写该字段。旧图需要改变连线布局时，作者明确加入该设置。
+
+`spread` 只分散未声明端口的正交端点。同侧端点按对端中心位置排序，稳定连线 ID 处理并列，不依赖关系数组顺序。显式端口作为固定占位，带有效手工折点的连线、直线、自循环和时序消息保持原规则。角部留白为 12 CSS px，目标间距为 12 px，最小间距为 6 px；空间不足时保留确定的原端点并报告提示，不覆盖固定位置。移除有效手工折点后可重新参加自动分散。
+
+计算结果只存在于运行时；编辑器显示实际端口值，手动调整成为既有端口覆写。`getGeometry().edges` 追加有效 `fromPort` / `toPort`，时序仍由 actor 与 row 决定。
+
+## 阅读名称与关系
+
+普通节点和 actor 可选 `data-diagram-title="简短名称"`；不标记时依次使用节点标题、完整文本、ID。它只服务阅读名称，不替换文案，不改变来源含义。搜索同时匹配 ID、名称和文本。分组与消息行不混入节点结果，重名节点用 ID 区分。
+
+阅读面板只读取声明的直接关系；按入边、出边、无箭头关联、自循环展示，重复消息按原声明分别保留。缺少标签显示“未标注关系”，不推断调用、因果或传递影响。阅读状态仅在内存中，保存、PNG、URL、浏览器存储和布局历史均不记录它。
+
+## 诊断与报告
+
+`getGeometry().issues` 保留 `type`、`id`、`message`，追加：
+
+- `code`：稳定规则代码，如 `geometry/label-line`。
+- `severity`：`error` 或 `warning`。
+- `relatedIds`：关联对象或连线的稳定 ID。
+- `evidence`：未缩放 CSS 像素下的问题 `region`、关联区域或实测 `distance` / `length` 与阈值。
+- `supportedFixes`：可用修复方向的稳定标识，例如 `move-label`、`edit-ports`、`edit-bends`、`reset-route`、`resize-node`。它们是建议，不是自动修改命令；具体对象不具备的控制项不能作为建议。
+
+现有碰撞、越界、内容溢出、走线受阻等仍为错误。新增提示：
+
+| 代码 | 判定 |
+| --- | --- |
+| `geometry/shared-route` | 不同关系沿同一直线连续重合至少 24 px；合并共线片段，排除共享端点附近的 14 px 短段。 |
+| `geometry/border-run` | 与可见矩形分组边框平行，间距小于 4 px，连续长度至少 24 px；垂直跨边界不报告。 |
+| `geometry/label-clearance` | 标签与非所属连线间距小于 4 px；已有标签覆盖连线错误时不重复提示。 |
+| `geometry/port-crowding` | 自动端点无法满足 6 px 最小间距。 |
+
+规则阈值统一维护于运行代码，首版不提供逐图忽略或阈值覆写。纯 SVG 分组以直接子级 `rect[data-diagram-frame]` 的可见描边为矩形外框；HTML 分组只检查可见的边框侧。
+
+浏览器检查报告 `schemaVersion: 2` 保留原字段，增加 `policy`、`errorCount`、`warningCount`、HTML 与内嵌运行资源的 `sha256` / `bytes`，PNG 也携带摘要。`policy` 为 `errors-only` 或 `strict`；`passed` 只证明该策略下列出的程序检查。`visualReview` 和 `semanticReview` 固定为 `not-performed`，人工核对另行记录。交付报告另含冻结输入的摘要及交付批次信息。

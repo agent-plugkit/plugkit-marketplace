@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>从事件到分析结论</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          18px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          "PingFang SC",
+          Arial,
+          sans-serif;
+        color: #173445;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 48px;
+        line-height: 1.25;
+        letter-spacing: -1px;
+      }
+      header {
+        position: absolute;
+        left: 56px;
+        right: 56px;
+        top: 40px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid #bac9ca;
+      }
+      header .kicker {
+        font: 600 13px/1.5 monospace;
+        letter-spacing: 2px;
+        color: #2d7774;
+        margin-bottom: 12px;
+      }
+      header p {
+        font-size: 20px;
+        color: #556e77;
+        margin-top: 15px;
+      }
+      .body {
+        position: absolute;
+        inset: 0;
+      }
+      .node {
+        position: absolute;
+        width: 230px;
+        padding: 22px;
+        background: #fffef8;
+        border: 1px solid #a8bdba;
+        border-radius: 10px;
+      }
+      .node h2 {
+        font-size: 25px;
+        line-height: 1.3;
+        margin: 8px 0 12px;
+      }
+      .node p {
+        font-size: 17px;
+        color: #4d676f;
+        overflow-wrap: anywhere;
+      }
+      .number {
+        font: 600 12px monospace;
+        letter-spacing: 1px;
+        color: #4e827c;
+      }
+      .accent {
+        background: #175b5b;
+        color: white;
+        border-color: #175b5b;
+      }
+      .accent p,
+      .accent .number {
+        color: #d8efdf;
+      }
+      .muted-node {
+        background: #eee7dd;
+        border-color: #cabba8;
+      }
+      .label {
+        position: absolute;
+        background: #f3f4ec;
+        padding: 4px 10px;
+        font-size: 16px;
+        white-space: nowrap;
+        border-radius: 4px;
+      }
+      footer {
+        position: absolute;
+        left: 56px;
+        right: 56px;
+        font-size: 16px;
+        color: #546c74;
+        border-top: 1px solid #bac9ca;
+        padding-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-diagram
+      style="
+        width: 1570px;
+        height: 1130px;
+        position: relative;
+        background: #f3f4ec;
+      "
+    >
+      <header data-diagram-region="header">
+        <div class="kicker">05 / DATA FLOW</div>
+        <h1>从事件到分析结论</h1>
+        <p>先明确授权，再追踪去标识后的两条数据路径。</p>
+      </header>
+      <main class="body" data-diagram-region="body">
+        <article
+          class="node"
+          data-diagram-node="Events"
+          data-diagram-title="采集事件"
+          style="left: 50px; top: 270px; width: 180px"
+        >
+          <span class="number">01</span>
+          <h2>采集事件</h2>
+          <p>页面访问与操作事件</p>
+        </article>
+        <article
+          class="node accent"
+          data-diagram-node="Consent"
+          data-diagram-title="检查授权"
+          style="left: 380px; top: 270px"
+        >
+          <span class="number">02</span>
+          <h2>检查授权</h2>
+          <p>按事件携带的授权状态分流</p>
+        </article>
+        <article
+          class="node muted-node"
+          data-diagram-node="Discard"
+          data-diagram-title="丢弃事件"
+          style="left: 770px; top: 230px"
+        >
+          <span class="number">03</span>
+          <h2>丢弃事件</h2>
+          <p>未获授权的数据不再流转</p>
+        </article>
+        <article
+          class="node accent"
+          data-diagram-node="Mask"
+          data-diagram-title="移除标识"
+          style="left: 380px; top: 610px"
+        >
+          <span class="number">04</span>
+          <h2>移除标识</h2>
+          <p>去掉直接标识字段，保留统计维度</p>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Store"
+          data-diagram-title="事件仓库"
+          style="left: 870px; top: 480px"
+        >
+          <span class="number">05</span>
+          <h2>事件仓库</h2>
+          <p>保存去标识后的事件</p>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Aggregate"
+          data-diagram-title="聚合指标"
+          style="left: 870px; top: 770px"
+        >
+          <span class="number">06</span>
+          <h2>聚合指标</h2>
+          <p>按日期与页面计算计数</p>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Report"
+          data-diagram-title="分析报表"
+          style="left: 1270px; top: 610px"
+        >
+          <span class="number">07</span>
+          <h2>分析报表</h2>
+          <p>读取事件明细与聚合指标</p>
+        </article>
+        <div class="label" data-diagram-label="e1">事件与授权状态</div>
+        <div class="label" data-diagram-label="e2">未授权</div>
+        <div class="label" data-diagram-label="e3">已授权</div>
+        <div class="label" data-diagram-label="e4">去标识事件</div>
+        <div class="label" data-diagram-label="e5">统计维度</div>
+        <div class="label" data-diagram-label="e6">事件明细</div>
+        <div class="label" data-diagram-label="e7">聚合结果</div>
+      </main>
+      <footer data-diagram-region="footer" style="top: 1040px">
+        数据边界：未授权事件丢弃；仓库与聚合模块只接收去标识后的数据。
+      </footer>
+    </div>
+    <script type="application/json" id="diagram-config">
+      {
+        "version": 1,
+        "name": "dataflow",
+        "portDistribution": "spread",
+        "edges": [
+          {
+            "id": "e1",
+            "from": "Events",
+            "to": "Consent",
+            "color": "#427d77",
+            "width": 2.5
+          },
+          {
+            "id": "e2",
+            "from": "Consent",
+            "to": "Discard",
+            "color": "#427d77",
+            "width": 2.5
+          },
+          {
+            "id": "e3",
+            "from": "Consent",
+            "to": "Mask",
+            "color": "#427d77",
+            "width": 2.5
+          },
+          {
+            "id": "e4",
+            "from": "Mask",
+            "to": "Store",
+            "color": "#427d77",
+            "width": 2.5
+          },
+          {
+            "id": "e5",
+            "from": "Mask",
+            "to": "Aggregate",
+            "color": "#427d77",
+            "width": 2.5
+          },
+          {
+            "id": "e6",
+            "from": "Store",
+            "to": "Report",
+            "color": "#427d77",
+            "width": 2.5
+          },
+          {
+            "id": "e7",
+            "from": "Aggregate",
+            "to": "Report",
+            "color": "#427d77",
+            "width": 2.5
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

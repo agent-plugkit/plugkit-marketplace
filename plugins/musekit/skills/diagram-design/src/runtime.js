@@ -1,4 +1,10 @@
 import * as G from "./geometry.js";
+import {
+  issue,
+  orderedIssues,
+  distributePorts,
+  readability,
+} from "./quality.js";
 import { mountEditor } from "./editor.js";
 import { toBlob } from "html-to-image";
 
@@ -36,6 +42,7 @@ export class Diagram {
     this.nodes = new Map();
     this.labels = new Map();
     this.edgeGeometry = new Map();
+    this.computedPorts = new Map();
     this.history = [];
     this.future = [];
     this.listeners = new Set();
@@ -74,6 +81,8 @@ export class Diagram {
     if (!this.body) throw Error('缺少主体区域 data-diagram-region="body"');
     if (this.config.version !== 1 || this.state.version !== 1)
       throw Error("不支持此图解协议版本");
+    if (![undefined, "center", "spread"].includes(this.config.portDistribution))
+      throw Error("portDistribution 只支持 center 或 spread");
     await document.fonts.ready;
     await Promise.all(
       [...this.root.querySelectorAll("img")].map((i) =>
@@ -372,7 +381,8 @@ export class Diagram {
           // Materialize authored pins in layout state without modifying config.
           if (x || y)
             (this.state.edges[edge.id] ||= {}).points = pins.map((p) => ({
-              x: p.x + x, y: p.y + y,
+              x: p.x + x,
+              y: p.y + y,
             }));
           break;
         }
@@ -564,7 +574,7 @@ export class Diagram {
       }
     this.refresh();
   }
-  edgeSpec(edge, boxes) {
+  edgeSpec(edge, boxes, computed = true) {
     const spec = {
       ...edge,
       ...this.state.edges[edge.id],
@@ -572,7 +582,8 @@ export class Diagram {
       toPort: this.state.edges[edge.id]?.toPort || edge.toPort,
     };
     if (edge.kind !== "sequence") {
-      const from = boxes?.get(edge.from) || this.box(this.nodes.get(edge.from).shell),
+      const from =
+          boxes?.get(edge.from) || this.box(this.nodes.get(edge.from).shell),
         to = boxes?.get(edge.to) || this.box(this.nodes.get(edge.to).shell);
       if (!spec.fromPort)
         spec.fromPort = {
@@ -600,6 +611,7 @@ export class Diagram {
                 }[spec.fromPort.side],
         };
     }
+    if (computed) Object.assign(spec, this.computedPorts.get(edge.id));
     return spec;
   }
   refresh() {
@@ -607,6 +619,22 @@ export class Diagram {
     const boxes = new Map(
       [...this.nodes].map(([id, n]) => [id, this.box(n.shell)]),
     );
+    const distribution =
+      this.config.portDistribution === "spread"
+        ? distributePorts(
+            this.config.edges.map((edge) => ({
+              edge,
+              spec: this.edgeSpec(edge, boxes, false),
+              fixedFrom: !!(
+                this.state.edges[edge.id]?.fromPort || edge.fromPort
+              ),
+              fixedTo: !!(this.state.edges[edge.id]?.toPort || edge.toPort),
+            })),
+            boxes,
+          )
+        : { ports: new Map(), issues: [] };
+    this.computedPorts = distribution.ports;
+    this.portIssues = distribution.issues;
     const obstacles = [...this.nodes.values()]
       .filter((n) => !n.group && !n.row)
       .map((n) => ({ id: n.id, ...boxes.get(n.id) }));
@@ -692,7 +720,13 @@ export class Diagram {
         p.setAttribute("marker-end", `url(#${markerId})`);
       if (edge.dash) p.setAttribute("stroke-dasharray", edge.dash);
       this.layer.append(p);
-      const geo = { ...result, from: edge.from, to: edge.to };
+      const geo = {
+        ...result,
+        from: edge.from,
+        to: edge.to,
+        fromPort: spec.fromPort,
+        toPort: spec.toPort,
+      };
       this.edgeGeometry.set(edge.id, geo);
       paths.push(geo);
     }
@@ -870,7 +904,26 @@ export class Diagram {
     const issues = [],
       nodes = [...this.nodes.values()].filter((n) => !n.group && !n.row),
       header = this.header ? this.box(this.header) : null;
-    const add = (type, id, message) => issues.push({ type, id, message });
+    const region = (id) =>
+      boxes.get(id) ||
+      this.edgeGeometry.get(id)?.label ||
+      G.union(
+        (this.edgeGeometry.get(id)?.points || []).map((p) => ({
+          ...p,
+          w: 0,
+          h: 0,
+        })),
+      );
+    const add = (type, id, message, relatedIds = []) => {
+      const diagnostic = issue(type, id, message, {
+        relatedIds,
+        evidence: {
+          region: region(id),
+          related: relatedIds.map((id) => ({ id, region: region(id) })),
+        },
+      });
+      issues.push(diagnostic);
+    };
     for (const n of [...this.nodes.values()].filter((n) => !n.row)) {
       const b = boxes.get(n.id);
       if (
@@ -903,7 +956,7 @@ export class Diagram {
     for (let i = 0; i < nodes.length; i++)
       for (let j = i + 1; j < nodes.length; j++)
         if (G.overlaps(boxes.get(nodes[i].id), boxes.get(nodes[j].id), 0.5))
-          add("overlap", nodes[i].id, `与 ${nodes[j].id} 重叠`);
+          add("overlap", nodes[i].id, `与 ${nodes[j].id} 重叠`, [nodes[j].id]);
     const entries = [...this.edgeGeometry];
     for (const [id, e] of entries) {
       if (e.blocked) add("route", id, "自动走线受阻，请调整折点或模块位置");
@@ -917,14 +970,14 @@ export class Diagram {
           n.id !== e.to &&
           G.pathHits(e.points, boxes.get(n.id))
         )
-          add("crossing", id, `连线穿过 ${n.id}`);
+          add("crossing", id, `连线穿过 ${n.id}`, [n.id]);
         if (e.label && G.overlaps(e.label, boxes.get(n.id), 1))
-          add("label", id, `标签遮挡 ${n.id}`);
+          add("label", id, `标签遮挡 ${n.id}`, [n.id]);
       }
       if (e.label)
         for (const [other, p] of entries)
           if (id !== other && G.pathHits(p.points, G.expand(e.label, -1)))
-            add("label-line", id, `标签覆盖连线 ${other}`);
+            add("label-line", id, `标签覆盖连线 ${other}`, [other]);
       if (
         e.label &&
         (e.label.x < 0 ||
@@ -959,14 +1012,101 @@ export class Diagram {
           entries[j][1].label &&
           G.overlaps(entries[i][1].label, entries[j][1].label, 1)
         )
-          add("label", entries[i][0], `与标签 ${entries[j][0]} 重叠`);
-    return issues.filter(
-      (v, i, a) =>
-        a.findIndex(
-          (x) => x.type === v.type && x.id === v.id && x.message === v.message,
-        ) === i,
-    );
+          add("label", entries[i][0], `与标签 ${entries[j][0]} 重叠`, [
+            entries[j][0],
+          ]);
+    const frames = [];
+    const painted = (color) =>
+      !["none", "transparent"].includes(color) &&
+      !/(?:,\s*0(?:\.0*)?|\/\s*0(?:\.0*)?%?)\)$/.test(color);
+    const visible = (el) => {
+      for (let current = el; current; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        if (
+          style.display === "none" ||
+          style.visibility !== "visible" ||
+          Number(style.opacity) === 0
+        )
+          return false;
+        if (current === this.root) break;
+      }
+      return true;
+    };
+    for (const n of this.nodes.values()) {
+      if (!n.group || !visible(n.el)) continue;
+      if (n.isSVG) {
+        const frame = n.el.querySelector(":scope > rect[data-diagram-frame]");
+        if (frame) {
+          const style = getComputedStyle(frame);
+          if (
+            visible(frame) &&
+            painted(style.stroke) &&
+            parseFloat(style.strokeWidth) > 0 &&
+            Number(style.strokeOpacity) > 0
+          )
+            frames.push({ id: n.id, rect: this.box(frame) });
+        }
+      } else {
+        const style = getComputedStyle(n.el);
+        const sides = ["top", "right", "bottom", "left"].filter((side) => {
+          const prefix = `border-${side}`;
+          return (
+            parseFloat(style.getPropertyValue(`${prefix}-width`)) > 0 &&
+            !["none", "hidden"].includes(
+              style.getPropertyValue(`${prefix}-style`),
+            ) &&
+            painted(style.getPropertyValue(`${prefix}-color`))
+          );
+        });
+        if (sides.length)
+          frames.push({ id: n.id, rect: boxes.get(n.id), sides });
+      }
+    }
+    const diagnostics = [
+      ...issues,
+      ...(this.portIssues || []),
+      ...readability(this.edgeGeometry, frames, issues),
+    ];
+    for (const diagnostic of diagnostics) {
+      const ids = [diagnostic.id, ...diagnostic.relatedIds];
+      const edges = this.config.edges.filter((e) => ids.includes(e.id));
+      const objects = [
+        ...new Set([...ids, ...edges.flatMap((e) => [e.from, e.to])]),
+      ]
+        .map((id) => this.nodes.get(id))
+        .filter(Boolean);
+      diagnostic.supportedFixes = diagnostic.supportedFixes.filter((fix) => {
+        if (["edit-bends", "reset-route"].includes(fix))
+          return edges.some((e) => !["straight", "sequence"].includes(e.kind));
+        if (fix === "edit-ports")
+          return edges.some((e) => e.kind !== "sequence");
+        if (fix === "move-label")
+          return edges.some((e) => this.labels.has(e.id));
+        if (fix === "move-node")
+          return objects.some((n) => !n.locked && !n.row);
+        if (fix === "resize-node")
+          return objects.some(
+            (n) =>
+              !n.locked &&
+              !n.row &&
+              !n.actor &&
+              (!n.isSVG || n.frame?.tagName === "rect"),
+          );
+        if (fix === "move-row")
+          return edges.some(
+            (e) => e.kind === "sequence" && this.nodes.get(e.row)?.row,
+          );
+        return true;
+      });
+      if (!diagnostic.evidence.related?.length)
+        diagnostic.evidence.related = diagnostic.relatedIds.map((id) => ({
+          id,
+          region: region(id),
+        }));
+    }
+    return orderedIssues(diagnostics);
   }
+
   saveHTML() {
     const doc = this.template.cloneNode(true);
     for (const e of doc.querySelectorAll(
@@ -1033,7 +1173,10 @@ export class Diagram {
       collectImages(getComputedStyle(el));
       for (const pseudo of ["::before", "::after"]) {
         const cs = getComputedStyle(el, pseudo);
-        if (!["none", "normal", ""].includes(cs.content) && cs.display !== "none")
+        if (
+          !["none", "normal", ""].includes(cs.content) &&
+          cs.display !== "none"
+        )
           collectImages(cs);
       }
       if (el instanceof SVGImageElement) resources.add(el.href.baseVal);

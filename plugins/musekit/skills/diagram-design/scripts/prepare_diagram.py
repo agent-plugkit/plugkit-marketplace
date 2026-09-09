@@ -121,6 +121,8 @@ def validate(text):
         for key in ('gap', 'rowGap'):
             if key in config and (not finite(config[key]) or config[key] < 0):
                 raise ValueError(key + ' 必须为非负有限数值')
+        if config.get('portDistribution', 'center') not in ('center', 'spread'):
+            raise ValueError('portDistribution 只支持 center 或 spread')
         ids = set()
         for edge in config['edges']:
             identity = edge.get('id')

@@ -1,3 +1,465 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>请求返回之后，任务继续</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          18px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          "PingFang SC",
+          Arial,
+          sans-serif;
+        color: #173445;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 48px;
+        line-height: 1.25;
+        letter-spacing: -1px;
+      }
+      header {
+        position: absolute;
+        left: 56px;
+        right: 56px;
+        top: 40px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid #bac9ca;
+      }
+      header .kicker {
+        font: 600 13px/1.5 monospace;
+        letter-spacing: 2px;
+        color: #2d7774;
+        margin-bottom: 12px;
+      }
+      header p {
+        font-size: 20px;
+        color: #556e77;
+        margin-top: 15px;
+      }
+      .body {
+        position: absolute;
+        inset: 0;
+      }
+      .node {
+        position: absolute;
+        width: 230px;
+        padding: 22px;
+        background: #fffef8;
+        border: 1px solid #a8bdba;
+        border-radius: 10px;
+      }
+      .node h2 {
+        font-size: 25px;
+        line-height: 1.3;
+        margin: 8px 0 12px;
+      }
+      .node p {
+        font-size: 17px;
+        color: #4d676f;
+        overflow-wrap: anywhere;
+      }
+      .number {
+        font: 600 12px monospace;
+        letter-spacing: 1px;
+        color: #4e827c;
+      }
+      .accent {
+        background: #175b5b;
+        color: white;
+        border-color: #175b5b;
+      }
+      .accent p,
+      .accent .number {
+        color: #d8efdf;
+      }
+      .muted-node {
+        background: #eee7dd;
+        border-color: #cabba8;
+      }
+      .label {
+        position: absolute;
+        background: #f3f4ec;
+        padding: 4px 10px;
+        font-size: 16px;
+        white-space: nowrap;
+        border-radius: 4px;
+      }
+      footer {
+        position: absolute;
+        left: 56px;
+        right: 56px;
+        font-size: 16px;
+        color: #546c74;
+        border-top: 1px solid #bac9ca;
+        padding-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-diagram
+      style="
+        width: 1440px;
+        height: 1600px;
+        position: relative;
+        background: #f3f4ec;
+      "
+    >
+      <header data-diagram-region="header">
+        <div class="kicker">06 / ASYNC ROUNDTRIP</div>
+        <h1>请求返回之后，任务继续</h1>
+        <p>快速确认、后台处理与结果查询，沿同一条时间线阅读。</p>
+      </header>
+      <main class="body" data-diagram-region="body">
+        <article
+          class="node"
+          data-diagram-node="Client"
+          data-diagram-title="客户端"
+          data-diagram-actor
+          style="
+            left: 70px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">客户端</h2>
+        </article>
+        <article
+          class="node accent"
+          data-diagram-node="API"
+          data-diagram-title="任务 API"
+          data-diagram-actor
+          style="
+            left: 340px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">任务 API</h2>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Queue"
+          data-diagram-title="任务队列"
+          data-diagram-actor
+          style="
+            left: 610px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">任务队列</h2>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Worker"
+          data-diagram-title="处理器"
+          data-diagram-actor
+          style="
+            left: 880px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">处理器</h2>
+        </article>
+        <article
+          class="node"
+          data-diagram-node="Store"
+          data-diagram-title="结果存储"
+          data-diagram-actor
+          style="
+            left: 1150px;
+            top: 250px;
+            width: 210px;
+            padding: 18px;
+            text-align: center;
+          "
+        >
+          <h2 style="margin: 0; font-size: 24px">结果存储</h2>
+        </article>
+        <div
+          data-diagram-row="row1"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 385px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e1">01 · 提交任务</div>
+        <div
+          data-diagram-row="row2"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 473px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e2">02 · 任务入队</div>
+        <div
+          data-diagram-row="row3"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 561px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e3">03 · 已接收</div>
+        <div
+          data-diagram-row="row4"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 649px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e4">04 · 202 与任务号</div>
+        <div
+          data-diagram-row="row5"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 737px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e5">05 · 交付任务</div>
+        <div
+          data-diagram-row="row6"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 825px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e6">06 · 处理任务</div>
+        <div
+          data-diagram-row="row7"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 913px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e7">07 · 写入结果</div>
+        <div
+          data-diagram-row="row8"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1001px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e8">08 · 确认消费</div>
+        <div
+          data-diagram-row="row9"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1089px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e9">09 · 按任务号查询</div>
+        <div
+          data-diagram-row="row10"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1177px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e10">10 · 读取状态与结果</div>
+        <div
+          data-diagram-row="row11"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1265px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e11">11 · 返回结果</div>
+        <div
+          data-diagram-row="row12"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 1353px;
+            width: 1300px;
+            height: 1px;
+          "
+        ></div>
+        <div class="label" data-diagram-label="e12">12 · 展示结果</div>
+      </main>
+      <footer data-diagram-region="footer" style="top: 1510px">
+        读图顺序：01–04 接收与确认，05–08 后台处理，09–12 按任务号读取结果。
+      </footer>
+    </div>
+    <script type="application/json" id="diagram-config">
+      {
+        "version": 1,
+        "name": "async-roundtrip",
+        "portDistribution": "spread",
+        "rowGap": 28,
+        "edges": [
+          {
+            "id": "e1",
+            "from": "Client",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row1",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e2",
+            "from": "API",
+            "to": "Queue",
+            "kind": "sequence",
+            "row": "row2",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e3",
+            "from": "Queue",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row3",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e4",
+            "from": "API",
+            "to": "Client",
+            "kind": "sequence",
+            "row": "row4",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e5",
+            "from": "Queue",
+            "to": "Worker",
+            "kind": "sequence",
+            "row": "row5",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e6",
+            "from": "Worker",
+            "to": "Worker",
+            "kind": "sequence",
+            "row": "row6",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e7",
+            "from": "Worker",
+            "to": "Store",
+            "kind": "sequence",
+            "row": "row7",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e8",
+            "from": "Worker",
+            "to": "Queue",
+            "kind": "sequence",
+            "row": "row8",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e9",
+            "from": "Client",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row9",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e10",
+            "from": "API",
+            "to": "Store",
+            "kind": "sequence",
+            "row": "row10",
+            "color": "#175b5b",
+            "width": 2.5
+          },
+          {
+            "id": "e11",
+            "from": "Store",
+            "to": "API",
+            "kind": "sequence",
+            "row": "row11",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          },
+          {
+            "id": "e12",
+            "from": "API",
+            "to": "Client",
+            "kind": "sequence",
+            "row": "row12",
+            "color": "#587981",
+            "width": 2.5,
+            "dash": "7 5"
+          }
+        ]
+      }
+    </script>
+<!-- musekit-runtime:start -->
+<script>
 /* Musekit diagram runtime. Generated by npm run build:diagram.
  * Includes html-to-image 1.11.13 (MIT).
 MIT License
@@ -46,3 +508,8 @@ SOFTWARE.
   <section class="panel editor-panel" hidden aria-label="布局属性"></section><div class="status" role="status"></div><div class="toast" role="alert" hidden></div>`;let n=m=>o.querySelector(m),s=n(".overlay"),r=n(".panel"),i=!1,a=[],l=null,d=null,f=1,p=null,h=!1,c=!1,w,y=[],M=!1,k=r,A=!0,R=!1,g=!0,G,L=[],I=document.createElement("div");I.dataset.diagramGenerated="viewport",Object.assign(I.style,{position:"fixed",inset:"0",overflow:"auto",background:"#e8edf3",padding:"88px 32px 64px",boxSizing:"border-box"}),t.root.before(I);let U=document.createElement("div");U.style.position="relative",I.append(U),U.append(t.root),t.root.style.transformOrigin="0 0",t.root.style.margin="0";function le(m){n(".toast").textContent=m,n(".toast").hidden=!1,clearTimeout(w),w=setTimeout(()=>n(".toast").hidden=!0,6e3)}function S(m){g=!1,f=Math.max(.15,Math.min(2.5,m)),t.root.style.transform=`scale(${f})`,U.style.width=`${t.root.offsetWidth*f}px`,U.style.height=`${t.root.offsetHeight*f}px`,ce(),G?.draw(),O()}function P(){let m=n(".bar").getBoundingClientRect().bottom+20;e.style.setProperty("--panel-top",`${m}px`);let u=(i?r:G?.isOpen()?n(".reader"):null)?.getBoundingClientRect(),x=i&&innerWidth<=900,E=innerWidth<=520?12:32,C=Math.max(80,(u&&!x?u.left-20:innerWidth-E)-E),$=Math.max(80,(u&&x?u.top-20:innerHeight-56)-m);return I.style.paddingTop=`${m}px`,I.style.paddingLeft=`${E}px`,I.style.paddingRight=`${u&&!x?innerWidth-u.left+20:E}px`,I.style.paddingBottom=`${u&&x?innerHeight-u.top+20:56}px`,{width:C,height:$}}function T(){let{width:m,height:b}=P();S(Math.min(m/t.root.offsetWidth,b/t.root.offsetHeight)),g=!0,I.scrollTo(0,0)}function O(){let m=t.snapshot()===t.savedState?"已保存":"未保存";n(".status").textContent=`${Math.round(f*100)}% · ${t.root.offsetWidth} × ${t.root.offsetHeight} · ${m}${i?" · 空格拖动画布，Shift 多选":""}`;let b=n(".panel-status");b&&(b.textContent=`${Math.round(f*100)}% · ${m}`,b.title=n(".status").textContent)}function z(m,b=null){r.contains(o.activeElement)&&o.activeElement?.matches("input,select")&&o.activeElement.blur(),L=[],R=l!==b||a.join("|")!==m.join("|"),a=m,l=b,d=null,Ae()}function K(m=l){let b=t.config.edges.find(x=>x.id===m);if(!b||["sequence","straight"].includes(b.kind))return[];let u=t.edgeSpec(b).points;return Array.isArray(u)?u.map(x=>({x:x.x,y:x.y+t.state.bodyOffset})):t.edgeGeometry.get(m)?.points.slice(1,-1)||[]}function F(m,b){(t.state.edges[m]||={}).points=b.map(u=>({x:u.x,y:u.y-t.state.bodyOffset}))}function ue(m,b){let u=K(m);if(b<0||b>=u.length)return;u.splice(b,1),d=u.length?Math.min(b,u.length-1):null,t.change(()=>F(m,u)),(r.querySelector(`[data-remove-bend="${d}"]`)||r.querySelector("[data-add-bend]"))?.focus({preventScroll:!0})}function J(m,b={}){let u=document.createElementNS("http://www.w3.org/2000/svg",m);for(let[x,E]of Object.entries(b))u.setAttribute(x,E);return u}function he(m){let b=t.root.getBoundingClientRect(),u=t.scale();return{x:b.left+m.x*u.x,y:b.top+m.y*u.y,w:m.w*u.x,h:m.h*u.y}}function ce(){if(s.replaceChildren(),!i)return;let m=(b,u)=>{let x=he(b);s.append(J("rect",{x:x.x,y:x.y,width:Math.max(1,x.w),height:Math.max(1,x.h),fill:"none",...u}))};for(let b of t.config.edges){let u=t.edgeGeometry.get(b.id);if(!u)continue;let x=u.points.map(E=>he({...E,w:0,h:0}));s.append(J("path",{d:x.map((E,C)=>`${C?"L":"M"}${E.x},${E.y}`).join(" "),fill:"none",stroke:l===b.id?"#2563eb":"transparent","stroke-width":l===b.id?3:14,"data-edge-hit":b.id}))}for(let b of L)m(b,{stroke:"#2563eb","stroke-width":2,"stroke-dasharray":"6 3"});for(let b of t.issues||[]){let u=t.nodes.get(b.id),x=t.edgeGeometry.get(b.id);u?m(t.box(u.shell),{stroke:"#d97706","stroke-dasharray":"4 4"}):x?.label&&m(x.label,{stroke:"#d97706","stroke-dasharray":"4 4"})}for(let b of a){let u=t.nodes.get(b);if(!u)continue;let x=t.box(u.shell);if(m(x,{stroke:"#2563eb","stroke-width":1.5}),!u.locked&&!u.row&&!u.actor&&(!u.isSVG||u.frame?.tagName==="rect")){let E=he(x);s.append(J("rect",{x:E.x+E.w-5,y:E.y+E.h-5,width:10,height:10,fill:"#fff",stroke:"#2563eb","stroke-width":2,"data-resize":b}))}}if(l){let b=t.edgeGeometry.get(l);b?.label&&m(b.label,{stroke:"#2563eb",fill:"#2563eb08","data-hit":`label:${l}`});for(let[u,x]of K().entries()){let E=he({...x,w:0,h:0}),C=d===u,$=J("g",{"data-hit":`bend:${u+1}`,"data-bend-number":u+1});$.append(J("circle",{cx:E.x,cy:E.y,r:11,fill:C?"#2563eb":"#fff",stroke:"#2563eb","stroke-width":C?3:2}));let ne=J("text",{x:E.x,y:E.y,"text-anchor":"middle","dominant-baseline":"central",fill:C?"#fff":"#1d4ed8"});ne.textContent=u+1,$.append(ne),s.append($)}}}function oe(m,b,u={}){let x=document.createElement("button");x.textContent=m,x.dataset.focusKey=u["aria-label"]||m;for(let[E,C]of Object.entries(u))x.setAttribute(E,C);return x.addEventListener("click",b),x}function fe(m){let b=document.createElement("h3");b.textContent=m,k.append(b)}function re(m){let b=document.createElement("div");b.className="fields";for(let u of m){let x=document.createElement("label");x.textContent=u.label;let E=document.createElement(u.options?"select":"input");if(u.options)for(let[$,ne]of u.options){let W=document.createElement("option");W.value=$,W.textContent=ne,E.append(W)}else E.type="number",E.step="1";let C=()=>{E.value=u.value()};C(),y.push(()=>{o.activeElement!==E&&C()}),E.setAttribute("aria-label",u.label),E.disabled=!!u.disabled,E.addEventListener("change",()=>{M=!0;try{u.onChange(u.options?E.value:Number(E.value)),C()}finally{M=!1}}),x.append(E),b.append(x)}k.append(b)}function Pe(){let m=r.querySelector(".bends");if(!m||!l)return;m.replaceChildren();let b=l,u=K(b);for(let[x,E]of u.entries()){let C=document.createElement("div");C.className="bend";let $=()=>{d=x,ce()};C.addEventListener("pointerenter",$),C.addEventListener("focusin",$),C.append(oe(String(x+1),()=>{$(),I.scrollTo({left:Math.max(0,E.x*f-(innerWidth-360)/2),top:Math.max(0,E.y*f-(innerHeight-160)/2)}),ce()},{"aria-label":`定位折点 ${x+1}`,title:`定位折点 ${x+1}`}),oe("×",()=>ue(b,x),{"aria-label":`删除折点 ${x+1}`,title:`删除折点 ${x+1}`,class:"remove-bend","data-remove-bend":x})),m.append(C)}if(!u.length){let x=document.createElement("p");x.className="muted",x.textContent="没有可删除的折点。",m.append(x)}}function Wt(){if(M||o.activeElement?.matches("input,select")&&r.contains(o.activeElement)){y.forEach(v=>v()),Pe();return}let m=R,b=r.querySelector(".navigator-scroll")?.scrollTop||0,u=R?0:r.querySelector(".inspector")?.scrollTop||0,x=o.activeElement?.dataset.focusKey;if(r.replaceChildren(),y=[],!i)return;let E=document.createElement("header");E.className="panel-header",E.innerHTML='<h2>布局属性</h2><span class="muted">拖动或输入数值微调</span><span class="panel-status" role="status"></span>',r.append(E);let C=document.createElement("div");C.className="inspector",C.setAttribute("aria-label","当前布局属性"),r.append(C),k=C;let $=a.length===1?t.nodes.get(a[0]):null,ne=v=>(v||"").replace(/\s+/g," ").trim(),W=v=>ne(v.el.getAttribute("data-diagram-title"))||ne(v.el.querySelector("h1,h2,h3,h4,h5,h6,title")?.textContent)||v.id,X=document.createElement("p");X.className="selection-title",X.textContent=l?"连线与标签":$?W($):a.length?`已选 ${a.length} 个对象`:"画布设置",C.append(X);let ye=document.createElement("p");if(ye.className=a.length||l?"selection-meta":"empty-selection",ye.textContent=l?(()=>{let v=t.config.edges.find(D=>D.id===l);return`${v.from} ${v.arrow===!1?"—":"→"} ${v.to} · ${l}`})():$?`${$.group?"分组":$.row?"消息行":$.actor?"参与者":"节点"} · ${$.id}`:a.length?"Shift 点击增选，方向键移动":"点击图中对象，或从下方列表选择以调整位置与连线。",C.append(ye),$&&re([{label:"水平位移",value:()=>Math.round(t.state.nodes[$.id]?.dx||0),disabled:$.locked||$.row,onChange:v=>t.change(()=>t.move([$.id],v-(t.state.nodes[$.id]?.dx||0),0))},{label:"垂直位移",value:()=>Math.round(t.state.nodes[$.id]?.dy||0),disabled:$.locked||$.actor,onChange:v=>t.change(()=>t.move([$.id],0,v-(t.state.nodes[$.id]?.dy||0)))},{label:"宽度",value:()=>Math.round(t.box($.shell).w),disabled:$.locked||$.actor||$.row||$.isSVG&&!$.frame,onChange:v=>t.change(()=>t.resize($.id,v,t.box($.shell).h))},{label:"高度",value:()=>Math.round(t.box($.shell).h),disabled:$.locked||$.actor||$.row||$.isSVG&&!$.frame,onChange:v=>t.change(()=>t.resize($.id,t.box($.shell).w,v))}]),a.length>1){let v=document.createElement("div");v.className="actions";for(let[D,V]of[["左对齐","left"],["顶对齐","top"],["水平等距","horizontal"],["垂直等距","vertical"]])v.append(oe(D,()=>Vt(V)));k.append(v)}if(l){let v=t.config.edges.find(B=>B.id===l),D=[["left","左侧"],["right","右侧"],["top","顶部"],["bottom","底部"]];v.kind!=="sequence"&&re(["fromPort","toPort"].map((B,N)=>({label:N?"终点端口":"起点端口",value:()=>t.edgeSpec(v)[B]?.side||(N?"left":"right"),options:D,onChange:Z=>t.change(()=>{(t.state.edges[v.id]||={})[B]={side:Z,at:t.edgeSpec(v)[B]?.at??.5}})}))),v.kind!=="sequence"&&re(["fromPort","toPort"].map((B,N)=>({label:N?"终点比例 %":"起点比例 %",value:()=>(t.edgeSpec(v)[B]?.at??.5)*100,onChange:Z=>t.change(()=>{(t.state.edges[v.id]||={})[B]={side:t.edgeSpec(v)[B]?.side||(N?"left":"right"),at:Math.max(0,Math.min(100,Z))/100}})}))),t.labels.has(l)&&re(["dx","dy"].map((B,N)=>({label:N?"标签上下偏移":"标签左右偏移",value:()=>Math.round(t.state.edges[v.id]?.label?.[B]||0),onChange:Z=>t.change(()=>{let se=t.state.edges[v.id]||={};(se.label||={})[B]=Z})})));let V=document.createElement("div");if(V.className="actions",!["sequence","straight"].includes(v.kind)){fe("折点 · 从起点依次编号");let B=document.createElement("div");B.className="bends",k.append(B),Pe(),V.append(oe("增加折点",()=>t.change(()=>{let N=t.edgeGeometry.get(l).points,Z=[N[0],...K(),N.at(-1)],se=Math.floor(Z.length/2),ge=Z[se-1],Le=Z[se],at=Z.slice(1,-1);at.splice(Math.max(0,se-1),0,{x:(ge.x+Le.x)/2,y:(ge.y+Le.y)/2}),F(l,at)}),{"data-add-bend":""})),V.append(oe("恢复自动走线",()=>t.change(()=>{v.points?.length?(t.state.edges[l]||={}).points=[]:delete(t.state.edges[l]||{}).points})))}V.append(oe("恢复标签位置",()=>t.change(()=>{delete(t.state.edges[l]||{}).label}))),k.append(V);let H=document.createElement("p");H.className="muted",H.textContent=v.kind==="sequence"?"拖动标签。消息端点随参与者与消息行同步。":v.kind==="straight"?"直线由两个端点决定。移动节点或调整端口改变路径，标签可单独拖动。":"拖动编号折点；点击右侧编号定位，× 删除对应折点。自动补齐正交连接，端点始终绑定原对象。",k.append(H)}let pe=document.createElement("details");pe.className="canvas-settings",pe.open=A;let Ue=document.createElement("summary");Ue.textContent="主体与画布",Ue.dataset.focusKey="canvas-settings",pe.append(Ue),pe.addEventListener("toggle",()=>{pe.isConnected&&(A=pe.open)}),C.append(pe);let Ne=document.createElement("div");Ne.className="body-controls",pe.append(Ne),k=Ne,re([{label:"主体顶部间距",value:()=>Math.round(t.baseContentTop+t.state.bodyOffset-(t.header?q(t.box(t.header)):0)),onChange:v=>t.change(()=>{t.state.bodyOffset=(t.header?q(t.box(t.header)):0)+v-t.baseContentTop})}]),k.append(oe("整体下移 24px",()=>t.change(()=>{t.state.bodyOffset+=24})));let ze=document.createElement("div");ze.className="diagnostics",C.append(ze),k=ze,fe(`布局提示 · ${t.issues?.length||0}`);let we=document.createElement("div");we.className="list issues";let Ut={"move-node":"移动节点","resize-node":"调整节点尺寸","move-label":"调整标签","edit-ports":"调整端口","edit-bends":"调整折点","reset-route":"恢复自动走线","grow-canvas":"扩大画布","move-body":"整体下移主体","move-row":"调整消息行"};for(let v of["error","warning"]){let D=(t.issues||[]).filter(H=>(H.severity||"error")===v);if(!D.length)continue;let V=document.createElement("h3");V.textContent=`${v==="error"?"错误":"提示"} · ${D.length}`,we.append(V);for(let H of D){we.append(oe(`${H.id} · ${H.message}`,()=>{if(z(t.nodes.has(H.id)?[H.id]:[],t.nodes.has(H.id)?null:H.id),L=[H.evidence?.region,...(H.evidence?.related||[]).map(ge=>ge.region)].filter(Boolean),!L.length){let ge=t.nodes.get(H.id),Le=t.edgeGeometry.get(H.id);ge?L.push(t.box(ge.shell)):Le?.label&&L.push(Le.label)}let se=L[0];se&&I.scrollTo({left:Math.max(0,se.x*f-100),top:Math.max(0,se.y*f-160),behavior:"instant"}),ce()},{class:v}));let B=document.createElement("p");B.className="issue-detail";let N=H.evidence||{},Z=[typeof N.distance=="number"?`间距 ${N.distance.toFixed(2)}px`:"",typeof N.length=="number"?`连续长度 ${N.length.toFixed(2)}px`:""].filter(Boolean).join(" · ");B.textContent=`${H.code||H.type}${Z?` · ${Z}`:""} · ${(H.supportedFixes||[]).map(se=>Ut[se]||se).join("、")}`,we.append(B)}}if(!t.issues?.length){let v=document.createElement("p");v.className="muted",v.textContent="未发现几何冲突。仍需核对内容与关系。",we.append(v)}ze.append(we);let qe=document.createElement("div");qe.className="navigator",qe.innerHTML='<div class="navigator-header"><h3>对象与连线</h3><span class="muted">Shift 多选对象</span></div>';let ie=document.createElement("div");ie.className="navigator-scroll",ie.setAttribute("aria-label","对象与连线列表"),qe.append(ie),r.append(qe),k=ie,fe(`对象 · ${t.nodes.size}`);let Ke=document.createElement("div");Ke.className="list";for(let v of t.nodes.values()){let D=v.group?"▣ ":v.row?"↔ ":v.actor?"│ ":"",V=oe(W(v),N=>z(N.shiftKey?[...new Set([...a,v.id])]:[v.id]),{"aria-label":D+v.id,"aria-pressed":String(a.includes(v.id)),title:`${W(v)} · ${v.id}`}),H=document.createElement("span");H.className="object-name",H.textContent=D+W(v);let B=document.createElement("span");B.className="object-id",B.textContent=v.id===W(v)?"":v.id,V.replaceChildren(H,B),Ke.append(V)}ie.append(Ke),fe(`连线 · ${t.config.edges.length}`);let _e=document.createElement("div");_e.className="list";for(let v of t.config.edges){let D=`${v.from} ${v.arrow===!1?"—":"→"} ${v.to}`,V=ne(t.labels.get(v.id)?.el.textContent),H=oe(D,()=>z([],v.id),{"aria-label":`连线 ${v.id}`,"aria-pressed":String(l===v.id),class:"edge-item",title:`${V?V+" · ":""}${D} · ${v.id}`}),B=document.createElement("span");B.className="object-name",B.textContent=V||D;let N=document.createElement("span");N.className="object-id",N.textContent=`${V?D+" · ":""}${v.id}`,H.replaceChildren(B,N),_e.append(H)}if(ie.append(_e),ie.scrollTop=b,C.scrollTop=u,m){let v=[...ie.querySelectorAll('[aria-pressed="true"]')].at(-1);if(v){let D=v.getBoundingClientRect(),V=ie.getBoundingClientRect();D.bottom>V.bottom?ie.scrollTop+=D.bottom-V.bottom+6:D.top<V.top&&(ie.scrollTop+=D.top-V.top-6)}}R=!1,x&&[...r.querySelectorAll("[data-focus-key]")].find(D=>D.dataset.focusKey===x)?.focus({preventScroll:!0})}function Ae(){e.toggleAttribute("editing",i),r.hidden=!i,n('[data-action="find"]').hidden=i,n('[data-action="edit"]').textContent=i?"完成编辑":"编辑布局",n('[data-action="undo"]').disabled=!t.history.length,n('[data-action="redo"]').disabled=!t.future.length,U.style.width=`${t.root.offsetWidth*f}px`,U.style.height=`${t.root.offsetHeight*f}px`,ce(),Wt(),O()}function Vt(m){t.change(()=>{let b=t.outerSelection(a).filter(W=>!t.nodes.get(W).locked),u=b.map(W=>({id:W,r:t.box(t.nodes.get(W).shell)}));if(u.length<2)return;if(m==="left"||m==="top"){let W=Math.min(...u.map(X=>X.r[m==="left"?"x":"y"]));for(let{id:X,r:ye}of u)t.move([X],m==="left"?W-ye.x:0,m==="top"?W-ye.y:0);return}let x=m==="horizontal",E=x?"x":"y",C=x?"w":"h";if(u.sort((W,X)=>W.r[E]-X.r[E]),u.length<3)return;let $=(u.at(-1).r[E]+u.at(-1).r[C]-u[0].r[E]-u.reduce((W,X)=>W+X.r[C],0))/(u.length-1),ne=u[0].r[E];for(let{id:W,r:X}of u)t.move([W],x?ne-X.x:0,x?0:ne-X.y),ne+=X[C]+$})}function me(m,b,u){m.button===0&&(m.preventDefault(),b==="pan"&&(g=!1),p={kind:b,data:u,start:t.point(m.clientX,m.clientY),client:{x:m.clientX,y:m.clientY},before:t.snapshot(),boxes:b==="nodes"?new Map([...t.nodes].map(([x,E])=>[x,t.box(E.shell)])):null,scroll:{x:I.scrollLeft,y:I.scrollTop}})}t.root.addEventListener("pointerdown",m=>{if(h){me(m,"pan",null);return}if(!i)return;let b=m.target.closest("[data-diagram-label]");if(b){z([],b.dataset.diagramLabel),me(m,"label",l);return}let u=m.target.closest("[data-diagram-shell]");if(m.altKey&&u&&(u=u.parentElement.closest("[data-diagram-shell]")||u),!u){z([]);return}let x=u.dataset.diagramShell;m.shiftKey?z(a.includes(x)?a.filter(E=>E!==x):[...a,x]):a.includes(x)||z([x]),me(m,"nodes",a)}),s.addEventListener("pointerdown",m=>{if(!i)return;let b=m.target.closest("[data-resize],[data-hit],[data-edge-hit]"),u=b?.dataset.resize,x=b?.dataset.hit,E=b?.dataset.edgeHit;if(u)z([u]),me(m,"resize",{id:u,box:t.box(t.nodes.get(u).shell)});else if(x?.startsWith("label:"))me(m,"label",l);else if(x?.startsWith("bend:")){let C=t.edgeGeometry.get(l).points;d=Number(x.split(":")[1])-1,me(m,"bend",{id:l,index:Number(x.split(":")[1]),points:[C[0],...K(),C.at(-1)]})}else E&&z([],E)}),I.addEventListener("pointerdown",m=>{h&&!p&&me(m,"pan",null)}),window.addEventListener("pointermove",m=>{if(!p)return;let b=t.point(m.clientX,m.clientY),u=b.x-p.start.x,x=b.y-p.start.y;if(p.kind==="pan"){I.scrollLeft=p.scroll.x-m.clientX+p.client.x,I.scrollTop=p.scroll.y-m.clientY+p.client.y;return}if(t.state=JSON.parse(p.before),p.kind==="nodes"&&t.move(p.data,u,x,p.boxes),p.kind==="resize"&&t.resize(p.data.id,p.data.box.w+u,p.data.box.h+x),p.kind==="label"){let E=t.state.edges[p.data]||={},C=E.label||{};E.label={dx:(C.dx||0)+u,dy:(C.dy||0)+x},t.apply()}if(p.kind==="bend"){let E=structuredClone(p.data.points),C=p.data.index,$=E[C];E[C]={x:$.x+u,y:$.y+x},C>1&&(E[C-1].x===$.x?E[C-1].x+=u:E[C-1].y===$.y&&(E[C-1].y+=x)),C<E.length-2&&(E[C+1].x===$.x?E[C+1].x+=u:E[C+1].y===$.y&&(E[C+1].y+=x)),F(p.data.id,E.slice(1,-1)),t.apply()}});let Ve=()=>{p&&(p.kind!=="pan"&&t.record(p.before),p=null,Ae())};window.addEventListener("pointerup",Ve),window.addEventListener("pointercancel",Ve),window.addEventListener("keydown",m=>{if(o.activeElement?.matches("input,select")||m.target.matches("input,textarea,select,[contenteditable]")||(m.code==="Space"&&(h=!0,o.activeElement?.matches("button,summary")||m.preventDefault()),!i))return;if((m.ctrlKey||m.metaKey)&&m.key.toLowerCase()==="z"){m.preventDefault(),m.shiftKey?t.redo():t.undo();return}if(m.key==="Escape"){z([]);return}let b={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[m.key];b&&a.length&&!o.activeElement?.matches("summary")&&(m.preventDefault(),t.change(()=>t.move(a,b[0]*(m.shiftKey?10:1),b[1]*(m.shiftKey?10:1))))}),window.addEventListener("keyup",m=>{m.code==="Space"&&(h=!1)}),window.addEventListener("blur",()=>{h=!1,Ve()}),o.addEventListener("click",async m=>{let b=m.target.closest("[data-action]"),u=b?.dataset.action;if(u&&(u==="edit"&&(G?.close(!1),i=!i,z([]),Ae(),g?T():P()),u==="undo"&&t.undo(),u==="redo"&&t.redo(),u==="fit"&&T(),u==="in"&&S(f*1.2),u==="out"&&S(f/1.2),u==="save"&&(t.save(),le("已下载可编辑 HTML；重新打开该文件可继续调整。")),u==="png"&&!c)){c=!0,b.disabled=!0;try{let x=await t.exportPNG(Number(n('select[aria-label="PNG 导出倍率"]').value));t.download(x,`${t.config.name||"diagram"}.png`),le("完整画布 PNG 已导出。")}catch(x){le(x.message)}finally{c=!1,b.disabled=!1}}}),I.addEventListener("scroll",ce);let it=()=>{g?T():P(),ce(),G?.draw()};return window.addEventListener("resize",it),new ResizeObserver(it).observe(n(".bar")),t.onChange(Ae),G=yt(t,{shadow:o,view:I,active:()=>!i,screen:he,zoom:()=>f}),T(),Ae(),{host:e,view:I,fit:T,setZoom:S,choose:z}}function vt(t,e){if(t.match(/^[a-z]+:\/\//i))return t;if(t.match(/^\/\//))return window.location.protocol+t;if(t.match(/^[a-z]+:/i))return t;let o=document.implementation.createHTMLDocument(),n=o.createElement("base"),s=o.createElement("a");return o.head.appendChild(n),o.body.appendChild(s),e&&(n.href=e),s.href=t,s.href}var St=(()=>{let t=0,e=()=>`0000${(Math.random()*36**4<<0).toString(36)}`.slice(-4);return()=>(t+=1,`u${e()}${t}`)})();function ae(t){let e=[];for(let o=0,n=t.length;o<n;o++)e.push(t[o]);return e}var ke=null;function je(t={}){return ke||(t.includeStyleProperties?(ke=t.includeStyleProperties,ke):(ke=ae(window.getComputedStyle(document.documentElement)),ke))}function Be(t,e){let n=(t.ownerDocument.defaultView||window).getComputedStyle(t).getPropertyValue(e);return n?parseFloat(n.replace("px","")):0}function Yt(t){let e=Be(t,"border-left-width"),o=Be(t,"border-right-width");return t.clientWidth+e+o}function Zt(t){let e=Be(t,"border-top-width"),o=Be(t,"border-bottom-width");return t.clientHeight+e+o}function Qe(t,e={}){let o=e.width||Yt(t),n=e.height||Zt(t);return{width:o,height:n}}function Et(){let t,e;try{e=process}catch{}let o=e&&e.env?e.env.devicePixelRatio:null;return o&&(t=parseInt(o,10),Number.isNaN(t)&&(t=1)),t||window.devicePixelRatio||1}var ee=16384;function kt(t){(t.width>ee||t.height>ee)&&(t.width>ee&&t.height>ee?t.width>t.height?(t.height*=ee/t.width,t.width=ee):(t.width*=ee/t.height,t.height=ee):t.width>ee?(t.height*=ee/t.width,t.width=ee):(t.width*=ee/t.height,t.height=ee))}function Mt(t,e={}){return t.toBlob?new Promise(o=>{t.toBlob(o,e.type?e.type:"image/png",e.quality?e.quality:1)}):new Promise(o=>{let n=window.atob(t.toDataURL(e.type?e.type:void 0,e.quality?e.quality:void 0).split(",")[1]),s=n.length,r=new Uint8Array(s);for(let i=0;i<s;i+=1)r[i]=n.charCodeAt(i);o(new Blob([r],{type:e.type?e.type:"image/png"}))})}function Me(t){return new Promise((e,o)=>{let n=new Image;n.onload=()=>{n.decode().then(()=>{requestAnimationFrame(()=>e(n))})},n.onerror=o,n.crossOrigin="anonymous",n.decoding="async",n.src=t})}async function Qt(t){return Promise.resolve().then(()=>new XMLSerializer().serializeToString(t)).then(encodeURIComponent).then(e=>`data:image/svg+xml;charset=utf-8,${e}`)}async function $t(t,e,o){let n="http://www.w3.org/2000/svg",s=document.createElementNS(n,"svg"),r=document.createElementNS(n,"foreignObject");return s.setAttribute("width",`${e}`),s.setAttribute("height",`${o}`),s.setAttribute("viewBox",`0 0 ${e} ${o}`),r.setAttribute("width","100%"),r.setAttribute("height","100%"),r.setAttribute("x","0"),r.setAttribute("y","0"),r.setAttribute("externalResourcesRequired","true"),s.appendChild(r),r.appendChild(t),Qt(s)}var _=(t,e)=>{if(t instanceof e)return!0;let o=Object.getPrototypeOf(t);return o===null?!1:o.constructor.name===e.name||_(o,e)};function eo(t){let e=t.getPropertyValue("content");return`${t.cssText} content: '${e.replace(/'|"/g,"")}';`}function to(t,e){return je(e).map(o=>{let n=t.getPropertyValue(o),s=t.getPropertyPriority(o);return`${o}: ${n}${s?" !important":""};`}).join(" ")}function oo(t,e,o,n){let s=`.${t}:${e}`,r=o.cssText?eo(o):to(o,n);return document.createTextNode(`${s}{${r}}`)}function Ct(t,e,o,n){let s=window.getComputedStyle(t,o),r=s.getPropertyValue("content");if(r===""||r==="none")return;let i=St();try{e.className=`${e.className} ${i}`}catch{return}let a=document.createElement("style");a.appendChild(oo(i,o,s,n)),e.appendChild(a)}function Gt(t,e,o){Ct(t,e,":before",o),Ct(t,e,":after",o)}var Pt="application/font-woff",At="image/jpeg",no={woff:Pt,woff2:Pt,ttf:"application/font-truetype",eot:"application/vnd.ms-fontobject",png:"image/png",jpg:At,jpeg:At,gif:"image/gif",tiff:"image/tiff",svg:"image/svg+xml",webp:"image/webp"};function so(t){let e=/\.([^./]*?)$/g.exec(t);return e?e[1]:""}function $e(t){let e=so(t).toLowerCase();return no[e]||""}function ro(t){return t.split(/,/)[1]}function Te(t){return t.search(/^(data:)/)!==-1}function tt(t,e){return`data:${e};base64,${t}`}async function ot(t,e,o){let n=await fetch(t,e);if(n.status===404)throw new Error(`Resource "${n.url}" not found`);let s=await n.blob();return new Promise((r,i)=>{let a=new FileReader;a.onerror=i,a.onloadend=()=>{try{r(o({res:n,result:a.result}))}catch(l){i(l)}},a.readAsDataURL(s)})}var et={};function io(t,e,o){let n=t.replace(/\?.*/,"");return o&&(n=t),/ttf|otf|eot|woff2?/i.test(n)&&(n=n.replace(/.*\//,"")),e?`[${e}]${n}`:n}async function Ce(t,e,o){let n=io(t,e,o.includeQueryParams);if(et[n]!=null)return et[n];o.cacheBust&&(t+=(/\?/.test(t)?"&":"?")+new Date().getTime());let s;try{let r=await ot(t,o.fetchRequestInit,({res:i,result:a})=>(e||(e=i.headers.get("Content-Type")||""),ro(a)));s=tt(r,e)}catch(r){s=o.imagePlaceholder||"";let i=`Failed to fetch resource: ${t}`;r&&(i=typeof r=="string"?r:r.message),i&&console.warn(i)}return et[n]=s,s}async function ao(t){let e=t.toDataURL();return e==="data:,"?t.cloneNode(!1):Me(e)}async function lo(t,e){if(t.currentSrc){let r=document.createElement("canvas"),i=r.getContext("2d");r.width=t.clientWidth,r.height=t.clientHeight,i?.drawImage(t,0,0,r.width,r.height);let a=r.toDataURL();return Me(a)}let o=t.poster,n=$e(o),s=await Ce(o,n,e);return Me(s)}async function co(t,e){var o;try{if(!((o=t?.contentDocument)===null||o===void 0)&&o.body)return await Oe(t.contentDocument.body,e,!0)}catch{}return t.cloneNode(!1)}async function ho(t,e){return _(t,HTMLCanvasElement)?ao(t):_(t,HTMLVideoElement)?lo(t,e):_(t,HTMLIFrameElement)?co(t,e):t.cloneNode(Lt(t))}var fo=t=>t.tagName!=null&&t.tagName.toUpperCase()==="SLOT",Lt=t=>t.tagName!=null&&t.tagName.toUpperCase()==="SVG";async function po(t,e,o){var n,s;if(Lt(e))return e;let r=[];return fo(t)&&t.assignedNodes?r=ae(t.assignedNodes()):_(t,HTMLIFrameElement)&&(!((n=t.contentDocument)===null||n===void 0)&&n.body)?r=ae(t.contentDocument.body.childNodes):r=ae(((s=t.shadowRoot)!==null&&s!==void 0?s:t).childNodes),r.length===0||_(t,HTMLVideoElement)||await r.reduce((i,a)=>i.then(()=>Oe(a,o)).then(l=>{l&&e.appendChild(l)}),Promise.resolve()),e}function uo(t,e,o){let n=e.style;if(!n)return;let s=window.getComputedStyle(t);s.cssText?(n.cssText=s.cssText,n.transformOrigin=s.transformOrigin):je(o).forEach(r=>{let i=s.getPropertyValue(r);r==="font-size"&&i.endsWith("px")&&(i=`${Math.floor(parseFloat(i.substring(0,i.length-2)))-.1}px`),_(t,HTMLIFrameElement)&&r==="display"&&i==="inline"&&(i="block"),r==="d"&&e.getAttribute("d")&&(i=`path(${e.getAttribute("d")})`),n.setProperty(r,i,s.getPropertyPriority(r))})}function mo(t,e){_(t,HTMLTextAreaElement)&&(e.innerHTML=t.value),_(t,HTMLInputElement)&&e.setAttribute("value",t.value)}function go(t,e){if(_(t,HTMLSelectElement)){let n=Array.from(e.children).find(s=>t.value===s.getAttribute("value"));n&&n.setAttribute("selected","")}}function xo(t,e,o){return _(e,Element)&&(uo(t,e,o),Gt(t,e,o),mo(t,e),go(t,e)),e}async function bo(t,e){let o=t.querySelectorAll?t.querySelectorAll("use"):[];if(o.length===0)return t;let n={};for(let r=0;r<o.length;r++){let a=o[r].getAttribute("xlink:href");if(a){let l=t.querySelector(a),d=document.querySelector(a);!l&&d&&!n[a]&&(n[a]=await Oe(d,e,!0))}}let s=Object.values(n);if(s.length){let r="http://www.w3.org/1999/xhtml",i=document.createElementNS(r,"svg");i.setAttribute("xmlns",r),i.style.position="absolute",i.style.width="0",i.style.height="0",i.style.overflow="hidden",i.style.display="none";let a=document.createElementNS(r,"defs");i.appendChild(a);for(let l=0;l<s.length;l++)a.appendChild(s[l]);t.appendChild(i)}return t}async function Oe(t,e,o){return!o&&e.filter&&!e.filter(t)?null:Promise.resolve(t).then(n=>ho(n,e)).then(n=>po(t,n,e)).then(n=>xo(t,n,e)).then(n=>bo(n,e))}var Rt=/url\((['"]?)([^'"]+?)\1\)/g,yo=/url\([^)]+\)\s*format\((["']?)([^"']+)\1\)/g,wo=/src:\s*(?:url\([^)]+\)\s*format\([^)]+\)[,;]\s*)+/g;function vo(t){let e=t.replace(/([.*+?^${}()|\[\]\/\\])/g,"\\$1");return new RegExp(`(url\\(['"]?)(${e})(['"]?\\))`,"g")}function So(t){let e=[];return t.replace(Rt,(o,n,s)=>(e.push(s),o)),e.filter(o=>!Te(o))}async function Eo(t,e,o,n,s){try{let r=o?vt(e,o):e,i=$e(e),a;if(s){let l=await s(r);a=tt(l,i)}else a=await Ce(r,i,n);return t.replace(vo(e),`$1${a}$3`)}catch{}return t}function ko(t,{preferredFontFormat:e}){return e?t.replace(wo,o=>{for(;;){let[n,,s]=yo.exec(o)||[];if(!s)return"";if(s===e)return`src: ${n};`}}):t}function nt(t){return t.search(Rt)!==-1}async function De(t,e,o){if(!nt(t))return t;let n=ko(t,o);return So(n).reduce((r,i)=>r.then(a=>Eo(a,i,e,o)),Promise.resolve(n))}async function Ge(t,e,o){var n;let s=(n=e.style)===null||n===void 0?void 0:n.getPropertyValue(t);if(s){let r=await De(s,null,o);return e.style.setProperty(t,r,e.style.getPropertyPriority(t)),!0}return!1}async function Mo(t,e){await Ge("background",t,e)||await Ge("background-image",t,e),await Ge("mask",t,e)||await Ge("-webkit-mask",t,e)||await Ge("mask-image",t,e)||await Ge("-webkit-mask-image",t,e)}async function $o(t,e){let o=_(t,HTMLImageElement);if(!(o&&!Te(t.src))&&!(_(t,SVGImageElement)&&!Te(t.href.baseVal)))return;let n=o?t.src:t.href.baseVal,s=await Ce(n,$e(n),e);await new Promise((r,i)=>{t.onload=r,t.onerror=e.onImageErrorHandler?(...l)=>{try{r(e.onImageErrorHandler(...l))}catch(d){i(d)}}:i;let a=t;a.decode&&(a.decode=r),a.loading==="lazy"&&(a.loading="eager"),o?(t.srcset="",t.src=s):t.href.baseVal=s})}async function Co(t,e){let n=ae(t.childNodes).map(s=>st(s,e));await Promise.all(n).then(()=>t)}async function st(t,e){_(t,Element)&&(await Mo(t,e),await $o(t,e),await Co(t,e))}function Tt(t,e){let{style:o}=t;e.backgroundColor&&(o.backgroundColor=e.backgroundColor),e.width&&(o.width=`${e.width}px`),e.height&&(o.height=`${e.height}px`);let n=e.style;return n!=null&&Object.keys(n).forEach(s=>{o[s]=n[s]}),t}var Ot={};async function zt(t){let e=Ot[t];if(e!=null)return e;let n=await(await fetch(t)).text();return e={url:t,cssText:n},Ot[t]=e,e}async function qt(t,e){let o=t.cssText,n=/url\(["']?([^"')]+)["']?\)/g,r=(o.match(/url\([^)]+\)/g)||[]).map(async i=>{let a=i.replace(n,"$1");return a.startsWith("https://")||(a=new URL(a,t.url).href),ot(a,e.fetchRequestInit,({result:l})=>(o=o.replace(i,`url(${l})`),[i,l]))});return Promise.all(r).then(()=>o)}function It(t){if(t==null)return[];let e=[],o=/(\/\*[\s\S]*?\*\/)/gi,n=t.replace(o,""),s=new RegExp("((@.*?keyframes [\\s\\S]*?){([\\s\\S]*?}\\s*?)})","gi");for(;;){let l=s.exec(n);if(l===null)break;e.push(l[0])}n=n.replace(s,"");let r=/@import[\s\S]*?url\([^)]*\)[\s\S]*?;/gi,i="((\\s*?(?:\\/\\*[\\s\\S]*?\\*\\/)?\\s*?@media[\\s\\S]*?){([\\s\\S]*?)}\\s*?})|(([\\s\\S]*?){([\\s\\S]*?)})",a=new RegExp(i,"gi");for(;;){let l=r.exec(n);if(l===null){if(l=a.exec(n),l===null)break;r.lastIndex=a.lastIndex}else a.lastIndex=r.lastIndex;e.push(l[0])}return e}async function Go(t,e){let o=[],n=[];return t.forEach(s=>{if("cssRules"in s)try{ae(s.cssRules||[]).forEach((r,i)=>{if(r.type===CSSRule.IMPORT_RULE){let a=i+1,l=r.href,d=zt(l).then(f=>qt(f,e)).then(f=>It(f).forEach(p=>{try{s.insertRule(p,p.startsWith("@import")?a+=1:s.cssRules.length)}catch(h){console.error("Error inserting rule from remote css",{rule:p,error:h})}})).catch(f=>{console.error("Error loading remote css",f.toString())});n.push(d)}})}catch(r){let i=t.find(a=>a.href==null)||document.styleSheets[0];s.href!=null&&n.push(zt(s.href).then(a=>qt(a,e)).then(a=>It(a).forEach(l=>{i.insertRule(l,i.cssRules.length)})).catch(a=>{console.error("Error loading remote stylesheet",a)})),console.error("Error inlining remote css file",r)}}),Promise.all(n).then(()=>(t.forEach(s=>{if("cssRules"in s)try{ae(s.cssRules||[]).forEach(r=>{o.push(r)})}catch(r){console.error(`Error while reading CSS rules from ${s.href}`,r)}}),o))}function Po(t){return t.filter(e=>e.type===CSSRule.FONT_FACE_RULE).filter(e=>nt(e.style.getPropertyValue("src")))}async function Ao(t,e){if(t.ownerDocument==null)throw new Error("Provided element is not within a Document");let o=ae(t.ownerDocument.styleSheets),n=await Go(o,e);return Po(n)}function Ft(t){return t.trim().replace(/["']/g,"")}function Lo(t){let e=new Set;function o(n){(n.style.fontFamily||getComputedStyle(n).fontFamily).split(",").forEach(r=>{e.add(Ft(r))}),Array.from(n.children).forEach(r=>{r instanceof HTMLElement&&o(r)})}return o(t),e}async function Ht(t,e){let o=await Ao(t,e),n=Lo(t);return(await Promise.all(o.filter(r=>n.has(Ft(r.style.fontFamily))).map(r=>{let i=r.parentStyleSheet?r.parentStyleSheet.href:null;return De(r.cssText,i,e)}))).join(`
 `)}async function Bt(t,e){let o=e.fontEmbedCSS!=null?e.fontEmbedCSS:e.skipFonts?null:await Ht(t,e);if(o){let n=document.createElement("style"),s=document.createTextNode(o);n.appendChild(s),t.firstChild?t.insertBefore(n,t.firstChild):t.appendChild(n)}}async function Ro(t,e={}){let{width:o,height:n}=Qe(t,e),s=await Oe(t,e,!0);return await Bt(s,e),await st(s,e),Tt(s,e),await $t(s,o,n)}async function To(t,e={}){let{width:o,height:n}=Qe(t,e),s=await Ro(t,e),r=await Me(s),i=document.createElement("canvas"),a=i.getContext("2d"),l=e.pixelRatio||Et(),d=e.canvasWidth||o,f=e.canvasHeight||n;return i.width=d*l,i.height=f*l,e.skipAutoScale||kt(i),i.style.width=`${d}`,i.style.height=`${f}`,e.backgroundColor&&(a.fillStyle=e.backgroundColor,a.fillRect(0,0,i.width,i.height)),a.drawImage(r,0,0,i.width,i.height),i}async function jt(t,e={}){let o=await To(t,e);return await Mt(o)}var Oo="http://www.w3.org/2000/svg",de=(t,e={})=>{let o=document.createElementNS(Oo,t);for(let[n,s]of Object.entries(e))o.setAttribute(n,s);return o},We=t=>JSON.parse(JSON.stringify(t)),te=(t,e=0)=>Number.isFinite(t)?t:e,zo=t=>JSON.stringify(t).replace(/</g,"\\u003c"),rt=class{get state(){return this._state}set state(e){this._state=e,e.nodes=Object.assign(Object.create(null),e.nodes),e.edges=Object.assign(Object.create(null),e.edges)}constructor(e,o,n={}){this.root=e,this.config=o,this.template=document.documentElement.cloneNode(!0),this.state={version:1,nodes:{},edges:{},bodyOffset:0,...We(n)},this.nodes=new Map,this.labels=new Map,this.edgeGeometry=new Map,this.computedPorts=new Map,this.history=[],this.future=[],this.listeners=new Set,this.body=e.querySelector('[data-diagram-region="body"]'),this.header=e.querySelector('[data-diagram-region="header"]'),this.footer=e.querySelector('[data-diagram-region="footer"]'),this.ready=this.init()}box(e){let o=e.getBoundingClientRect(),n=this.root.getBoundingClientRect(),s=this.scale(),r=i=>Math.round((i+1e-6)*64)/64;return{x:r((o.left-n.left)/s.x),y:r((o.top-n.top)/s.y),w:r(o.width/s.x),h:r(o.height/s.y)}}scale(){let e=this.root.getBoundingClientRect();return{x:e.width/this.root.offsetWidth||1,y:e.height/this.root.offsetHeight||1}}point(e,o){let n=this.root.getBoundingClientRect(),s=this.scale();return{x:(e-n.left)/s.x,y:(o-n.top)/s.y}}async init(){if(!this.body)throw Error('缺少主体区域 data-diagram-region="body"');if(this.config.version!==1||this.state.version!==1)throw Error("不支持此图解协议版本");if(![void 0,"center","spread"].includes(this.config.portDistribution))throw Error("portDistribution 只支持 center 或 spread");await document.fonts.ready,await Promise.all([...this.root.querySelectorAll("img")].map(s=>s.decode().catch(()=>{}))),this.root.style.position="relative",this.originalSize={w:this.root.offsetWidth,h:this.root.offsetHeight},this.originalBody=this.box(this.body),this.originalFooter=this.footer?this.box(this.footer):null;let e=[...this.root.querySelectorAll("[data-diagram-node],[data-diagram-group],[data-diagram-row]")];for(let s of e){let r=s.dataset.diagramNode||s.dataset.diagramGroup||s.dataset.diagramRow;if(this.nodes.has(r))throw Error(`重复对象标识：${r}`);let i=s.parentElement.closest("[data-diagram-group]")?.dataset.diagramGroup,a=s instanceof SVGElement,l=this.box(s),d={id:r,el:s,parent:i,group:s.hasAttribute("data-diagram-group"),row:s.hasAttribute("data-diagram-row"),actor:s.hasAttribute("data-diagram-actor"),locked:s.hasAttribute("data-diagram-locked"),isSVG:a,base:l};this.nodes.set(r,d)}for(let s of this.config.edges){if(!this.nodes.has(s.from)||!this.nodes.has(s.to))throw Error(`连线 ${s.id} 的端点不存在`);if(s.kind==="sequence"&&!this.nodes.get(s.row)?.row)throw Error(`消息 ${s.id} 缺少时序行`)}for(let s of this.root.querySelectorAll("[data-diagram-label]")){let r=s.dataset.diagramLabel;if(this.labels.has(r))throw Error(`重复连线标签：${r}`);this.labels.set(r,{el:s,base:this.box(s),isSVG:s instanceof SVGElement})}for(let s of new Set([...this.nodes.values()].filter(r=>!r.isSVG).map(r=>r.el.parentElement))){if(s===this.body||s===this.root||s.matches("[data-diagram-node],[data-diagram-group]"))continue;let r=getComputedStyle(s),i=this.box(s),a=r.boxSizing==="border-box"?0:parseFloat(r.paddingTop)+parseFloat(r.paddingBottom)+parseFloat(r.borderTopWidth)+parseFloat(r.borderBottomWidth);i.h>0&&(s.style.minHeight=`${i.h-a}px`)}this.body.style.minHeight=`${this.originalBody.h}px`,this.root.style.width=`${this.originalSize.w}px`,this.root.style.height=`${this.originalSize.h}px`;for(let s of[...this.nodes.values()].reverse())this.wrap(s);for(let s of this.nodes.values())if(!s.isSVG){let r=this.box(s.shell);s.shell.style.left=`${parseFloat(s.shell.style.left)+s.base.x-r.x}px`,s.shell.style.top=`${parseFloat(s.shell.style.top)+s.base.y-r.y}px`}for(let s of this.nodes.values())s.base=this.box(s.shell);for(let s of this.labels.values())s.isSVG?(s.originalTransform=s.el.getAttribute("transform")||"",s.base=this.box(s.el)):(s.el.style.position="absolute",s.el.style.margin="0",s.el.style.transform="none",s.el.style.translate="none",s.el.style.zIndex="4");this.layer=de("svg",{"data-diagram-generated":"wires","aria-label":"图解连线"}),Object.assign(this.layer.style,{position:"absolute",inset:"0",width:"100%",height:"100%",overflow:"visible",pointerEvents:"none",zIndex:"3"}),this.root.append(this.layer);let o=[...this.nodes.values()].filter(s=>!s.row).map(s=>s.base),n=o.length?Math.min(...o.map(s=>s.y)):this.originalBody.y;this.baseContentTop=n,this.minimumOffset=Math.max(0,(this.header?q(this.box(this.header)):0)+(this.config.gap??24)-n),this.state.bodyOffset=te(this.state.bodyOffset,this.minimumOffset),Object.hasOwn(this.state,"initialized")||(this.state.bodyOffset=Math.max(this.minimumOffset,this.state.bodyOffset),this.state.initialized=!0),this.apply(),this.editor=wt(this),this.observer=new ResizeObserver(()=>this.schedule());for(let s of this.nodes.values())this.observer.observe(s.el);return document.fonts.addEventListener("loadingdone",()=>this.schedule()),window.addEventListener("resize",()=>this.schedule()),this.root.dataset.diagramReady="true",this.savedState=JSON.stringify(this.state),this}wrap(e){if(e.isSVG){e.shell=de("g",{"data-diagram-shell":e.id}),e.el.before(e.shell),e.shell.append(e.el),e.frame=e.el.querySelector("[data-diagram-frame]"),e.content=e.el.querySelector("[data-diagram-content]"),e.frameBase=e.frame?{w:parseFloat(e.frame.getAttribute("width")),h:parseFloat(e.frame.getAttribute("height"))}:null,e.frameBox=e.frame?this.box(e.frame):null;return}let o=e.el.offsetParent||this.root,n=this.box(o),s=getComputedStyle(o),r=document.createElement("div");r.dataset.diagramShell=e.id,Object.assign(r.style,{position:"absolute",left:`${e.base.x-n.x-parseFloat(s.borderLeftWidth||0)}px`,top:`${e.base.y-n.y-parseFloat(s.borderTopWidth||0)}px`,width:`${e.base.w}px`,height:`${e.base.h}px`,boxSizing:"border-box",zIndex:getComputedStyle(e.el).zIndex}),e.el.before(r),r.append(e.el),e.shell=r;for(let[i,a]of Object.entries({position:"relative",top:"0",left:"0",right:"auto",bottom:"auto",margin:"0",width:"100%",height:e.group?"100%":"auto",minHeight:"100%",maxHeight:"none",maxWidth:"none",boxSizing:"border-box",transform:"none",translate:"none"}))e.el.style.setProperty(i.replace(/[A-Z]/g,l=>`-${l.toLowerCase()}`),a,"important");e.el.style.overflow="visible"}getState(){return We(this.state)}getGeometry(){return{nodes:Object.fromEntries([...this.nodes].map(([e,o])=>[e,this.box(o.shell)])),edges:Object.fromEntries([...this.edgeGeometry].map(([e,o])=>[e,We(o)])),issues:We(this.issues||[])}}onChange(e){return this.listeners.add(e),()=>this.listeners.delete(e)}emit(){for(let e of this.listeners)e()}schedule(){this.frame||(this.frame=requestAnimationFrame(()=>{this.frame=0,this.apply()}))}snapshot(){return JSON.stringify(this.state)}record(e){e!==this.snapshot()&&(this.history.push(e),this.history.length>100&&this.history.shift(),this.future=[],this.emit())}change(e){let o=this.snapshot();e(),this.apply(),this.record(o)}undo(){this.history.length&&(this.future.push(this.snapshot()),this.state=JSON.parse(this.history.pop()),this.apply())}redo(){this.future.length&&(this.history.push(this.snapshot()),this.state=JSON.parse(this.future.pop()),this.apply())}descendants(e){return[...this.nodes.values()].filter(o=>o.parent===e).flatMap(o=>[o,...this.descendants(o.id)])}outerSelection(e){return e.filter(o=>{let n=this.nodes.get(o)?.parent;for(;n;){if(e.includes(n))return!1;n=this.nodes.get(n)?.parent}return!0})}move(e,o,n,s){let r=this.outerSelection(e).filter(i=>!this.nodes.get(i)?.locked);n=this.limitRowMove(r,n,s);for(let i of r){let a=this.nodes.get(i);if(!a||a.locked)continue;let l=this.state.nodes[i]||={};l.dx=te(l.dx)+(a.row?0:o),l.dy=te(l.dy)+(a.actor?0:n)}for(let i of this.config.edges){let a=this.edgeSpec(i).points;if(a?.length)for(let l of r){let d=new Set([l,...this.descendants(l).map(f=>f.id)]);if(d.has(i.from)&&d.has(i.to)){let f=this.nodes.get(l),p=f.row?0:o,h=f.actor?0:n;(p||h)&&((this.state.edges[i.id]||={}).points=a.map(c=>({x:c.x+p,y:c.y+h})));break}}}this.apply()}limitRowMove(e,o,n){let s=f=>n?.get(f.id)||this.box(f.shell),r=new Set(e.flatMap(f=>[f,...this.descendants(f).map(p=>p.id)])),i=[...this.nodes.values()].filter(f=>f.row).sort((f,p)=>f.base.y-p.base.y),a=(f,p)=>{let h=this.config.edges.find(y=>y.row===f.id),c=this.config.edges.find(y=>y.row===p.id),w=this.labels.get(c?.id);return Math.max(this.config.rowGap??28,(w?this.box(w.el).h:0)+12+(h?.from===h?.to?20:0))},l=-1/0,d=1/0;return i.forEach((f,p)=>{if(!r.has(f.id))return;let h=s(f).y,c=i[p-1],w=i[p+1];if(c&&!r.has(c.id)&&(l=Math.max(l,s(c).y+a(c,f)-h)),w&&!r.has(w.id)&&(d=Math.min(d,s(w).y-a(f,w)-h)),f.parent&&!r.has(f.parent)){let y=this.nodes.get(f.parent),M=this.descendants(f.parent).filter(g=>!g.row&&!g.group),k=Math.max(s(y).y,...M.map(g=>q(s(g)))),A=this.config.edges.find(g=>g.row===f.id),R=this.labels.get(A?.id);l=Math.max(l,k+(R?this.box(R.el).h:0)+12-h)}}),Math.max(Math.min(0,l),Math.min(Math.max(0,d),o))}resize(e,o,n){let s=this.nodes.get(e);if(!s||s.locked||s.row||s.actor)return;let r=this.state.nodes[e]||={};r.w=Math.max(24,te(o,s.base.w)),r.h=Math.max(16,te(n,s.base.h)),this.apply()}minimum(e){if(e.isSVG){if(e.group&&e.frame){let l=this.box(e.frame),d=this.descendants(e.id);return{w:Math.max(40,...d.filter(f=>!f.row).map(f=>j(this.box(f.shell))-l.x+12)),h:Math.max(40,...d.map(f=>q(this.box(f.shell))-l.y+(f.row?28:12)))}}if(!e.frame||!e.content)return{w:e.base.w,h:e.base.h};let i=this.box(e.frame),a=this.box(e.content);return{w:Math.max(24,j(a)-i.x+12),h:Math.max(16,q(a)-i.y+12)}}if(e.group){let i=this.box(e.shell),a=this.descendants(e.id).map(l=>this.box(l.shell));return{w:Math.max(40,...a.map(l=>j(l)-i.x+16)),h:Math.max(40,...a.map(l=>q(l)-i.y+16))}}let o=getComputedStyle(e.el),n=parseFloat(o.paddingBottom)+parseFloat(o.borderBottomWidth),s=this.box(e.el),r=[...e.el.querySelectorAll("*")].filter(i=>!i.children.length).map(i=>this.box(i));return{w:Math.max(24,e.el.scrollWidth),h:Math.max(e.el.scrollHeight,...r.map(i=>q(i)-s.y+n))}}apply(){this.body.style.translate=`0px ${te(this.state.bodyOffset)}px`;for(let e of this.nodes.values()){let o=this.state.nodes[e.id]||{};if(e.isSVG){let n=e.shell.parentElement.getScreenCTM(),s=this.scale(),r=n?Math.hypot(n.a,n.b)/s.x:1,i=n?Math.hypot(n.c,n.d)/s.y:1;if(e.shell.setAttribute("transform",`translate(${te(o.dx)/r} ${te(o.dy)/i})`),e.frame?.tagName==="rect"){let a=e.frame.getScreenCTM(),l=Math.hypot(a.a,a.b)/s.x,d=Math.hypot(a.c,a.d)/s.y,f=e.base.w-e.frameBox.w,p=e.base.h-e.frameBox.h;e.frame.setAttribute("width",o.w?(o.w-f)/l:e.frameBase.w),e.frame.setAttribute("height",o.h?(o.h-p)/d:e.frameBase.h);let h=this.minimum(e),c=Math.max(o.w?o.w-f:e.frameBox.w,h.w),w=Math.max(o.h?o.h-p:e.frameBox.h,h.h);e.frame.setAttribute("width",c/l),e.frame.setAttribute("height",w/d),o.w&&(o.w=c+f),o.h&&(o.h=w+p)}}else if(e.shell.style.translate=`${te(o.dx)}px ${te(o.dy)}px`,e.shell.style.width=`${o.w??e.base.w}px`,e.shell.style.height=`${o.h??e.base.h}px`,!e.group&&!e.row){let n=this.minimum(e),s=Math.max(o.w??e.base.w,n.w),r=Math.max(o.h??e.base.h,n.h);e.shell.style.width=`${s}px`,e.shell.style.height=`${r}px`,o.w&&(o.w=s),o.h&&(o.h=r)}}for(let e of[...this.nodes.values()].reverse())if(e.group){let o=this.minimum(e),n=this.state.nodes[e.id]||{};if(e.isSVG&&e.frame?.tagName==="rect"){let s=this.box(e.frame);o.w>s.w&&e.frame.setAttribute("width",parseFloat(e.frame.getAttribute("width"))*o.w/s.w),o.h>s.h&&e.frame.setAttribute("height",parseFloat(e.frame.getAttribute("height"))*o.h/s.h)}else e.isSVG||(e.shell.style.width=`${Math.max(n.w??e.base.w,o.w)}px`,e.shell.style.height=`${Math.max(n.h??e.base.h,o.h)}px`);n.w&&(n.w=this.box(e.shell).w),n.h&&(n.h=this.box(e.shell).h)}this.refresh()}edgeSpec(e,o,n=!0){let s={...e,...this.state.edges[e.id],fromPort:this.state.edges[e.id]?.fromPort||e.fromPort,toPort:this.state.edges[e.id]?.toPort||e.toPort};if(e.kind!=="sequence"){let r=o?.get(e.from)||this.box(this.nodes.get(e.from).shell),i=o?.get(e.to)||this.box(this.nodes.get(e.to).shell);s.fromPort||(s.fromPort={side:e.from===e.to?"top":Math.abs(i.x-r.x)>Math.abs(i.y-r.y)?i.x>=r.x?"right":"left":i.y>=r.y?"bottom":"top"}),s.toPort||(s.toPort={side:e.from===e.to?"right":{right:"left",left:"right",top:"bottom",bottom:"top"}[s.fromPort.side]})}return n&&Object.assign(s,this.computedPorts.get(e.id)),s}refresh(){if(!this.layer)return;let e=new Map([...this.nodes].map(([d,f])=>[d,this.box(f.shell)])),o=this.config.portDistribution==="spread"?xt(this.config.edges.map(d=>({edge:d,spec:this.edgeSpec(d,e,!1),fixedFrom:!!(this.state.edges[d.id]?.fromPort||d.fromPort),fixedTo:!!(this.state.edges[d.id]?.toPort||d.toPort)})),e):{ports:new Map,issues:[]};this.computedPorts=o.ports,this.portIssues=o.issues;let n=[...this.nodes.values()].filter(d=>!d.group&&!d.row).map(d=>({id:d.id,...e.get(d.id)})),s=this.header?this.box(this.header):null;this.layer.replaceChildren();let r=de("defs");this.layer.append(r),this.edgeGeometry.clear();let i=[];for(let d of this.config.edges){let f=this.edgeSpec(d,e),p=e.get(d.from),h=e.get(d.to),c=n.filter(g=>g.id!==d.from&&g.id!==d.to).map(g=>Q(g,8));s&&c.push(Q(s,8));let w;if(d.kind==="sequence"){let g=e.get(d.row),G=g.y+g.h/2,L={x:p.x+p.w/2,y:G},I={x:h.x+h.w/2,y:G};w={points:d.from===d.to?[L,{x:L.x+48,y:G},{x:L.x+48,y:G+20},{x:L.x,y:G+20}]:[L,I],blocked:!1}}else if(f.points&&(f.points=f.points.map(g=>({x:g.x,y:g.y+te(this.state.bodyOffset)}))),w=Ye(p,h,f,c),w.blocked){let g=n.filter(L=>L.id!==d.from&&L.id!==d.to).map(L=>Q(L,2));s&&g.push(Q(s,8));let G=Ye(p,h,f,g);G.blocked||(w=G)}let y=d.color||"#334155",M=`mk-arrow-${d.id}`,k=de("marker",{id:M,viewBox:"0 0 10 10",refX:"10",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse",markerUnits:"userSpaceOnUse"});k.append(de("path",{d:"M0 0 L10 5 L0 10",fill:"none",stroke:y,"stroke-width":"1.5"})),r.append(k);let A=de("path",{d:ft(w.points),fill:"none",stroke:y,"stroke-width":d.width||2,"stroke-linejoin":"round","stroke-linecap":"round","data-diagram-edge":d.id});d.arrow!==!1&&A.setAttribute("marker-end",`url(#${M})`),d.dash&&A.setAttribute("stroke-dasharray",d.dash),this.layer.append(A);let R={...w,from:d.from,to:d.to,fromPort:f.fromPort,toPort:f.toPort};this.edgeGeometry.set(d.id,R),i.push(R)}let a=this.config.edges.filter(d=>d.kind==="sequence");for(let d of this.nodes.values())if(d.actor&&a.length){let f=e.get(d.id),p=Math.max(...a.map(c=>q(e.get(c.row))))+28,h=de("path",{d:`M ${f.x+f.w/2} ${q(f)} V ${p}`,fill:"none",stroke:"#94a3b8","stroke-width":1,"stroke-dasharray":"5 6","data-diagram-lifeline":d.id});this.layer.prepend(h)}let l=[...n.map(d=>Q(d,4)),...s?[s]:[]];for(let d of this.config.edges){let f=this.labels.get(d.id);if(!f)continue;let p=this.edgeGeometry.get(d.id),h=this.box(f.el),c=this.state.edges[d.id]||{},w=[...l,...i.filter(A=>A!==p).flatMap(A=>A.points.slice(1).map((R,g)=>Q(ve([{...A.points[g],w:0,h:0},{...R,w:0,h:0}]),2)))],y=pt(p.points,{w:h.w,h:h.h},w),M=y.x+te(c.label?.dx),k=y.y+te(c.label?.dy);if(f.isSVG){f.el.setAttribute("transform",f.originalTransform);let A=this.box(f.el),R=f.el.parentElement.getScreenCTM(),g=this.scale(),G=Math.hypot(R.a,R.b)/g.x,L=Math.hypot(R.c,R.d)/g.y;f.el.setAttribute("transform",`translate(${(M-A.x)/G} ${(k-A.y)/L}) ${f.originalTransform}`)}else{let A=f.el.offsetParent||this.root,R=this.box(A),g=getComputedStyle(A);f.el.style.left=`${M-R.x-parseFloat(g.borderLeftWidth||0)}px`,f.el.style.top=`${k-R.y-parseFloat(g.borderTopWidth||0)}px`}p.label=this.box(f.el),p.labelBlocked=y.blocked&&!c.label,l.push(Q(p.label,4))}this.fitCanvas(e);for(let[d,f]of this.edgeGeometry)if(f.label){let p=`mk-label-mask-${d}`,h=de("mask",{id:p,maskUnits:"userSpaceOnUse",x:0,y:0,width:this.root.offsetWidth,height:this.root.offsetHeight});h.append(de("rect",{x:0,y:0,width:this.root.offsetWidth,height:this.root.offsetHeight,fill:"white"}));let c=Q(f.label,2);h.append(de("rect",{x:c.x,y:c.y,width:c.w,height:c.h,fill:"black"})),r.append(h),this.layer.querySelector(`[data-diagram-edge="${d}"]`).setAttribute("mask",`url(#${p})`)}this.issues=this.diagnose(e),this.emit()}fitCanvas(e){let o=ve([...e.values(),...[...this.edgeGeometry.values()].flatMap(n=>[...n.label?[n.label]:[],...n.points.map(s=>({...s,w:0,h:0}))])]);if(!this.config.fixedSize){let n=Math.ceil(Math.max(this.originalSize.w,j(o)+32)-.001),s=this.originalFooter?.h||0,r=Math.ceil(Math.max(this.originalSize.h,q(o)+s+48)-.001);this.root.style.width=`${Math.ceil(n)}px`,this.root.style.height=`${Math.ceil(r)}px`;for(let i of this.root.querySelectorAll("svg[data-diagram-surface]"))i.setAttribute("width",n),i.setAttribute("height",r),i.setAttribute("viewBox",`0 0 ${n} ${r}`),i.style.width=`${n}px`,i.style.height=`${r}px`;for(let i of this.root.querySelectorAll("[data-diagram-background]"))i.setAttribute("width",n),i.setAttribute("height",r);if(this.footer){let i=Math.max(this.originalFooter.y,q(o)+24);this.footer instanceof SVGElement?this.footer.setAttribute("transform",`translate(0 ${i-this.originalFooter.y})`):(this.footer.style.position="absolute",this.footer.style.top=`${i}px`,this.footer.style.bottom="auto")}}this.layer.setAttribute("viewBox",`0 0 ${this.root.offsetWidth} ${this.root.offsetHeight}`)}diagnose(e=new Map([...this.nodes].map(([o,n])=>[o,this.box(n.shell)]))){let o=[],n=[...this.nodes.values()].filter(h=>!h.group&&!h.row),s=this.header?this.box(this.header):null,r=h=>e.get(h)||this.edgeGeometry.get(h)?.label||ve((this.edgeGeometry.get(h)?.points||[]).map(c=>({...c,w:0,h:0}))),i=(h,c,w,y=[])=>{let M=He(h,c,w,{relatedIds:y,evidence:{region:r(c),related:y.map(k=>({id:k,region:r(k)}))}});o.push(M)};for(let h of[...this.nodes.values()].filter(c=>!c.row)){let c=e.get(h.id);if((c.x<-.5||c.y<-.5||j(c)>this.root.offsetWidth+.5||q(c)>this.root.offsetHeight+.5)&&i("bounds",h.id,"对象超出画布"),s&&xe(c,s)&&i("header",h.id,"主体进入页眉区域"),!h.isSVG&&(h.el.scrollWidth>h.shell.clientWidth+1||h.el.scrollHeight>h.shell.clientHeight+1)&&i("overflow",h.id,"内容超出外框"),h.isSVG&&h.content&&h.frame){let w=this.box(h.content),y=this.box(h.frame);(w.x<y.x||w.y<y.y||j(w)>j(y)+1||q(w)>q(y)+1)&&i("overflow",h.id,"SVG 内容超出外框")}}for(let h=0;h<n.length;h++)for(let c=h+1;c<n.length;c++)xe(e.get(n[h].id),e.get(n[c].id),.5)&&i("overlap",n[h].id,`与 ${n[c].id} 重叠`,[n[c].id]);let a=[...this.edgeGeometry];for(let[h,c]of a){c.blocked&&i("route",h,"自动走线受阻，请调整折点或模块位置"),ht(c.points)&&i("backtrack",h,"相邻线段沿原路折回，请调整折点或恢复自动走线"),c.labelBlocked&&i("label",h,"未找到标签空位");let w=this.config.edges.find(y=>y.id===h);for(let y of n)y.id!==c.from&&y.id!==c.to&&Se(c.points,e.get(y.id))&&i("crossing",h,`连线穿过 ${y.id}`,[y.id]),c.label&&xe(c.label,e.get(y.id),1)&&i("label",h,`标签遮挡 ${y.id}`,[y.id]);if(c.label)for(let[y,M]of a)h!==y&&Se(M.points,Q(c.label,-1))&&i("label-line",h,`标签覆盖连线 ${y}`,[y]);c.label&&(c.label.x<0||c.label.y<0||j(c.label)>this.root.offsetWidth+.5||q(c.label)>this.root.offsetHeight+.5)&&i("bounds",h,"标签超出画布"),s&&(Se(c.points,s)||c.label&&xe(c.label,s))&&i("header",h,"连线或标签进入页眉");for(let y of c.points)if(y.x<0||y.y<0||y.x>this.root.offsetWidth||y.y>this.root.offsetHeight){i("bounds",h,"连线超出画布");break}w.kind==="sequence"&&c.blocked&&i("sequence",h,"消息行需要更多空间")}for(let h=0;h<a.length;h++)for(let c=h+1;c<a.length;c++)a[h][1].label&&a[c][1].label&&xe(a[h][1].label,a[c][1].label,1)&&i("label",a[h][0],`与标签 ${a[c][0]} 重叠`,[a[c][0]]);let l=[],d=h=>!["none","transparent"].includes(h)&&!/(?:,\s*0(?:\.0*)?|\/\s*0(?:\.0*)?%?)\)$/.test(h),f=h=>{for(let c=h;c;c=c.parentElement){let w=getComputedStyle(c);if(w.display==="none"||w.visibility!=="visible"||Number(w.opacity)===0)return!1;if(c===this.root)break}return!0};for(let h of this.nodes.values())if(!(!h.group||!f(h.el)))if(h.isSVG){let c=h.el.querySelector(":scope > rect[data-diagram-frame]");if(c){let w=getComputedStyle(c);f(c)&&d(w.stroke)&&parseFloat(w.strokeWidth)>0&&Number(w.strokeOpacity)>0&&l.push({id:h.id,rect:this.box(c)})}}else{let c=getComputedStyle(h.el),w=["top","right","bottom","left"].filter(y=>{let M=`border-${y}`;return parseFloat(c.getPropertyValue(`${M}-width`))>0&&!["none","hidden"].includes(c.getPropertyValue(`${M}-style`))&&d(c.getPropertyValue(`${M}-color`))});w.length&&l.push({id:h.id,rect:e.get(h.id),sides:w})}let p=[...o,...this.portIssues||[],...bt(this.edgeGeometry,l,o)];for(let h of p){let c=[h.id,...h.relatedIds],w=this.config.edges.filter(M=>c.includes(M.id)),y=[...new Set([...c,...w.flatMap(M=>[M.from,M.to])])].map(M=>this.nodes.get(M)).filter(Boolean);h.supportedFixes=h.supportedFixes.filter(M=>["edit-bends","reset-route"].includes(M)?w.some(k=>!["straight","sequence"].includes(k.kind)):M==="edit-ports"?w.some(k=>k.kind!=="sequence"):M==="move-label"?w.some(k=>this.labels.has(k.id)):M==="move-node"?y.some(k=>!k.locked&&!k.row):M==="resize-node"?y.some(k=>!k.locked&&!k.row&&!k.actor&&(!k.isSVG||k.frame?.tagName==="rect")):M==="move-row"?w.some(k=>k.kind==="sequence"&&this.nodes.get(k.row)?.row):!0),h.evidence.related?.length||(h.evidence.related=h.relatedIds.map(M=>({id:M,region:r(M)})))}return Ze(p)}saveHTML(){let e=this.template.cloneNode(!0);for(let n of e.querySelectorAll("[data-diagram-generated],muse-diagram-editor"))n.remove();let o=e.querySelector("#diagram-state");return o||(o=document.createElement("script"),o.id="diagram-state",o.type="application/json",e.querySelector("body").append(o)),o.textContent=zo(this.state),e.querySelector("[data-diagram]")?.removeAttribute("data-diagram-ready"),`<!doctype html>
 `+e.outerHTML}download(e,o){let n=URL.createObjectURL(e),s=document.createElement("a");s.href=n,s.download=o,s.click(),setTimeout(()=>URL.revokeObjectURL(n),1e4)}save(){this.download(new Blob([this.saveHTML()],{type:"text/html;charset=utf-8"}),`${(this.config.name||"diagram").replace(/(?:\.editable)+$/,"")}.editable.html`),this.savedState=this.snapshot(),this.emit()}async exportPNG(e=2){if(await this.ready,await document.fonts.ready,![1,2].includes(e))throw Error("导出倍率只支持 1 或 2");let o=this.root.offsetWidth,n=this.root.offsetHeight;if(o*e>16384||n*e>16384||o*n*e*e>64e6)throw Error("画布超过导出上限，请选择 1 倍或减小画布");if(this.issues.some(d=>d.type==="bounds"))throw Error("有对象超出画布，请调整位置或增加画布空间后导出");for(let d of this.root.querySelectorAll("img"))if(!d.complete||!d.naturalWidth)throw Error("图片资源未加载，无法完整导出");let s=new Set,r=d=>{for(let f of[d.backgroundImage,d.borderImageSource,d.maskImage,d.listStyleImage,d.content])for(let p of f.matchAll(/url\(["']?([^"')]+)["']?\)/g))p[1].startsWith("#")||s.add(p[1])};for(let d of[this.root,...this.root.querySelectorAll("*")]){r(getComputedStyle(d));for(let f of["::before","::after"]){let p=getComputedStyle(d,f);!["none","normal",""].includes(p.content)&&p.display!=="none"&&r(p)}d instanceof SVGImageElement&&s.add(d.href.baseVal)}for(let d of s){let f=new Image;f.src=d;try{await f.decode()}catch{throw Error("嵌入图片资源损坏，无法完整导出")}}if([...document.fonts].some(d=>d.status==="error"))throw Error("嵌入字体加载失败，无法完整导出");let i=await jt(this.root,{pixelRatio:e,width:o,height:n,canvasWidth:o,canvasHeight:n,skipAutoScale:!0,style:{transform:"none",translate:"none",margin:"0"},filter:d=>!d.hasAttribute?.("data-diagram-ui")});if(!i||i.size<100)throw Error("PNG 导出失败");let a=await createImageBitmap(i),l=a.width===o*e&&a.height===n*e;if(a.close(),!l)throw Error("浏览器未能导出完整尺寸，请降低倍率");return i}},Dt=()=>{let t=document.querySelector("[data-diagram]"),e=document.querySelector("#diagram-config");if(!(!t||!e))try{let o=new rt(t,JSON.parse(e.textContent),JSON.parse(document.querySelector("#diagram-state")?.textContent||"{}"));window.museDiagram=o,o.ready.catch(n=>{t.dataset.diagramError=n.message;let s=document.createElement("p");s.textContent=`图解初始化失败：${n.message}`,s.setAttribute("role","alert"),t.before(s),console.error(n)})}catch(o){t.dataset.diagramError=o.message,console.error(o)}};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",Dt,{once:!0}):Dt();})();
+
+</script>
+<!-- musekit-runtime:end -->
+</body>
+</html>
