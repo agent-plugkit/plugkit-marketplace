@@ -13,8 +13,9 @@ Musekit 将设计灵感与场景制作分开：
 | `graphic-design` | 制作海报、杂志封面和社媒图文等平面作品 |
 | `diagram-design` | 从 Mermaid 或关系说明制作精美图解，共用测量与连线代码，成品内置离线布局编辑和 PNG 导出 |
 | `scientific-figure` | 基于原始资料制作学术数据图和科学示意图 |
+| `article-illustration` | 为一整篇文章编排配图，确认后交给图解、平面或学术图 Skill，并把 PNG 插入不改原文的副本 |
 
-可以先探索灵感，也可以直接制作。四个制作 Skill 都能使用 seed、用户参考或已有设计系统，默认交付实际作品。种子分类为 `ui`、`graphic`、`information`，只帮助检索，不限定作品布局或技术栈。
+可以先探索灵感，也可以直接制作。四个场景 Skill 都能使用 seed、用户参考或已有设计系统，默认交付实际作品。`article-illustration` 只编排整篇文章，不替代单张图的场景 Skill，也不做公众号排版。种子分类为 `ui`、`graphic`、`information`，只帮助检索，不限定作品布局或技术栈。
 
 例如：“用 Musepool 提炼一个有清楚色彩职责的方向，再制作社区观察记录界面。”同一个 seed 也可以交给其他场景使用，由制作 Skill 重新判断版面与表达。
 

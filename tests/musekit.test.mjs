@@ -13,7 +13,7 @@ const library = join(plugin, 'skills/musepool');
 const seeds = join(library, 'seeds');
 const script = join(library, 'scripts/muse_local.py');
 const index = JSON.parse(readFileSync(join(seeds, 'index.json'), 'utf8'));
-const skillNames = ['musepool', 'ui-design', 'graphic-design', 'diagram-design', 'scientific-figure'];
+const skillNames = ['musepool', 'ui-design', 'graphic-design', 'diagram-design', 'scientific-figure', 'article-illustration'];
 const preservedIds = [
   'vEj9F5om', 'rvYJrbZh', 'weZM545X', 'x1BNQPTi', 'swwKiFDe',
   'JiAIwOJv', 'LjwyQI6U', 'Vy3KTWAC', 'AT5oq8hX', 'B3LYgTWe', 'mC1nkP2t',
@@ -99,10 +99,13 @@ test('invalid targets and retired category names return useful nonzero results',
   }
 });
 
-test('five declared skills are discoverable and all local Markdown references are bundled', () => {
+test('declared skills are discoverable and all local Markdown references are bundled', () => {
   const config = parse(readFileSync(join(plugin, 'plugin.yaml'), 'utf8'));
   assert.equal(config.name, 'musekit');
-  assert.equal(config.version, '0.3.0');
+  assert.equal(config.version, '0.4.0');
+  const article = frontmatter(join(plugin, 'skills/article-illustration/SKILL.md'));
+  assert.match(article.description, /整篇/);
+  assert.match(article.description, /公众号排版/);
   assert.deepEqual(config.components.skills.map((skill) => skill.name), skillNames);
   assert.deepEqual(new Set(readdirSync(join(plugin, 'skills'))), new Set(skillNames));
   for (const skill of config.components.skills) {
@@ -136,7 +139,7 @@ test('generated client indexes replace old design plugins and keep portable meta
   }
   const portable = JSON.parse(readFileSync(join(plugin, 'plugin.json'), 'utf8'));
   assert.equal(portable.name, 'musekit');
-  assert.equal(portable.version, '0.3.0');
+  assert.equal(portable.version, '0.4.0');
   for (const field of ['interface', 'platform', 'category']) assert.ok(!(field in portable));
   const codex = JSON.parse(readFileSync(join(plugin, '.codex-plugin/plugin.json'), 'utf8'));
   assert.equal(resolve(plugin, codex.skills), join(plugin, 'skills'));

@@ -45,6 +45,6 @@ python3 scripts/muse_local.py show mC1nkP2t
 
 ## 交付与接续
 
-交付 seed 简报即可。用户同时要求成品时，继续由对应 Skill 制作：`ui-design`、`graphic-design`、`diagram-design` 或 `scientific-figure`。纯灵感请求不扩展成制作任务。
+交付 seed 简报即可。用户同时要求成品时，继续由对应 Skill 制作：`ui-design`、`graphic-design`、`diagram-design` 或 `scientific-figure`。整篇文章的配图编排交给 `article-illustration`。纯灵感请求不扩展成制作任务。
 
 保留参考的真实名称或来源，避免大段粘贴原文。只有原始记录提供了作者、URL 或许可时才填写这些信息。第三方说明见[来源与许可](references/third-party-notices.md)。
