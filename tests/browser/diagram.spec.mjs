@@ -905,8 +905,11 @@ test("automatic bend numbers follow zoom and scrolling and remain draggable befo
     rect: window.museDiagram.root.getBoundingClientRect().toJSON(),
   }));
   const handle = editor.locator('[data-bend-number="1"] circle');
-  await expect(handle).toBeVisible();
-  const r = await handle.boundingBox();
+  let r = null;
+  await expect.poll(async () => {
+    r = await handle.boundingBox();
+    return r;
+  }).not.toBeNull();
   expect(r.x + r.width / 2).toBeCloseTo(before.rect.x + points[0].x * before.scale.x, 1);
   expect(r.y + r.height / 2).toBeCloseTo(before.rect.y + points[0].y * before.scale.y, 1);
   await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
