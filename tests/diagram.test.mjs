@@ -83,6 +83,96 @@ test("short gutters do not make port stubs enter the opposite node", () => {
   assert.equal(pathHits(result.points, a), false);
   assert.equal(pathHits(result.points, b), false);
 });
+test("corners where the route meets port stubs count, so an L-shaped relation turns once", () => {
+  const from = { x: 0, y: 0, w: 100, h: 60 };
+  assert.deepEqual(
+    route(
+      from,
+      { x: 300, y: 200, w: 100, h: 60 },
+      { fromPort: { side: "right" }, toPort: { side: "top" } },
+      [],
+    ).points,
+    [
+      { x: 100, y: 30 },
+      { x: 350, y: 30 },
+      { x: 350, y: 200 },
+    ],
+  );
+  assert.equal(
+    route(
+      from,
+      { x: 300, y: -200, w: 100, h: 60 },
+      { fromPort: { side: "right" }, toPort: { side: "bottom" } },
+      [],
+    ).points.length,
+    3,
+  );
+});
+test("the grid fallback prefers fewer corners to equal-length staircases", () => {
+  // Every simple L and Z candidate is blocked, so the visibility grid decides.
+  const obstacles = [
+    { x: 80, y: 200, w: 70, h: 60 },
+    { x: 450, y: 180, w: 70, h: 80 },
+    { x: 280, y: 100, w: 40, h: 280 },
+  ];
+  const r = route(
+    { x: 0, y: 0, w: 100, h: 60 },
+    { x: 500, y: 400, w: 100, h: 60 },
+    { fromPort: { side: "right" }, toPort: { side: "left" } },
+    obstacles,
+  );
+  assert.equal(r.blocked, false);
+  assert.equal(r.points.length, 4);
+  for (const o of obstacles) assert.equal(pathHits(r.points, o), false);
+  for (let i = 1; i < r.points.length; i++)
+    assert.ok(
+      r.points[i].x === r.points[i - 1].x ||
+        r.points[i].y === r.points[i - 1].y,
+    );
+});
+test("the grid fallback charges the turn into the end stub before choosing a route", () => {
+  // Every simple candidate is blocked; arriving from below needs no last turn.
+  const r = route(
+    { x: 24, y: 6, w: 87, h: 78 },
+    { x: 366, y: 294, w: 97, h: 59 },
+    { fromPort: { side: "bottom" }, toPort: { side: "bottom" } },
+    [
+      { x: 116, y: 322, w: 97, h: 22 },
+      { x: 113, y: 340, w: 35, h: 37 },
+      { x: 144, y: 11, w: 98, h: 67 },
+      { x: 340, y: 99, w: 27, h: 36 },
+      { x: 214, y: 194, w: 44, h: 52 },
+    ],
+  );
+  assert.equal(r.blocked, false);
+  assert.equal(r.points.length, 4);
+});
+test("facing ports within a pixel draw straight without leaving their sides", () => {
+  const from = { x: 0, y: 0, w: 100, h: 60 };
+  const facing = (to, fromAt, toAt) =>
+    route(
+      from,
+      to,
+      {
+        fromPort: { side: "right", at: fromAt },
+        toPort: { side: "left", at: toAt },
+      },
+      [],
+    ).points;
+  assert.deepEqual(facing({ x: 300, y: 0.6, w: 100, h: 60 }, 0.5, 0.5), [
+    { x: 100, y: 30 },
+    { x: 300, y: 30 },
+  ]);
+  // Above the far node's corner the far end cannot follow; the near end can.
+  assert.deepEqual(facing({ x: 300, y: 60, w: 100, h: 60 }, 0.99, 0), [
+    { x: 100, y: 60 },
+    { x: 300, y: 60 },
+  ]);
+  // Neither end can reach the other's line without leaving its side.
+  const apart = facing({ x: 300, y: 60.8, w: 100, h: 60 }, 1, 0);
+  assert.equal(apart.at(-1).y, 60.8);
+  assert.equal(apart[0].y, 60);
+});
 test("pinned bends remain orthogonal after an endpoint moves", () => {
   const pin = { x: 240, y: 90 },
     result = orthogonal({ x: 115, y: 50 }, { x: 405, y: 160 }, [], [pin]);

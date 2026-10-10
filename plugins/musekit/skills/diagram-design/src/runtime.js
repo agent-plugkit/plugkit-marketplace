@@ -6,6 +6,7 @@ import {
   readability,
 } from "./quality.js";
 import { mountEditor } from "./editor.js";
+import { tidyLayout, layoutIssues } from "./layout.js";
 import { toBlob } from "html-to-image";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -15,7 +16,30 @@ const svg = (tag, attrs = {}) => {
   return el;
 };
 const clone = (v) => JSON.parse(JSON.stringify(v));
+const painted = (color) =>
+  !["none", "transparent"].includes(color) &&
+  !/(?:,\s*0(?:\.0*)?|\/\s*0(?:\.0*)?%?)\)$/.test(color);
 const number = (v, fallback = 0) => (Number.isFinite(v) ? v : fallback);
+// Nodes of one role share a shape: padding, borders, corners and type size.
+// Color classes may differ. SVG content does not reflow, so an SVG node keeps
+// its own size.
+const SHAPE = [
+  ...["top", "right", "bottom", "left"].flatMap((side) => [
+    `padding-${side}`,
+    `border-${side}-width`,
+  ]),
+  ...["top-left", "top-right", "bottom-right", "bottom-left"].map(
+    (corner) => `border-${corner}-radius`,
+  ),
+  "font-size",
+];
+const role = (n) => {
+  if (n.isSVG || !n.el.classList.length) return null;
+  const style = getComputedStyle(n.el);
+  return [n.el.tagName, ...SHAPE.map((k) => style.getPropertyValue(k))].join(
+    " ",
+  );
+};
 const escJSON = (v) => JSON.stringify(v).replace(/</g, "\\u003c");
 
 export class Diagram {
@@ -83,6 +107,8 @@ export class Diagram {
       throw Error("不支持此图解协议版本");
     if (![undefined, "center", "spread"].includes(this.config.portDistribution))
       throw Error("portDistribution 只支持 center 或 spread");
+    if (![undefined, "authored", "tidy"].includes(this.config.layout))
+      throw Error("layout 只支持 authored 或 tidy");
     await document.fonts.ready;
     await Promise.all(
       [...this.root.querySelectorAll("img")].map((i) =>
@@ -217,6 +243,7 @@ export class Diagram {
         this.minimumOffset,
         this.state.bodyOffset,
       );
+      if (this.config.layout === "tidy") this.tidy();
       this.state.initialized = true;
     }
     this.apply();
@@ -284,6 +311,184 @@ export class Diagram {
         "important",
       );
     n.el.style.overflow = "visible";
+  }
+  visible(el) {
+    for (let current = el; current; current = current.parentElement) {
+      const style = getComputedStyle(current);
+      if (
+        style.display === "none" ||
+        style.visibility !== "visible" ||
+        Number(style.opacity) === 0
+      )
+        return false;
+      if (current === this.root) break;
+    }
+    return true;
+  }
+  layoutInputs(boxes, labels = false) {
+    return {
+      objects: [...this.nodes.values()].map((n) => ({
+        id: n.id,
+        box: boxes.get(n.id),
+        parent: n.parent,
+        group: n.group,
+        movable: !n.locked && !n.row && !n.actor,
+        resizable: !n.isSVG || n.frame?.tagName === "rect",
+        peer: role(n),
+        pad: n.isSVG ? 12 : 16,
+      })),
+      edges: this.config.edges.map((edge) => {
+        const spec = this.edgeSpec(edge, boxes, false),
+          label = labels && this.labels.get(edge.id);
+        return {
+          id: edge.id,
+          from: edge.from,
+          to: edge.to,
+          kind: edge.kind,
+          fromSide: spec.fromPort?.side,
+          toSide: spec.toPort?.side,
+          fixed:
+            Number.isFinite(spec.fromPort?.at) ||
+            Number.isFinite(spec.toPort?.at) ||
+            !!spec.points?.length,
+          ratios:
+            Number.isFinite(spec.fromPort?.at) &&
+            Number.isFinite(spec.toPort?.at) &&
+            !spec.points?.length
+              ? [spec.fromPort.at, spec.toPort.at].map((at) =>
+                  Math.max(0, Math.min(1, at)),
+                )
+              : null,
+          label: label ? this.box(label.el) : null,
+        };
+      }),
+    };
+  }
+  // Visible body content outside nodes, labels and group frames, including
+  // text written straight into the body or a group.
+  decorations() {
+    const shapes = /^(rect|circle|ellipse|line|polyline|polygon|path|text|image|use)$/;
+    const result = [];
+    for (const el of [this.body, ...this.body.querySelectorAll("*")]) {
+      if (
+        el.closest(
+          "[data-diagram-node],[data-diagram-label],[data-diagram-row]",
+        ) ||
+        !this.visible(el)
+      )
+        continue;
+      // The body and frames are managed surfaces; only their own text counts.
+      const managed =
+        el === this.body ||
+        el.matches(
+          "[data-diagram-group],[data-diagram-shell],[data-diagram-frame],[data-diagram-background]",
+        );
+      const style = getComputedStyle(el);
+      const surface =
+        !managed &&
+        (el instanceof SVGElement
+          ? shapes.test(el.tagName) &&
+            (painted(style.fill) ||
+              painted(style.stroke) ||
+              (el.tagName === "text" && !!el.textContent.trim()))
+          : /^(IMG|SVG|CANVAS|VIDEO)$/i.test(el.tagName) ||
+            painted(style.backgroundColor) ||
+            style.backgroundImage !== "none" ||
+            style.boxShadow !== "none" ||
+            ["top", "right", "bottom", "left"].some(
+              (side) =>
+                parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 &&
+                !["none", "hidden"].includes(
+                  style.getPropertyValue(`border-${side}-style`),
+                ) &&
+                painted(style.getPropertyValue(`border-${side}-color`)),
+            ));
+      // Text alone occupies its glyphs, not the full width of a block element.
+      const text = surface
+        ? []
+        : [...el.childNodes]
+            .filter((c) => c.nodeType === Node.TEXT_NODE && c.textContent.trim())
+            .map((c) => {
+              const range = document.createRange();
+              range.selectNodeContents(c);
+              return this.box(range);
+            });
+      const box = surface ? this.box(el) : text.length ? G.union(text) : null;
+      if (box && (box.w > 0 || box.h > 0))
+        result.push({
+          box,
+          parent: el.closest("[data-diagram-group]")?.dataset.diagramGroup,
+        });
+    }
+    return result;
+  }
+  // Height of a node at another width. HTML text reflows; a height that the
+  // author fixed or a layout stretched stays as measured.
+  measure(id, w) {
+    const n = this.nodes.get(id);
+    if (n.isSVG) return n.base.h;
+    const style = n.shell.style,
+      keep = [style.width, style.height];
+    // Without the shell height, the element's own height is its content.
+    style.height = "0px";
+    style.width = `${n.base.w}px`;
+    const natural = this.box(n.el).h;
+    style.width = `${w}px`;
+    const reflowed = this.box(n.el).h;
+    [style.width, style.height] = keep;
+    return Math.abs(natural - n.base.h) < 1 ? reflowed : n.base.h;
+  }
+  // Refine the authored composition once; the result becomes ordinary layout state.
+  tidy() {
+    const boxes = new Map([...this.nodes].map(([id, n]) => [id, n.base]));
+    const { objects, edges } = this.layoutInputs(boxes, true);
+    // Nodes on a hand-routed relation keep their size, so its bends stay clear.
+    const routed = new Set(
+      this.config.edges
+        .filter((edge) => this.edgeSpec(edge, boxes, false).points?.length)
+        .flatMap((edge) => [edge.from, edge.to]),
+    );
+    for (const o of objects) if (routed.has(o.id)) o.resizable = false;
+    const result = tidyLayout(objects, edges, {
+      fixedSize: !!this.config.fixedSize,
+      // fitCanvas keeps 32 px beside the content before it widens the canvas.
+      width: this.originalSize.w - 32,
+      fixtures: this.decorations(),
+      measure: (id, w) => this.measure(id, w),
+    });
+    if (!result) return;
+    for (const [id, change] of result) {
+      const v = (this.state.nodes[id] ||= {});
+      if (change.dx) v.dx = number(v.dx) + change.dx;
+      if (change.dy) v.dy = number(v.dy) + change.dy;
+      if (change.w) v.w = change.w;
+      if (change.h) v.h = change.h;
+    }
+    // Authored bends travel with a relation whose ends moved alike, as when
+    // a group holding both ends moves.
+    const moved = (id) => {
+      const t = { x: 0, y: 0 };
+      for (let n = this.nodes.get(id); n; n = this.nodes.get(n.parent)) {
+        t.x += result.get(n.id)?.dx || 0;
+        t.y += result.get(n.id)?.dy || 0;
+      }
+      return t;
+    };
+    for (const edge of this.config.edges) {
+      const points = this.edgeSpec(edge, boxes, false).points,
+        a = moved(edge.from),
+        b = moved(edge.to);
+      if (
+        points?.length &&
+        (a.x || a.y) &&
+        Math.abs(a.x - b.x) < G.EPS &&
+        Math.abs(a.y - b.y) < G.EPS
+      )
+        (this.state.edges[edge.id] ||= {}).points = points.map((p) => ({
+          x: p.x + a.x,
+          y: p.y + a.y,
+        }));
+    }
   }
   getState() {
     return clone(this.state);
@@ -619,26 +824,31 @@ export class Diagram {
     const boxes = new Map(
       [...this.nodes].map(([id, n]) => [id, this.box(n.shell)]),
     );
+    const obstacles = [...this.nodes.values()]
+      .filter((n) => !n.group && !n.row)
+      .map((n) => ({ id: n.id, ...boxes.get(n.id) }));
+    const headerBox = this.header ? this.box(this.header) : null;
+    // A declared side without a ratio still lets the runtime choose the position.
+    const declared = (edge, key) =>
+      Number.isFinite((this.state.edges[edge.id]?.[key] || edge[key])?.at);
     const distribution =
       this.config.portDistribution === "spread"
         ? distributePorts(
             this.config.edges.map((edge) => ({
               edge,
               spec: this.edgeSpec(edge, boxes, false),
-              fixedFrom: !!(
-                this.state.edges[edge.id]?.fromPort || edge.fromPort
-              ),
-              fixedTo: !!(this.state.edges[edge.id]?.toPort || edge.toPort),
+              fixedFrom: declared(edge, "fromPort"),
+              fixedTo: declared(edge, "toPort"),
             })),
             boxes,
+            [
+              ...obstacles.map((r) => ({ ...G.expand(r, 8), id: r.id })),
+              ...(headerBox ? [G.expand(headerBox, 8)] : []),
+            ],
           )
         : { ports: new Map(), issues: [] };
     this.computedPorts = distribution.ports;
     this.portIssues = distribution.issues;
-    const obstacles = [...this.nodes.values()]
-      .filter((n) => !n.group && !n.row)
-      .map((n) => ({ id: n.id, ...boxes.get(n.id) }));
-    const headerBox = this.header ? this.box(this.header) : null;
     this.layer.replaceChildren();
     const defs = svg("defs");
     this.layer.append(defs);
@@ -859,9 +1069,21 @@ export class Diagram {
       const w = Math.ceil(
           Math.max(this.originalSize.w, G.right(extent) + 32) - 0.001,
         ),
-        footH = this.originalFooter?.h || 0;
+        footH = this.originalFooter?.h || 0,
+        // The footer keeps the header's gap from the body, at least 24 px.
+        footY =
+          this.originalFooter &&
+          Math.max(
+            this.originalFooter.y,
+            G.bottom(extent) + Math.max(24, this.config.gap ?? 24),
+          ),
+        pushed = this.originalFooter && footY > this.originalFooter.y;
       const h = Math.ceil(
-        Math.max(this.originalSize.h, G.bottom(extent) + footH + 48) - 0.001,
+        Math.max(
+          this.originalSize.h,
+          G.bottom(extent) + footH + 48,
+          pushed ? footY + footH + 24 : 0,
+        ) - 0.001,
       );
       this.root.style.width = `${Math.ceil(w)}px`;
       this.root.style.height = `${Math.ceil(h)}px`;
@@ -880,15 +1102,14 @@ export class Diagram {
         bg.setAttribute("height", h);
       }
       if (this.footer) {
-        const y = Math.max(this.originalFooter.y, G.bottom(extent) + 24);
         if (this.footer instanceof SVGElement)
           this.footer.setAttribute(
             "transform",
-            `translate(0 ${y - this.originalFooter.y})`,
+            `translate(0 ${footY - this.originalFooter.y})`,
           );
         else {
           this.footer.style.position = "absolute";
-          this.footer.style.top = `${y}px`;
+          this.footer.style.top = `${footY}px`;
           this.footer.style.bottom = "auto";
         }
       }
@@ -1015,23 +1236,8 @@ export class Diagram {
           add("label", entries[i][0], `与标签 ${entries[j][0]} 重叠`, [
             entries[j][0],
           ]);
-    const frames = [];
-    const painted = (color) =>
-      !["none", "transparent"].includes(color) &&
-      !/(?:,\s*0(?:\.0*)?|\/\s*0(?:\.0*)?%?)\)$/.test(color);
-    const visible = (el) => {
-      for (let current = el; current; current = current.parentElement) {
-        const style = getComputedStyle(current);
-        if (
-          style.display === "none" ||
-          style.visibility !== "visible" ||
-          Number(style.opacity) === 0
-        )
-          return false;
-        if (current === this.root) break;
-      }
-      return true;
-    };
+    const frames = [],
+      visible = (el) => this.visible(el);
     for (const n of this.nodes.values()) {
       if (!n.group || !visible(n.el)) continue;
       if (n.isSVG) {
@@ -1062,10 +1268,12 @@ export class Diagram {
           frames.push({ id: n.id, rect: boxes.get(n.id), sides });
       }
     }
+    const layout = this.layoutInputs(boxes, true);
     const diagnostics = [
       ...issues,
       ...(this.portIssues || []),
       ...readability(this.edgeGeometry, frames, issues),
+      ...layoutIssues(layout.objects, layout.edges),
     ];
     for (const diagnostic of diagnostics) {
       const ids = [diagnostic.id, ...diagnostic.relatedIds];

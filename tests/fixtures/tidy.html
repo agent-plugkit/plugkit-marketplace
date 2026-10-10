@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          16px/1.5 Arial,
+          sans-serif;
+        color: #223;
+      }
+      .row {
+        position: absolute;
+        left: 40px;
+        top: 160px;
+        width: 760px;
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+      }
+      .card {
+        flex: 1;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid #567;
+        border-radius: 8px;
+      }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+      .card p {
+        margin: 0;
+      }
+      .note {
+        position: absolute;
+        left: 40px;
+        top: 400px;
+        width: 760px;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid #567;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      data-diagram
+      style="
+        width: 840px;
+        height: 560px;
+        position: relative;
+        background: #eff3f6;
+      "
+    >
+      <header
+        data-diagram-region="header"
+        style="position: absolute; left: 40px; top: 24px; height: 60px"
+      >
+        <h1>先检查，再写出</h1>
+      </header>
+      <main data-diagram-region="body" style="position: absolute; inset: 0">
+        <div class="row">
+          <article class="card" data-diagram-node="read">
+            <h2>读取</h2>
+            <p>取设计稿引用的全部资源，不用可能带底色的整体导出。</p>
+          </article>
+          <article class="card" data-diagram-node="check">
+            <h2>检查</h2>
+            <p>离线渲染。</p>
+          </article>
+          <article class="card" data-diagram-node="write">
+            <h2>写出</h2>
+            <p>写入宿主文件与证据副本，记录尺寸与摘要。</p>
+          </article>
+        </div>
+        <article class="note" data-diagram-node="fail">
+          任一项失败时一个文件都不写。
+        </article>
+      </main>
+    </div>
+    <script type="application/json" id="diagram-config">
+      {
+        "version": 1,
+        "name": "tidy",
+        "portDistribution": "spread",
+        "layout": "tidy",
+        "edges": [
+          { "id": "e1", "from": "read", "to": "check" },
+          { "id": "e2", "from": "check", "to": "write" }
+        ]
+      }
+    </script>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "musekit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "设计灵感与场景制作工具箱：29 个本地种子，以及界面、平面、图解、学术图和文章配图编排。",
   "author": {
     "name": "Agent Plugkit"

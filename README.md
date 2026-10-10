@@ -23,7 +23,7 @@ Musekit 将设计灵感与场景制作分开：
 
 Musekit `0.3.0` 的图解成品支持节点查找与直接关系定位，内置按错误和提示分组的布局诊断。点击“编辑布局”可调整模块、分组、连线与标签，按编号定位或删除折点；属性区与对象列表独立滚动，窄窗口使用底部双栏。保存新 HTML 后可离线继续编辑，使用者直接在桌面 Chrome 或 Edge 打开文件。[布局编辑说明](plugins/musekit/skills/diagram-design/references/editor.md)包含保存和 PNG 导出操作。
 
-制作端按[接入协议](plugins/musekit/skills/diagram-design/references/protocol.md)标记作品，再用随 Skill 分发的 Python 封装脚本内嵌运行资源。新模板默认分散自动连线端点，旧图缺省配置保持原行为；[验证后交付](plugins/musekit/skills/diagram-design/references/html.md#验证后交付)可先封装、检查并保存证据，通过后再替换成品，严格模式还会阻止带提示的交付。
+制作端按[接入协议](plugins/musekit/skills/diagram-design/references/protocol.md)标记作品，再用随 Skill 分发的 Python 封装脚本内嵌运行资源。Musekit `0.5.0` 起，新模板默认让相对模块的连线成直线并分散其余端点，首次打开时整理构图：对齐直线关系，统一同类节点尺寸与链上间距，居中分叉与汇合；旧图缺省配置保持原行为；[验证后交付](plugins/musekit/skills/diagram-design/references/html.md#验证后交付)可先封装、检查并保存证据，通过后再替换成品，严格模式还会阻止带提示的交付。
 
 ### 从旧设计插件迁移
 

@@ -209,6 +209,330 @@ test("new spread config survives edits and reopening, while old files retain cen
   }
 });
 
+test("spread draws offset facing relations straight, including ports that declare only a side", async ({
+  page,
+}) => {
+  const src = readFileSync("tests/fixtures/reader-quality.html", "utf8")
+    .replace(/"version"\s*:\s*1/, '"version":1,"portDistribution":"spread"')
+    .replace("left: 600px; top: 200px", "left: 600px; top: 220px")
+    .replace(
+      '{ "id": "e1", "from": "A", "to": "B" }',
+      '{ "id": "e1", "from": "A", "to": "B", "fromPort": { "side": "right" } }',
+    );
+  const path = join(work, "aligned.html");
+  writeFileSync(path, src);
+  execFileSync("python3", [script, path, "--output", path]);
+  await open(page, path);
+  const { geometry } = await state(page);
+  const ys = ["e1", "e2", "e3"].map((id) => {
+    expect(geometry.edges[id].points).toHaveLength(2);
+    return geometry.edges[id].points[0].y;
+  });
+  // The side-only port joins one parallel bundle centered on the shared span.
+  const { A, B } = geometry.nodes;
+  expect(ys[1]).toBeCloseTo((B.y + A.y + A.h) / 2, 6);
+  expect(ys[1] - ys[0]).toBeCloseTo(12, 6);
+  expect(ys[2] - ys[1]).toBeCloseTo(12, 6);
+  expect(geometry.issues).toEqual([]);
+  await open(
+    page,
+    "plugins/musekit/skills/diagram-design/references/examples/dataflow.html",
+  );
+  const dataflow = (await state(page)).geometry;
+  expect(dataflow.edges.e2.points).toHaveLength(2);
+  expect(dataflow.edges.e2.points[0].y).toBe(dataflow.edges.e1.points[0].y);
+  // The split and merge hubs sit midway between the two outputs.
+  const middle = (id) => dataflow.nodes[id].y + dataflow.nodes[id].h / 2;
+  const branches = (middle("Store") + middle("Aggregate")) / 2;
+  expect(middle("Mask")).toBeCloseTo(branches, 6);
+  expect(middle("Report")).toBeCloseTo(branches, 6);
+});
+
+test("tidy evens a row of peers once, keeps it through reopening, and leaves drifting decorations alone", async ({
+  page,
+}) => {
+  const path = join(work, "tidy.html");
+  execFileSync("python3", [
+    script,
+    "tests/fixtures/tidy.html",
+    "--output",
+    path,
+  ]);
+  await open(page, path);
+  const tidy = await state(page);
+  const heights = ["read", "check", "write"].map(
+    (id) => tidy.geometry.nodes[id].h,
+  );
+  expect(new Set(heights).size).toBe(1);
+  for (const id of ["e1", "e2"]) {
+    expect(tidy.geometry.edges[id].points).toHaveLength(2);
+    expect(tidy.geometry.edges[id].points[0].y).toBe(
+      tidy.geometry.nodes.read.y + heights[0] / 2,
+    );
+  }
+  expect(tidy.state.nodes.check.h).toBe(heights[0]);
+  expect(tidy.geometry.issues).toEqual([]);
+  expect(tidy.history).toBe(0);
+  writeFileSync(path, await page.evaluate(() => window.museDiagram.saveHTML()));
+  await open(page, path);
+  expect((await state(page)).state).toEqual(tidy.state);
+  expect((await state(page)).geometry).toEqual(tidy.geometry);
+  // Editing never re-tidies; a node dragged off the line is reported instead.
+  await page.evaluate(() => {
+    const d = window.museDiagram;
+    d.change(() => d.move(["check"], 0, 18));
+  });
+  expect((await state(page)).geometry.issues.map((i) => i.code).sort()).toEqual(
+    ["geometry/misaligned", "geometry/misaligned"],
+  );
+
+  const decorated = join(work, "tidy-decorated.html");
+  writeFileSync(
+    decorated,
+    readFileSync("tests/fixtures/tidy.html", "utf8").replace(
+      '<div class="row">',
+      '<p style="position:absolute;left:4px;top:300px;margin:0">01</p><div class="row">',
+    ),
+  );
+  execFileSync("python3", [script, decorated, "--output", decorated]);
+  await open(page, decorated);
+  const kept = await state(page);
+  expect(kept.state.nodes).toEqual({});
+  expect(kept.geometry.issues.map((i) => i.code)).toEqual([
+    "geometry/uneven-peers",
+  ]);
+});
+
+test("tidy widens column peers along their shared edge and re-measures reflowed text", async ({
+  page,
+}) => {
+  const html = (
+    layout,
+  ) => `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 Arial,sans-serif}
+.step{position:absolute;left:40px;padding:12px;border:1px solid #567;background:#fff}
+</style></head><body><div data-diagram style="width:600px;height:700px;position:relative;background:#eef">
+<main data-diagram-region="body" style="position:absolute;inset:0">
+<div class="step" data-diagram-node="a" style="top:40px;width:320px">第一步：读取全部输入</div>
+<div class="step" data-diagram-node="b" style="top:200px;width:140px">第二步：逐项检查路径倍率与文字</div>
+<div class="step" data-diagram-node="c" style="top:420px;width:320px">第三步：全部通过后写出</div>
+</main></div><script type="application/json" id="diagram-config">${JSON.stringify(
+    {
+      version: 1,
+      portDistribution: "spread",
+      layout,
+      edges: [
+        { id: "ab", from: "a", to: "b" },
+        { id: "bc", from: "b", to: "c" },
+      ],
+    },
+  )}</script></body></html>`;
+  const geometry = async (layout) => {
+    const path = join(work, `column-${layout}.html`);
+    writeFileSync(path, html(layout));
+    execFileSync("python3", [script, path, "--output", path]);
+    await open(page, path);
+    return (await state(page)).geometry;
+  };
+  const authored = await geometry("authored");
+  expect(authored.issues.map((i) => i.code)).toContain("geometry/uneven-peers");
+  const tidy = await geometry("tidy");
+  expect(tidy.issues).toEqual([]);
+  for (const id of ["a", "b", "c"]) {
+    expect(tidy.nodes[id].x).toBe(authored.nodes.a.x);
+    expect(tidy.nodes[id].w).toBe(authored.nodes.a.w);
+  }
+  // The text no longer wraps as often, so the box shrinks to its content.
+  expect(tidy.nodes.b.h).toBeLessThan(authored.nodes.b.h);
+  expect(tidy.edges.ab.points).toHaveLength(2);
+});
+
+test("tidy evens a workflow column, treats color variants as one role, lines up authored ports and keeps the footer clear", async ({
+  page,
+}) => {
+  // Tops at a fixed pitch with heights that follow the text: uneven gaps.
+  const html = (
+    layout,
+  ) => `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 Arial,sans-serif}
+.step{position:absolute;padding:12px;border:1px solid #567;border-radius:8px;background:#fff}
+.blue{background:#eaf0fb}.amber{background:#fff4dc}
+footer{position:absolute;left:40px;width:560px;border-top:1px solid #99a;padding-top:8px}
+</style></head><body><div data-diagram style="width:640px;height:540px;position:relative;background:#eef">
+<main data-diagram-region="body" style="position:absolute;inset:0">
+<div class="step blue" data-diagram-node="p" style="left:40px;top:40px;width:300px">提出方案<br>拆分任务</div>
+<div class="step" data-diagram-node="r" style="left:420px;top:45px;width:180px">需求来源</div>
+<div class="step amber" data-diagram-node="g" style="left:40px;top:150px;width:300px">计划审批</div>
+<div class="step blue" data-diagram-node="v" style="left:40px;top:260px;width:300px">全局验收<br>逐项核对</div>
+<div class="step" data-diagram-node="a" style="left:40px;top:370px;width:300px">归档</div>
+<div class="step blue" data-diagram-node="b" style="left:420px;top:370px;width:180px">归档记录<br>写入索引</div>
+</main><footer data-diagram-region="footer" style="top:470px">来源：示例流程</footer></div>
+<script type="application/json" id="diagram-config">${JSON.stringify({
+    version: 1,
+    portDistribution: "spread",
+    layout,
+    gap: 40,
+    edges: [
+      { id: "pg", from: "p", to: "g" },
+      { id: "gv", from: "g", to: "v" },
+      { id: "va", from: "v", to: "a" },
+      { id: "ab", from: "a", to: "b" },
+      {
+        id: "pr",
+        from: "p",
+        to: "r",
+        fromPort: { side: "right", at: 0.3 },
+        toPort: { side: "left", at: 0.3 },
+      },
+    ],
+  })}</script></body></html>`;
+  const inspect = async (layout) => {
+    const path = join(work, `workflow-${layout}.html`);
+    writeFileSync(path, html(layout));
+    execFileSync("python3", [script, path, "--output", path]);
+    await open(page, path);
+    return {
+      ...(await state(page)).geometry,
+      // The canvas may be scaled for reading; the CSS position is not.
+      footer: await page.evaluate(() =>
+        parseFloat(
+          document.querySelector('[data-diagram-region="footer"]').style.top,
+        ),
+      ),
+    };
+  };
+  const gaps = ({ nodes }) =>
+    ["p", "g", "v", "a"].slice(1).map((id, i, ids) => {
+      const above = nodes[["p", "g", "v"][i]];
+      return Math.round(nodes[id].y - (above.y + above.h));
+    });
+  const authored = await inspect("authored");
+  expect(authored.issues.map((i) => `${i.code} ${i.id}`).sort()).toEqual([
+    "geometry/misaligned pr",
+    "geometry/uneven-gaps p",
+    "geometry/uneven-peers a",
+  ]);
+  const tidy = await inspect("tidy");
+  expect(tidy.issues).toEqual([]);
+  expect(new Set(gaps(tidy)).size).toBe(1);
+  expect(tidy.nodes.a.h).toBe(tidy.nodes.b.h);
+  expect(tidy.edges.pr.points).toHaveLength(2);
+  // The footer keeps the configured gap below the lowest node, not 24 px.
+  for (const g of [authored, tidy])
+    expect(g.footer).toBeCloseTo(g.nodes.b.y + g.nodes.b.h + 40, 1);
+});
+
+test("tidy keeps SVG and hand-routed node sizes, carries authored bends with both ends and keeps the footer 24 px clear", async ({
+  page,
+}) => {
+  const make = async (name, html, config) => {
+    const path = join(work, `${name}.html`);
+    writeFileSync(
+      path,
+      `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 Arial,sans-serif}
+.step{position:absolute;padding:12px;border:1px solid #567;background:#fff;width:140px}
+footer{position:absolute;left:20px;width:560px}
+</style></head><body>${html}<script type="application/json" id="diagram-config">${JSON.stringify(
+        { version: 1, portDistribution: "spread", layout: "tidy", ...config },
+      )}</script></body></html>`,
+    );
+    execFileSync("python3", [script, path, "--output", path]);
+    await open(page, path);
+    return state(page);
+  };
+  // SVG text does not reflow, so a narrower step in the column stays narrow.
+  const frame = (id, x, y, w, label) =>
+    `<g class="step" data-diagram-node="${id}"><rect data-diagram-frame x="${x}" y="${y}" width="${w}" height="80" fill="#fff" stroke="#567"/><g data-diagram-content><text x="250" y="${y + 45}" text-anchor="middle">${label}</text></g></g>`;
+  const svg = await make(
+    "tidy-svg",
+    `<div data-diagram style="width:600px;height:520px;position:relative"><svg data-diagram-surface width="600" height="520" viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg"><g data-diagram-region="body">${frame("a", 100, 40, 300, "读取")}${frame("b", 170, 200, 160, "检查")}${frame("c", 100, 360, 300, "写出")}</g></svg></div>`,
+    {
+      edges: [
+        { id: "ab", from: "a", to: "b" },
+        { id: "bc", from: "b", to: "c" },
+      ],
+    },
+  );
+  expect(svg.state.nodes.b).toBeUndefined();
+  expect(svg.geometry.issues).toEqual([]);
+  // A hand-routed loop keeps its node's size, so its bends stay outside it.
+  const loop = await make(
+    "tidy-loop",
+    `<div data-diagram style="width:600px;height:520px;position:relative;background:#eef"><main data-diagram-region="body" style="position:absolute;inset:0">
+<div class="step" data-diagram-node="a" style="left:40px;top:40px;width:300px">读取</div>
+<div class="step" data-diagram-node="b" style="left:190px;top:200px;width:150px">检查</div>
+<div class="step" data-diagram-node="c" style="left:40px;top:360px;width:300px">写出</div>
+</main></div>`,
+    {
+      edges: [
+        { id: "ab", from: "a", to: "b" },
+        { id: "bc", from: "b", to: "c" },
+        {
+          id: "again",
+          from: "b",
+          to: "b",
+          kind: "loop",
+          fromPort: { side: "right" },
+          toPort: { side: "bottom" },
+          points: [
+            { x: 370, y: 225 },
+            { x: 370, y: 280 },
+            { x: 265, y: 280 },
+          ],
+        },
+      ],
+    },
+  );
+  expect(loop.state.nodes.b).toBeUndefined();
+  // The uneven width is still reported for the author to decide.
+  expect(loop.geometry.issues.map((i) => i.code)).toEqual([
+    "geometry/uneven-peers",
+  ]);
+  // Lowering a pushes the lower nodes down; the pinned route goes with them.
+  const bends = [
+    { x: 260, y: 225 },
+    { x: 260, y: 325 },
+  ];
+  const html = await make(
+    "tidy-bends",
+    `<div data-diagram style="width:600px;height:420px;position:relative;background:#eef"><main data-diagram-region="body" style="position:absolute;inset:0">
+<div class="step" data-diagram-node="a" style="left:40px;top:40px">甲</div>
+<div class="step" data-diagram-node="b" style="left:300px;top:50px">乙</div>
+<div class="step" data-diagram-node="c" style="left:40px;top:200px">丙</div>
+<div class="step" data-diagram-node="d" style="left:340px;top:300px">丁</div>
+</main><footer data-diagram-region="footer" style="top:370px">来源</footer></div>`,
+    {
+      gap: 8,
+      edges: [
+        { id: "ab", from: "a", to: "b" },
+        {
+          id: "cd",
+          from: "c",
+          to: "d",
+          fromPort: { side: "right" },
+          toPort: { side: "left" },
+          points: bends,
+        },
+      ],
+    },
+  );
+  expect(html.state.nodes.c.dy).toBe(10);
+  expect(html.state.nodes.d.dy).toBe(10);
+  expect(html.state.edges.cd.points).toEqual(
+    bends.map((p) => ({ x: p.x, y: p.y + 10 })),
+  );
+  expect(html.geometry.edges.cd.points).toHaveLength(4);
+  const { d } = html.geometry.nodes;
+  expect(
+    await page.evaluate(() =>
+      parseFloat(
+        document.querySelector('[data-diagram-region="footer"]').style.top,
+      ),
+    ),
+  ).toBeCloseTo(d.y + d.h + 24, 1);
+});
+
 for (const name of ["dataflow", "async-roundtrip"])
   test(`new ${name} example remains editable and semantically complete`, async ({
     page,

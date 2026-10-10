@@ -7,6 +7,7 @@ export const quality = Object.freeze({
   clearance: 4,
   run: 24,
   stub: 14,
+  straightInset: 20,
 });
 const fixes = {
   bounds: ["move-node", "move-label", "edit-bends", "grow-canvas"],
@@ -23,6 +24,10 @@ const fixes = {
   "border-run": ["edit-bends", "move-node"],
   "label-clearance": ["move-label", "edit-bends"],
   "port-crowding": ["resize-node", "edit-ports"],
+  misaligned: ["move-node"],
+  unbalanced: ["move-node"],
+  "uneven-peers": ["resize-node"],
+  "uneven-gaps": ["move-node"],
 };
 export function issue(
   type,
@@ -57,9 +62,225 @@ export function orderedIssues(items) {
   );
 }
 
+const opposite = { right: "left", left: "right", bottom: "top", top: "bottom" };
+const order = (a, b) =>
+  a.coordinate - b.coordinate ||
+  a.edge.localeCompare(b.edge) ||
+  a.endpoint.localeCompare(b.endpoint);
+// Feasible slots in each free interval of [lo, hi]. Choose consecutive slots closest to the target.
+function place(count, lo, hi, fixed, gap, target) {
+  const occupied = [...fixed].sort((a, b) => a - b),
+    candidates = [];
+  const boundaries = [lo - gap, ...occupied, hi + gap];
+  for (let i = 1; i < boundaries.length; i++) {
+    const start = Math.max(lo, boundaries[i - 1] + gap),
+      end = Math.min(hi, boundaries[i] - gap);
+    if (end < start) continue;
+    const count = Math.floor((end - start + G.EPS) / gap) + 1;
+    const offset = (start + end - (count - 1) * gap) / 2;
+    for (let j = 0; j < count; j++) candidates.push(offset + j * gap);
+  }
+  if (candidates.length < count) return null;
+  let best = null,
+    score = Infinity;
+  for (let i = 0; i <= candidates.length - count; i++) {
+    const slots = candidates.slice(i, i + count);
+    const s = Math.abs((slots[0] + slots.at(-1)) / 2 - target);
+    if (s < score) {
+      score = s;
+      best = slots;
+    }
+  }
+  return best;
+}
+// Facing endpoints share one coordinate when their nodes overlap enough, so the
+// relation is drawn straight. Straight lines stay clear of the nodes' corners
+// and of other nodes; endpoints on a side keep their order and spacing.
+function align(entries, groups, records, obstacles) {
+  const gap = quality.portGap,
+    units = new Map();
+  const inset = (p) =>
+    Math.min(
+      p.extent / 2,
+      Math.max(quality.corner, Math.min(p.extent / 5, quality.straightInset)),
+    );
+  const at = (p) => p.start + p.at * p.extent;
+  for (const { edge, spec } of entries) {
+    const from = records.get(`${edge.id}\0fromPort`),
+      to = records.get(`${edge.id}\0toPort`);
+    if (
+      !from ||
+      !to ||
+      opposite[from.side] !== to.side ||
+      ![undefined, "orthogonal"].includes(edge.kind) ||
+      edge.from === edge.to ||
+      spec.points?.length ||
+      (from.fixed && to.fixed) ||
+      !(from.extent > 0 && to.extent > 0)
+    )
+      continue;
+    const F = from.rect,
+      T = to.rect;
+    const corridor = {
+      right: [G.right(F), T.x],
+      left: [G.right(T), F.x],
+      bottom: [G.bottom(F), T.y],
+      top: [G.bottom(T), F.y],
+    }[from.side];
+    if (!(corridor[1] - corridor[0] > G.EPS)) continue;
+    let lo, hi, target, key;
+    if (from.fixed || to.fixed) {
+      // An author-fixed end keeps its position; the automatic end follows it.
+      const fixed = from.fixed ? from : to,
+        free = from.fixed ? to : from;
+      target = lo = hi = at(fixed);
+      if (
+        target < free.start + inset(free) - G.EPS ||
+        target > free.start + free.extent - inset(free) + G.EPS
+      )
+        continue;
+      key = edge.id;
+    } else {
+      const overlap = [
+        Math.max(from.start, to.start),
+        Math.min(from.start + from.extent, to.start + to.extent),
+      ];
+      lo = Math.max(from.start + inset(from), to.start + inset(to));
+      hi = Math.min(
+        from.start + from.extent - inset(from),
+        to.start + to.extent - inset(to),
+      );
+      target = Math.min(hi, Math.max(lo, (overlap[0] + overlap[1]) / 2));
+      // Relations between the same two sides form one bundle of parallel lines.
+      key = [from.key, to.key].sort().join("\0\0");
+    }
+    if (hi < lo - G.EPS) continue;
+    hi = Math.max(lo, hi);
+    const unit = units.get(key) || {
+      members: [],
+      lo,
+      hi,
+      target,
+      corridor,
+      from,
+      to,
+      cost:
+        Math.abs(target - from.start - from.extent / 2) +
+        Math.abs(target - to.start - to.extent / 2),
+    };
+    unit.members.push([from, to].filter((p) => !p.fixed));
+    units.set(key, unit);
+  }
+  // Well-centered relations go first; later ones may continue their lines through a node.
+  const sorted = [...units.values()]
+    .map((u) => ({
+      ...u,
+      members: u.members.sort((a, b) => a[0].edge.localeCompare(b[0].edge)),
+    }))
+    .sort(
+      (a, b) =>
+        a.cost - b.cost ||
+        a.members[0][0].edge.localeCompare(b.members[0][0].edge),
+    );
+  for (const unit of sorted) {
+    const half = ((unit.members.length - 1) * gap) / 2,
+      mine = unit.members.flat();
+    if (unit.hi - unit.lo < 2 * half - G.EPS) continue;
+    let free = [[unit.lo + half, Math.max(unit.lo + half, unit.hi - half)]];
+    // Remove an open interval; touching its ends remains allowed.
+    const cut = (a, b) => {
+      free = free.flatMap(([u, v]) =>
+        b <= u || a >= v
+          ? [[u, v]]
+          : [...(a >= u ? [[u, a]] : []), ...(b <= v ? [[b, v]] : [])],
+      );
+    };
+    for (const key of new Set(mine.map((p) => p.key))) {
+      const list = groups.get(key),
+        own = mine.filter((p) => p.key === key).sort(order);
+      const aligned = list
+          .filter((p) => p.aligned !== undefined)
+          .sort(order),
+        waiting = list.filter(
+          (p) => !p.fixed && p.aligned === undefined && !own.includes(p),
+        );
+      const prev = aligned.filter((p) => order(p, own[0]) < 0).at(-1),
+        next = aligned.find((p) => order(p, own.at(-1)) > 0);
+      if (
+        aligned.some(
+          (p) => order(p, own[0]) > 0 && order(p, own.at(-1)) < 0,
+        ) ||
+        waiting.some((p) => order(p, own[0]) > 0 && order(p, own.at(-1)) < 0)
+      ) {
+        free = [];
+        break;
+      }
+      // Leave room for the automatic endpoints that will be spread on either side.
+      const before = waiting.filter(
+          (p) => (!prev || order(prev, p) < 0) && order(p, own[0]) < 0,
+        ).length,
+        after = waiting.filter(
+          (p) => order(p, own.at(-1)) > 0 && (!next || order(p, next) < 0),
+        ).length;
+      const p = own[0],
+        lo = Math.min(quality.corner, p.extent / 2),
+        hi = Math.max(lo, p.extent - quality.corner);
+      cut(
+        -Infinity,
+        (prev ? prev.aligned + gap : p.start + lo) + before * gap + half,
+      );
+      cut(
+        (next ? next.aligned - gap : p.start + hi) - after * gap - half,
+        Infinity,
+      );
+      for (const q of list)
+        if (!own.includes(q) && (q.fixed || q.aligned !== undefined)) {
+          const position = q.fixed ? at(q) : q.aligned;
+          cut(position - gap - half, position + gap + half);
+        }
+    }
+    const { from, to, corridor } = unit,
+      across = from.vertical ? ["y", "h"] : ["x", "w"],
+      along = from.vertical ? ["x", "w"] : ["y", "h"];
+    for (const r of obstacles)
+      if (
+        r.id !== from.id &&
+        r.id !== to.id &&
+        r[along[0]] < corridor[1] - G.EPS &&
+        r[along[0]] + r[along[1]] > corridor[0] + G.EPS
+      )
+        cut(r[across[0]] - half, r[across[0]] + r[across[1]] + half);
+    if (!free.length) continue;
+    const closest = (v) =>
+      free
+        .map(([u, w]) => Math.min(w, Math.max(u, v)))
+        .reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) - G.EPS ? b : a));
+    // Continue a straight line that already passes through either node.
+    const rails =
+      unit.members.length === 1 && !unit.from.fixed && !unit.to.fixed
+        ? [
+            ...(groups.get(`${from.id}\0${opposite[from.side]}`) || []),
+            ...(groups.get(`${to.id}\0${opposite[to.side]}`) || []),
+          ]
+            .filter((p) => p.aligned !== undefined)
+            .map((p) => p.aligned)
+            .filter((v) => Math.abs(closest(v) - v) < G.EPS)
+            .sort(
+              (a, b) =>
+                Math.abs(a - unit.target) - Math.abs(b - unit.target) || a - b,
+            )
+        : [];
+    const center = rails.length ? rails[0] : closest(unit.target);
+    unit.members.forEach((member, i) => {
+      for (const p of member) p.aligned = center - half + i * gap;
+    });
+  }
+}
+
 // One complete pass over effective endpoints, never a second topology or saved layout.
-export function distributePorts(entries, boxes) {
+export function distributePorts(entries, boxes, obstacles = []) {
   const groups = new Map(),
+    records = new Map(),
     ports = new Map(),
     issues = [];
   for (const { edge, spec, fixedFrom, fixedTo } of entries) {
@@ -75,13 +296,16 @@ export function distributePorts(entries, boxes) {
       const vertical = p.side === "left" || p.side === "right";
       const key = `${id}\0${p.side}`,
         list = groups.get(key) || [];
-      list.push({
+      const record = {
         id,
         edge: edge.id,
         endpoint,
+        key,
         rect,
         side: p.side,
         vertical,
+        start: vertical ? rect.y : rect.x,
+        extent: vertical ? rect.h : rect.w,
         fixed:
           fixed ||
           ![undefined, "orthogonal"].includes(edge.kind) ||
@@ -91,52 +315,62 @@ export function distributePorts(entries, boxes) {
         coordinate: vertical
           ? counterpart.y + counterpart.h / 2
           : counterpart.x + counterpart.w / 2,
-      });
+      };
+      list.push(record);
       groups.set(key, list);
+      records.set(`${edge.id}\0${endpoint}`, record);
     }
   }
+  align(entries, groups, records, obstacles);
+  const assign = (p, at) => {
+    const value = ports.get(p.edge) || {};
+    value[p.endpoint] = { side: p.side, at };
+    ports.set(p.edge, value);
+  };
   for (const list of groups.values()) {
+    const { start, extent } = list[0];
+    const aligned = list.filter((p) => p.aligned !== undefined).sort(order);
+    for (const p of aligned) assign(p, (p.aligned - start) / extent);
     if (list.length < 2) continue;
     const autos = list
-      .filter((p) => !p.fixed)
-      .sort(
-        (a, b) =>
-          a.coordinate - b.coordinate ||
-          a.edge.localeCompare(b.edge) ||
-          a.endpoint.localeCompare(b.endpoint),
-      );
+      .filter((p) => !p.fixed && p.aligned === undefined)
+      .sort(order);
     if (!autos.length) continue;
-    const extent = list[0].vertical ? list[0].rect.h : list[0].rect.w;
     const lo = Math.min(quality.corner, extent / 2),
       hi = Math.max(lo, extent - quality.corner);
-    const fixed = list.filter((p) => p.fixed).map((p) => p.at * extent);
-    const place = (gap) => {
-      // Feasible slots in each free interval. Choose consecutive slots closest to the center.
-      const occupied = [...fixed].sort((a, b) => a - b),
-        candidates = [];
-      const boundaries = [lo - gap, ...occupied, hi + gap];
-      for (let i = 1; i < boundaries.length; i++) {
-        const start = Math.max(lo, boundaries[i - 1] + gap),
-          end = Math.min(hi, boundaries[i] - gap);
-        if (end < start) continue;
-        const count = Math.floor((end - start + G.EPS) / gap) + 1;
-        const offset = (start + end - (count - 1) * gap) / 2;
-        for (let j = 0; j < count; j++) candidates.push(offset + j * gap);
+    const fixed = list.filter((p) => p.fixed).map((p) => p.at * extent),
+      dividers = aligned.map((p) => p.aligned - start);
+    // Endpoints between two straight lines stay between them, so lines do not cross.
+    const between = (gap) => {
+      const result = [];
+      for (let i = 0, j = 0; i <= aligned.length; i++) {
+        const run = [];
+        while (
+          j < autos.length &&
+          (i === aligned.length || order(autos[j], aligned[i]) < 0)
+        )
+          run.push(autos[j++]);
+        if (!run.length) continue;
+        const slots = place(
+          run.length,
+          Math.max(lo, i ? dividers[i - 1] + gap : lo),
+          Math.min(hi, i < aligned.length ? dividers[i] - gap : hi),
+          fixed,
+          gap,
+          extent / 2,
+        );
+        if (!slots) return null;
+        result.push(...slots);
       }
-      if (candidates.length < autos.length) return null;
-      let best = null,
-        score = Infinity;
-      for (let i = 0; i <= candidates.length - autos.length; i++) {
-        const slots = candidates.slice(i, i + autos.length);
-        const s = Math.abs((slots[0] + slots.at(-1)) / 2 - extent / 2);
-        if (s < score) {
-          score = s;
-          best = slots;
-        }
-      }
-      return best;
+      return result;
     };
-    const slots = place(quality.portGap) || place(quality.minPortGap);
+    const anywhere = (gap) =>
+      place(autos.length, lo, hi, [...fixed, ...dividers], gap, extent / 2);
+    const slots =
+      (aligned.length &&
+        (between(quality.portGap) || between(quality.minPortGap))) ||
+      anywhere(quality.portGap) ||
+      anywhere(quality.minPortGap);
     if (!slots) {
       issues.push(
         issue(
@@ -157,14 +391,8 @@ export function distributePorts(entries, boxes) {
       );
       continue; // Keep the deterministic original anchors rather than overwrite fixed positions.
     }
-    autos.forEach((p, i) => {
-      const value = ports.get(p.edge) || {};
-      value[p.endpoint] = {
-        side: p.side,
-        at: extent ? slots[i] / extent : 0.5,
-      };
-      ports.set(p.edge, value);
-    });
+    for (const [i, p] of autos.entries())
+      assign(p, extent ? slots[i] / extent : 0.5);
   }
   return { ports, issues };
 }

@@ -123,6 +123,8 @@ def validate(text):
                 raise ValueError(key + ' 必须为非负有限数值')
         if config.get('portDistribution', 'center') not in ('center', 'spread'):
             raise ValueError('portDistribution 只支持 center 或 spread')
+        if config.get('layout', 'authored') not in ('authored', 'tidy'):
+            raise ValueError('layout 只支持 authored 或 tidy')
         ids = set()
         for edge in config['edges']:
             identity = edge.get('id')

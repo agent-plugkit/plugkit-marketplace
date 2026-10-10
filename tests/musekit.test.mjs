@@ -102,7 +102,7 @@ test('invalid targets and retired category names return useful nonzero results',
 test('declared skills are discoverable and all local Markdown references are bundled', () => {
   const config = parse(readFileSync(join(plugin, 'plugin.yaml'), 'utf8'));
   assert.equal(config.name, 'musekit');
-  assert.equal(config.version, '0.4.0');
+  assert.equal(config.version, '0.5.0');
   const article = frontmatter(join(plugin, 'skills/article-illustration/SKILL.md'));
   assert.match(article.description, /整篇/);
   assert.match(article.description, /公众号排版/);
@@ -139,7 +139,7 @@ test('generated client indexes replace old design plugins and keep portable meta
   }
   const portable = JSON.parse(readFileSync(join(plugin, 'plugin.json'), 'utf8'));
   assert.equal(portable.name, 'musekit');
-  assert.equal(portable.version, '0.4.0');
+  assert.equal(portable.version, '0.5.0');
   for (const field of ['interface', 'platform', 'category']) assert.ok(!(field in portable));
   const codex = JSON.parse(readFileSync(join(plugin, '.codex-plugin/plugin.json'), 'utf8'));
   assert.equal(resolve(plugin, codex.skills), join(plugin, 'skills'));

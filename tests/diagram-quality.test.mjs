@@ -56,6 +56,110 @@ test("small nodes report crowding without modifying fixed positions", () => {
   assert.equal(r.issues[0].severity, "warning");
   assert.deepEqual(r.issues[0].relatedIds, ["e0", "e1"]);
 });
+// Horizontal relations; returns the absolute y of an effective endpoint.
+const facing = (rects, relations, obstacles = []) => {
+  const boxes = new Map(Object.entries(rects));
+  const { ports } = distributePorts(
+    relations.map((edge) => ({
+      edge,
+      spec: {
+        fromPort: { side: "right" },
+        toPort: { side: "left" },
+        ...edge.spec,
+      },
+      fixedFrom: Number.isFinite(edge.spec?.fromPort?.at),
+      fixedTo: Number.isFinite(edge.spec?.toPort?.at),
+    })),
+    boxes,
+    obstacles,
+  );
+  return (id, endpoint) => {
+    const edge = relations.find((e) => e.id === id),
+      r = boxes.get(endpoint === "fromPort" ? edge.from : edge.to);
+    return (
+      r.y +
+      r.h * (ports.get(id)?.[endpoint]?.at ?? edge.spec?.[endpoint]?.at ?? 0.5)
+    );
+  };
+};
+const card = (x, y, h) => ({ x, y, w: 150, h });
+test("facing endpoints share one coordinate, and a row keeps one straight line", () => {
+  const chain = [
+    { id: "e1", from: "A", to: "B" },
+    { id: "e2", from: "B", to: "C" },
+  ];
+  for (const heights of [
+    [156, 132, 156],
+    [100, 150, 200],
+  ]) {
+    const y = facing(
+      { A: card(0, 0, heights[0]), B: card(200, 0, heights[1]), C: card(400, 0, heights[2]) },
+      chain,
+    );
+    const shortest = Math.min(...heights) / 2;
+    for (const id of ["e1", "e2"]) {
+      assert.equal(y(id, "fromPort"), shortest);
+      assert.equal(y(id, "toPort"), shortest);
+    }
+  }
+});
+test("straight endpoints keep side order, spacing and node clearance, while slivers stay orthogonal", () => {
+  const fan = [
+    { id: "e1", from: "A", to: "B" },
+    { id: "e2", from: "A", to: "C" },
+  ];
+  for (const [below, rects] of [
+    [true, { A: card(0, 0, 120), B: card(300, 10, 100), C: card(300, 220, 100) }],
+    [false, { A: card(0, 200, 120), B: card(300, 210, 100), C: card(300, 0, 100) }],
+  ]) {
+    const y = facing(rects, fan);
+    assert.equal(y("e1", "fromPort"), y("e1", "toPort"));
+    const offset = y("e2", "fromPort") - y("e1", "fromPort");
+    assert.ok(below ? offset >= 12 : offset <= -12);
+  }
+  const blocked = { id: "X", x: 212, y: 52, w: 116, h: 76 };
+  const y = facing(
+    { A: card(0, 0, 200), B: card(400, 0, 200) },
+    [{ id: "e1", from: "A", to: "B" }],
+    [blocked],
+  );
+  assert.equal(y("e1", "fromPort"), 128);
+  assert.equal(y("e1", "toPort"), 128);
+  const sliver = facing({ A: card(0, 0, 154), B: card(300, 131, 197) }, [
+    { id: "e1", from: "A", to: "B" },
+  ]);
+  assert.equal(sliver("e1", "fromPort"), 77);
+  assert.equal(sliver("e1", "toPort"), 131 + 197 / 2);
+});
+test("parallel relations stay straight, and an automatic end follows a fixed one only within reach", () => {
+  const pair = facing({ A: card(0, 0, 100), B: card(300, 20, 120) }, [
+    { id: "go", from: "A", to: "B" },
+    {
+      id: "back",
+      from: "B",
+      to: "A",
+      spec: { fromPort: { side: "left" }, toPort: { side: "right" } },
+    },
+  ]);
+  assert.equal(pair("go", "fromPort"), pair("go", "toPort"));
+  assert.equal(pair("back", "fromPort"), pair("back", "toPort"));
+  assert.equal(pair("go", "fromPort") - pair("back", "toPort"), 12);
+  for (const [at, follows] of [
+    [0.3, true],
+    [0.9, false],
+  ]) {
+    const y = facing({ A: card(0, 0, 200), B: card(300, 20, 120) }, [
+      {
+        id: "e1",
+        from: "A",
+        to: "B",
+        spec: { fromPort: { side: "right", at } },
+      },
+    ]);
+    assert.equal(y("e1", "fromPort"), 200 * at);
+    assert.equal(y("e1", "toPort") === 200 * at, follows);
+  }
+});
 const edge = (points, extra = {}) => ({
   from: "A",
   to: "B",

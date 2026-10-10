@@ -100,9 +100,21 @@ export function simplify(points, preserveReversals = true) {
 }
 export const pathData = (ps) =>
   ps.map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`).join(" ");
+const BEND = 16;
 const cost = (ps) =>
   ps.slice(1).reduce((n, p, i) => n + distance(ps[i], p), 0) +
-  (ps.length - 2) * 16;
+  (ps.length - 2) * BEND;
+// 0: +x, 1: -x, 2: +y, 3: -y; -1 when the points coincide.
+const heading = (a, b) =>
+  distance(a, b) < EPS
+    ? -1
+    : Math.abs(b.x - a.x) > Math.abs(b.y - a.y)
+      ? b.x > a.x
+        ? 0
+        : 1
+      : b.y > a.y
+        ? 2
+        : 3;
 
 class Heap {
   items = [];
@@ -137,8 +149,19 @@ class Heap {
   }
 }
 
-export function orthogonal(start, end, obstacles, hints = []) {
+export function orthogonal(start, end, obstacles, hints = [], ports = {}) {
   const clear = (ps) => !obstacles.some((r) => pathHits(ps, r));
+  // Optional port points before start and after end: corners where the path
+  // meets the port stubs count like any other corner.
+  const full = (ps) =>
+    simplify(
+      [
+        ...(ports.from ? [ports.from] : []),
+        ...ps,
+        ...(ports.to ? [ports.to] : []),
+      ],
+      false,
+    );
   if (hints.length) {
     // Preserve every user pin, adding axis-aligned joins when a bound endpoint moves.
     const ps = [start];
@@ -168,7 +191,7 @@ export function orthogonal(start, end, obstacles, hints = []) {
   const simple = candidates
     .map(simplify)
     .filter(clear)
-    .sort((a, b) => cost(a) - cost(b));
+    .sort((a, b) => cost(full(a)) - cost(full(b)));
   if (simple.length) return { points: simple[0], blocked: false };
   // Visibility grid from measured obstacle boundaries; only neighboring grid points connect.
   for (const r of obstacles) {
@@ -184,50 +207,87 @@ export function orthogonal(start, end, obstacles, hints = []) {
     point = (k) => ({ x: xx[k % nx], y: yy[Math.floor(k / nx)] });
   const first = key(xx.indexOf(start.x), yy.indexOf(start.y)),
     last = key(xx.indexOf(end.x), yy.indexOf(end.y));
+  // States carry the travel direction, so equal-length staircases lose to
+  // paths with fewer corners. The goal is a separate state reached after the
+  // turn into the end stub has been charged.
+  const steps = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ],
+    goal = -1,
+    enter = ports.from ? heading(ports.from, start) : -1,
+    leave = ports.to ? heading(end, ports.to) : -1;
   const heap = new Heap(),
-    best = new Map([[first, 0]]),
-    prev = new Map();
-  heap.push({ k: first, g: 0, score: 0 });
+    best = new Map(),
+    prev = new Map(),
+    blocked = new Map();
+  const push = (s, g, from, score) => {
+    if (g >= (best.get(s) ?? Infinity)) return;
+    best.set(s, g);
+    prev.set(s, from);
+    heap.push({ s, g, score });
+  };
+  const estimate = (p) => Math.abs(p.x - end.x) + Math.abs(p.y - end.y);
+  for (const d of enter < 0 ? [0, 1, 2, 3] : [enter])
+    push(first * 4 + d, 0, undefined, estimate(start));
   while (heap.items.length) {
     const cur = heap.pop();
-    if (cur.g !== best.get(cur.k)) continue;
-    if (cur.k === last) break;
-    const x = cur.k % nx,
-      y = Math.floor(cur.k / nx),
-      a = point(cur.k);
-    for (const [cx, cy] of [
-      [x - 1, y],
-      [x + 1, y],
-      [x, y - 1],
-      [x, y + 1],
-    ]) {
-      if (cx < 0 || cx >= nx || cy < 0 || cy >= yy.length) continue;
-      const k = key(cx, cy),
-        b = point(k);
-      if (obstacles.some((r) => segmentHits(a, b, r))) continue;
-      const g = cur.g + distance(a, b);
-      if (g >= (best.get(k) ?? Infinity)) continue;
-      best.set(k, g);
-      prev.set(k, cur.k);
-      heap.push({
-        k,
-        g,
-        score: g + Math.abs(b.x - end.x) + Math.abs(b.y - end.y),
-      });
+    if (cur.g !== best.get(cur.s)) continue;
+    if (cur.s === goal) break;
+    const k = Math.floor(cur.s / 4),
+      d = cur.s % 4,
+      a = point(k);
+    if (k === last) {
+      const g = cur.g + (leave >= 0 && leave !== d ? BEND : 0);
+      push(goal, g, cur.s, g);
+      continue;
     }
+    const x = k % nx,
+      y = Math.floor(k / nx);
+    steps.forEach(([dx, dy], next) => {
+      const cx = x + dx,
+        cy = y + dy;
+      if (cx < 0 || cx >= nx || cy < 0 || cy >= yy.length) return;
+      const n = key(cx, cy),
+        b = point(n);
+      if (!blocked.has(k * 4 + next))
+        blocked.set(
+          k * 4 + next,
+          obstacles.some((r) => segmentHits(a, b, r)),
+        );
+      if (blocked.get(k * 4 + next)) return;
+      const g = cur.g + distance(a, b) + (next === d ? 0 : BEND);
+      push(n * 4 + next, g, cur.s, g + estimate(b));
+    });
   }
-  if (!best.has(last))
+  if (!best.has(goal))
     return { points: [start, { x: end.x, y: start.y }, end], blocked: true };
   const path = [];
-  for (let k = last; k !== undefined; k = prev.get(k)) path.push(point(k));
+  for (let s = prev.get(goal); s !== undefined; s = prev.get(s))
+    path.push(point(Math.floor(s / 4)));
   return { points: simplify(path.reverse()), blocked: false };
 }
 
 export function route(from, to, spec, obstacles) {
   const fp = spec.fromPort || { side: "right" },
     tp = spec.toPort || { side: "left" };
-  const a = port(from, fp),
+  let a = port(from, fp),
     b = port(to, tp);
+  // Facing ports within a pixel of each other draw straight, so sub-pixel
+  // layout rounding never leaves a hairline step. Ends stay on their sides.
+  const c = { left: "y", right: "y", top: "x", bottom: "x" }[fp.side],
+    size = c === "y" ? "h" : "w",
+    on = (r, v) => v >= r[c] - EPS && v <= r[c] + r[size] + EPS;
+  if (
+    fp.side !== tp.side &&
+    c === { left: "y", right: "y", top: "x", bottom: "x" }[tp.side] &&
+    Math.abs(a[c] - b[c]) <= 1
+  ) {
+    if (on(to, a[c])) b = { ...b, [c]: a[c] };
+    else if (on(from, b[c])) a = { ...a, [c]: b[c] };
+  }
   if (spec.kind === "straight")
     return {
       points: [a, b],
@@ -245,7 +305,7 @@ export function route(from, to, spec, obstacles) {
   const s = stub(a, fp.side, length),
     e = stub(b, tp.side, length);
   const all = [...obstacles, expand(from, clearance), expand(to, clearance)];
-  const middle = orthogonal(s, e, all, spec.points || []);
+  const middle = orthogonal(s, e, all, spec.points || [], { from: a, to: b });
   return {
     // Port stubs can briefly double back into the automatic path. Remove that
     // redundant travel, while keeping an author's explicit pins intact.
