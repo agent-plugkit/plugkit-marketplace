@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as fs from "node:fs/promises";
 import {
+  lstatSync,
+  mkdirSync,
   mkdtempSync,
+  symlinkSync,
   readFileSync,
   writeFileSync,
   readdirSync,
@@ -130,6 +133,206 @@ test("invalid arguments, input aliases, missing Python and missing Playwright fa
   assert.equal((await run([source, "--output", alias])).code, 1);
   assert.equal(await fs.readFile(output, "utf8"), "previous");
   noTemps(dir);
+});
+
+test("missing PNG dependencies still deliver HTML with an exact fix and never replace a trusted file", async (t) => {
+  const { dir, source, output, args } = await fixture(t);
+  const noPlaywright = await run(args, { cwd: dir });
+  assert.equal(noPlaywright.code, 2);
+  assert.equal(noPlaywright.result.committed, false);
+  assert.equal(noPlaywright.result.verified, false);
+  assert.equal(noPlaywright.result.cause, "playwright-missing");
+  assert.equal(noPlaywright.result.html, output);
+  assert.match(
+    noPlaywright.result.fix,
+    /^\[ -f package\.json \] \|\| npm init -y >\/dev\/null && npm install --no-save playwright && npx playwright install chromium /,
+  );
+  const delivered = readFileSync(output, "utf8");
+  assert.match(delivered, /<!-- musekit-runtime:start -->/);
+
+  const noBrowser = await run(args, {
+    env: {
+      ...process.env,
+      PLAYWRIGHT_BROWSERS_PATH: join(dir, "missing-browsers"),
+    },
+  });
+  assert.equal(noBrowser.code, 2);
+  assert.equal(noBrowser.result.cause, "browser-missing");
+  assert.match(noBrowser.result.fix, /^npx playwright install chromium/);
+  assert.equal(
+    noBrowser.result.html,
+    join(dir, "final diagram.unverified.html"),
+  );
+  assert.equal(readFileSync(output, "utf8"), delivered);
+
+  const human = spawn(process.execPath, [cli, ...args], {
+    cwd: dir,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let err = "";
+  human.stderr.on("data", (b) => (err += b));
+  await new Promise((resolve) => human.on("close", resolve));
+  assert.match(err, /^PNG not exported: .*Playwright is not installed/m);
+  assert.match(err, /^HTML delivered without browser checks: /m);
+  assert.match(
+    err,
+    /^Fix: \[ -f package\.json \] \|\| npm init -y >\/dev\/null && npm install --no-save playwright/m,
+  );
+  assert.match(err, /^中文：/m);
+  noTemps(dir);
+});
+
+test("sandboxed Chromium launch failures name the Codex network fix", async () => {
+  const { environmentFailure } =
+    await import("../plugins/musekit/skills/diagram-design/scripts/inspect_diagram.mjs");
+  // Abbreviated from a Codex workspace-write run with network access disabled.
+  const message =
+    "browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n[pid=16][err] ERROR:third_party/crashpad/crashpad/util/linux/socket.cc:45] setsockopt: Operation not permitted (1)";
+  const codex = environmentFailure(message, {
+    env: { CODEX_SANDBOX_NETWORK_DISABLED: "1" },
+  });
+  assert.equal(codex.cause, "browser-sandboxed");
+  assert.match(codex.message, /Codex sandbox/);
+  assert.match(codex.fix, /sandbox_workspace_write\.network_access=true/);
+  assert.equal(
+    environmentFailure(message, { env: {} }).cause,
+    "browser-sandboxed",
+  );
+  assert.equal(
+    environmentFailure("Some unrelated failure", { env: {} }),
+    undefined,
+  );
+});
+
+// A stand-in Playwright whose launch fails like a real host would, resolved from cwd.
+function fakePlaywright(dir, launchError) {
+  const pkg = join(dir, "node_modules", "playwright");
+  mkdirSync(pkg, { recursive: true });
+  writeFileSync(
+    join(pkg, "index.js"),
+    `const fs = require("node:fs"), path = require("node:path");
+exports.chromium = { async launch(options) {
+  fs.writeFileSync(path.join(${JSON.stringify(dir)}, "launch.json"), JSON.stringify(options));
+  throw new Error(${JSON.stringify(launchError)});
+} };\n`,
+  );
+}
+
+test("unverified HTML never overwrites the source, an existing copy or a symlink target", async (t) => {
+  const { dir, output } = await fixture(t);
+  writeFileSync(output, "previous");
+  // The authored source is itself named like the fallback copy.
+  const source = join(dir, "final diagram.unverified.html");
+  writeFileSync(source, sourceBytes);
+  const alias = await run([source, "--output", output], { cwd: dir });
+  assert.equal(alias.code, 2);
+  assert.equal(alias.result.cause, "playwright-missing");
+  assert.equal(alias.result.html, join(dir, "final diagram.unverified-2.html"));
+  assert.deepEqual(readFileSync(source), sourceBytes);
+  assert.equal(readFileSync(output, "utf8"), "previous");
+  assert.match(
+    readFileSync(alias.result.html, "utf8"),
+    /<!-- musekit-runtime:start -->/,
+  );
+
+  // Existing copies are kept; the next free name is used.
+  const again = await run([source, "--output", output], { cwd: dir });
+  assert.equal(again.result.html, join(dir, "final diagram.unverified-3.html"));
+  assert.match(
+    readFileSync(join(dir, "final diagram.unverified-2.html"), "utf8"),
+    /<!-- musekit-runtime:start -->/,
+  );
+
+  // A symlink in the fallback slot is not followed, live or dangling.
+  const other = mkdtempSync(join(tmpdir(), "musekit-victim-"));
+  t.after(() => fs.rm(other, { recursive: true, force: true }));
+  const victim = join(other, "victim.html");
+  writeFileSync(victim, "victim");
+  const linked = join(dir, "linked.html");
+  writeFileSync(linked, "previous");
+  symlinkSync(victim, join(dir, "linked.unverified.html"));
+  symlinkSync(
+    join(other, "absent.html"),
+    join(dir, "linked.unverified-2.html"),
+  );
+  const link = await run([source, "--output", linked], { cwd: dir });
+  assert.equal(link.code, 2);
+  assert.equal(link.result.html, join(dir, "linked.unverified-3.html"));
+  assert.equal(readFileSync(victim, "utf8"), "victim");
+  assert.ok(!existsSync(join(other, "absent.html")));
+  assert.ok(lstatSync(join(dir, "linked.unverified.html")).isSymbolicLink());
+  noTemps(dir);
+});
+
+test("missing Linux browser libraries still deliver HTML with the --with-deps fix", async (t) => {
+  for (const launchError of [
+    "browserType.launch: \nHost system is missing dependencies to run browsers. \nPlease install them with the following command:\n\n    sudo npx playwright install-deps",
+    "browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n<launched> pid=7\n[pid=7][err] chrome: error while loading shared libraries: libnss3.so: cannot open shared object file: No such file or directory",
+  ]) {
+    const { dir, args, output } = await fixture(t);
+    fakePlaywright(dir, launchError);
+    const result = await run(args, { cwd: dir });
+    assert.equal(result.code, 2, JSON.stringify(result));
+    assert.equal(result.result.cause, "browser-dependencies-missing");
+    assert.equal(result.result.verified, false);
+    assert.equal(result.result.html, output);
+    assert.match(
+      result.result.fix,
+      /^npx playwright install --with-deps chromium/,
+    );
+    assert.match(
+      readFileSync(output, "utf8"),
+      /<!-- musekit-runtime:start -->/,
+    );
+    noTemps(dir);
+  }
+});
+
+test("recovery commands follow an explicit Chrome or Edge selection", async (t) => {
+  const { environmentFailure } =
+    await import("../plugins/musekit/skills/diagram-design/scripts/inspect_diagram.mjs");
+  const { dir, args, output } = await fixture(t);
+  fakePlaywright(
+    dir,
+    "browserType.launch: Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome\nRun \"npx playwright install chrome\"",
+  );
+  const chrome = await run([...args, "--browser", "chrome"], { cwd: dir });
+  assert.equal(chrome.code, 2, JSON.stringify(chrome));
+  assert.deepEqual(JSON.parse(readFileSync(join(dir, "launch.json"))), {
+    channel: "chrome",
+  });
+  assert.equal(chrome.result.cause, "browser-missing");
+  assert.match(chrome.result.message, /Google Chrome \(--browser chrome\)/);
+  assert.match(chrome.result.fix, /^npx playwright install chrome /);
+  assert.match(chrome.result.fix, /rerun with --browser chromium/);
+  assert.equal(chrome.result.html, output);
+
+  const edge = environmentFailure(
+    "Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge",
+    { browser: "msedge" },
+  );
+  assert.match(edge.fix, /^npx playwright install msedge /);
+  const edgeDeps = environmentFailure(
+    "Host system is missing dependencies to run browsers.",
+    { browser: "msedge" },
+  );
+  assert.match(
+    edgeDeps.fix,
+    /--with-deps chromium.*rerun with --browser chromium/,
+  );
+  const edgeNoPlaywright = environmentFailure("Playwright is unavailable", {
+    browser: "msedge",
+  });
+  assert.doesNotMatch(edgeNoPlaywright.fix, /install chromium/);
+  assert.match(
+    edgeNoPlaywright.fix,
+    /^\[ -f package\.json \] \|\| npm init -y >\/dev\/null && npm install --no-save playwright /,
+  );
+  // The default browser keeps the Chromium download fix.
+  assert.match(
+    environmentFailure("Executable doesn't exist at /x/chrome").fix,
+    /^npx playwright install chromium /,
+  );
 });
 
 test("export failure and evidence-write failure leave the trusted file intact", async (t) => {

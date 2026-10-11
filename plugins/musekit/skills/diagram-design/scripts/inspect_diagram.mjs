@@ -11,6 +11,72 @@ Checks an embedded diagram offline, exports its complete PNG, and checks HTML sa
 Requires Playwright in the current working directory and an installed browser.
 Visual and source-semantic review remain the author's responsibility.`;
 
+// Environment failures keep the HTML deliverable; the message names the exact fix.
+// Fixes follow the selected browser: rerunning after installing Chromium cannot help
+// a Chrome or Edge channel launch, so those name the channel or switch to Chromium.
+const channelNames = { chrome: "Google Chrome", msedge: "Microsoft Edge" };
+// npm 9 fails with "Tracker idealTree already exists" when the directory has no
+// package.json, so create one first; an existing package.json is left untouched.
+const installPlaywright =
+  "[ -f package.json ] || npm init -y >/dev/null && npm install --no-save playwright";
+export function environmentFailure(
+  message,
+  { browser = "chromium", env = process.env } = {},
+) {
+  const where = `run in ${process.cwd()}`,
+    channel = channelNames[browser],
+    useChromium = "then rerun with --browser chromium";
+  if (/Playwright is unavailable/.test(message))
+    return {
+      cause: "playwright-missing",
+      message: channel
+        ? `PNG export needs Node.js, Playwright and ${channel}; Playwright is not installed in this working directory.`
+        : "PNG export needs Node.js, Playwright and a Chromium browser; Playwright is not installed in this working directory.",
+      fix: channel
+        ? `${installPlaywright}   # ${where}; uses the installed ${channel}`
+        : `${installPlaywright} && npx playwright install chromium   # ${where}`,
+    };
+  if (
+    /Host system is missing dependencies|Missing system dependencies|error while loading shared libraries/i.test(
+      message,
+    )
+  )
+    return {
+      cause: "browser-dependencies-missing",
+      message:
+        "PNG export needs a Chromium browser, but this system is missing libraries the browser needs to start.",
+      fix: channel
+        ? `npx playwright install --with-deps chromium   # ${where}; needs sudo; ${useChromium}`
+        : `npx playwright install --with-deps chromium   # ${where}; needs sudo`,
+    };
+  if (/Executable doesn't exist|distribution.*not found/i.test(message))
+    return channel
+      ? {
+          cause: "browser-missing",
+          message: `PNG export was asked to use ${channel} (--browser ${browser}), but it is not installed.`,
+          fix: `npx playwright install ${browser}   # ${where}; installs ${channel}, may need sudo; or run npx playwright install chromium, ${useChromium}`,
+        }
+      : {
+          cause: "browser-missing",
+          message:
+            "PNG export needs a Chromium browser; Playwright is installed but its browser has not been downloaded.",
+          fix: `npx playwright install chromium   # ${where}; or pass --browser chrome to use an installed Google Chrome`,
+        };
+  if (
+    /Operation not permitted/.test(message) &&
+    /browser has been closed|Target page/.test(message)
+  )
+    return {
+      cause: "browser-sandboxed",
+      message:
+        env.CODEX_SANDBOX_NETWORK_DISABLED === "1"
+          ? "Chromium was killed by the Codex sandbox: workspace-write without network access blocks the socket calls Chromium needs at startup."
+          : "Chromium was killed by a sandbox or seccomp policy that blocks socket calls it needs at startup.",
+      fix: "codex -c sandbox_workspace_write.network_access=true   # or set network_access = true under [sandbox_workspace_write] in ~/.codex/config.toml, then restart Codex",
+    };
+  return undefined;
+}
+
 export const digest = (bytes) => ({
   sha256: createHash("sha256").update(bytes).digest("hex"),
   bytes: Buffer.byteLength(bytes),
@@ -88,10 +154,9 @@ export async function inspectDiagram(input, options) {
         options.browser === "chromium" ? {} : { channel: options.browser },
       );
     } catch (error) {
-      if (
-        /Executable doesn't exist|distribution.*not found/i.test(error.message)
-      )
-        report.failureKind = "environment";
+      const environment = environmentFailure(error.message, options);
+      if (environment)
+        Object.assign(report, { failureKind: "environment", environment });
       throw error;
     }
     const context = await browser.newContext({
@@ -238,6 +303,10 @@ async function main(args) {
   const { input, options } = inspectionOptions(args);
   const report = await inspectDiagram(input, options);
   console.log(JSON.stringify(report, null, 2));
+  if (report.environment)
+    console.error(
+      `${report.environment.message}\nFix: ${report.environment.fix}\n中文：缺少 PNG 导出环境；HTML 不受影响，按上面的命令修复后重新运行。`,
+    );
   if (!report.passed)
     process.exitCode = report.failureKind === "environment" ? 2 : 1;
 }
@@ -246,6 +315,14 @@ if (
   import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
 )
   main(process.argv.slice(2)).catch((error) => {
-    console.error(error.message);
+    const at = process.argv.indexOf("--browser");
+    const environment = environmentFailure(error.message, {
+      browser: at > 1 ? process.argv[at + 1] : undefined,
+    });
+    console.error(
+      environment
+        ? `${environment.message}\nFix: ${environment.fix}\n中文：缺少 PNG 导出环境；HTML 不受影响，按上面的命令修复后重新运行。`
+        : error.message,
+    );
     process.exitCode = 2;
   });
