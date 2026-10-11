@@ -12,23 +12,52 @@ Requires Playwright in the current working directory and an installed browser.
 Visual and source-semantic review remain the author's responsibility.`;
 
 // Environment failures keep the HTML deliverable; the message names the exact fix.
-const installPlaywright =
-  "npm install --no-save playwright && npx playwright install chromium";
-export function environmentFailure(message, env = process.env) {
+// Fixes follow the selected browser: rerunning after installing Chromium cannot help
+// a Chrome or Edge channel launch, so those name the channel or switch to Chromium.
+const channelNames = { chrome: "Google Chrome", msedge: "Microsoft Edge" };
+export function environmentFailure(
+  message,
+  { browser = "chromium", env = process.env } = {},
+) {
+  const where = `run in ${process.cwd()}`,
+    channel = channelNames[browser],
+    useChromium = "then rerun with --browser chromium";
   if (/Playwright is unavailable/.test(message))
     return {
       cause: "playwright-missing",
+      message: channel
+        ? `PNG export needs Node.js, Playwright and ${channel}; Playwright is not installed in this working directory.`
+        : "PNG export needs Node.js, Playwright and a Chromium browser; Playwright is not installed in this working directory.",
+      fix: channel
+        ? `npm install --no-save playwright   # ${where}; uses the installed ${channel}`
+        : `npm install --no-save playwright && npx playwright install chromium   # ${where}`,
+    };
+  if (
+    /Host system is missing dependencies|Missing system dependencies|error while loading shared libraries/i.test(
+      message,
+    )
+  )
+    return {
+      cause: "browser-dependencies-missing",
       message:
-        "PNG export needs Node.js, Playwright and a Chromium browser; Playwright is not installed in this working directory.",
-      fix: `${installPlaywright}   # run in ${process.cwd()}`,
+        "PNG export needs a Chromium browser, but this system is missing libraries the browser needs to start.",
+      fix: channel
+        ? `npx playwright install --with-deps chromium   # ${where}; needs sudo; ${useChromium}`
+        : `npx playwright install --with-deps chromium   # ${where}; needs sudo`,
     };
   if (/Executable doesn't exist|distribution.*not found/i.test(message))
-    return {
-      cause: "browser-missing",
-      message:
-        "PNG export needs a Chromium browser; Playwright is installed but its browser has not been downloaded.",
-      fix: `npx playwright install chromium   # run in ${process.cwd()}; or pass --browser chrome to use an installed Google Chrome`,
-    };
+    return channel
+      ? {
+          cause: "browser-missing",
+          message: `PNG export was asked to use ${channel} (--browser ${browser}), but it is not installed.`,
+          fix: `npx playwright install ${browser}   # ${where}; installs ${channel}, may need sudo; or run npx playwright install chromium, ${useChromium}`,
+        }
+      : {
+          cause: "browser-missing",
+          message:
+            "PNG export needs a Chromium browser; Playwright is installed but its browser has not been downloaded.",
+          fix: `npx playwright install chromium   # ${where}; or pass --browser chrome to use an installed Google Chrome`,
+        };
   if (
     /Operation not permitted/.test(message) &&
     /browser has been closed|Target page/.test(message)
@@ -121,7 +150,7 @@ export async function inspectDiagram(input, options) {
         options.browser === "chromium" ? {} : { channel: options.browser },
       );
     } catch (error) {
-      const environment = environmentFailure(error.message);
+      const environment = environmentFailure(error.message, options);
       if (environment)
         Object.assign(report, { failureKind: "environment", environment });
       throw error;
@@ -282,7 +311,10 @@ if (
   import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
 )
   main(process.argv.slice(2)).catch((error) => {
-    const environment = environmentFailure(error.message);
+    const at = process.argv.indexOf("--browser");
+    const environment = environmentFailure(error.message, {
+      browser: at > 1 ? process.argv[at + 1] : undefined,
+    });
     console.error(
       environment
         ? `${environment.message}\nFix: ${environment.fix}\n中文：缺少 PNG 导出环境；HTML 不受影响，按上面的命令修复后重新运行。`

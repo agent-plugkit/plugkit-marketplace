@@ -61,6 +61,6 @@ node scripts/deliver_diagram.mjs source.html --output artwork.editable.html --br
 
 命令正常结束时清理本次临时目录和锁。进程被强制终止时可能留下私有候选、孤立批次或锁；先确认锁记录的进程已结束再删除旧锁。通过批次报告的 `delivery.verifyOutputSha256` 与当前 HTML 比较确认是否已提交，不凭退出输出是否完整判断。无需自动收集或删除历史批次。
 
-缺少 Playwright、Playwright 浏览器未下载，或 Chromium 被沙箱终止（例如 Codex `workspace-write` 未开网络）时，命令仍交付封装好的 HTML，但不算检查通过：目标不存在时写入目标路径，已存在时保留原文件并写入旁边的 `<名称>.unverified.html`。结果包含 `verified: false`、`html`、`cause`、`message` 与可直接执行的 `fix`；不带 `--json` 时在标准错误输出英文说明、修复命令和一行中文提示。修复后重新运行同一命令即可导出 PNG 并完成检查。
+缺少 Playwright、Playwright 浏览器未下载、Linux 缺少浏览器所需系统库，或 Chromium 被沙箱终止（例如 Codex `workspace-write` 未开网络）时，命令仍交付封装好的 HTML，但不算检查通过：目标不存在时写入目标路径，已存在时保留原文件并以独占方式新建旁边第一个空闲的 `<名称>.unverified.html`、`<名称>.unverified-2.html`……，不覆盖来源、已有文件或符号链接。修复命令跟随 `--browser`：选择 `chrome` 或 `msedge` 时给出对应渠道的安装命令，或说明改用 `--browser chromium`。结果包含 `verified: false`、`html`、`cause`、`message` 与可直接执行的 `fix`；不带 `--json` 时在标准错误输出英文说明、修复命令和一行中文提示。修复后重新运行同一命令即可导出 PNG 并完成检查。
 
 退出码：`0` 为交付完成；`1` 为检查、输入文件读取或交付失败；`2` 为参数错误或缺少必要运行依赖。`--json` 的标准输出只有一个结果对象，结果包含 `committed`；缺少浏览器不算检查通过。所有自动结果仍需对照原始来源并实际查看 PNG。

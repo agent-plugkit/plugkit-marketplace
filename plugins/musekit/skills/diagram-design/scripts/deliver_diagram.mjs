@@ -59,21 +59,28 @@ function optionsFor(args) {
   return { input, options };
 }
 
-// Without a usable browser the packaged HTML is still delivered, but never over a
-// trusted file: a new output takes the requested path, otherwise a sibling copy.
+// Without a usable browser the packaged HTML is still delivered, but never over an
+// existing file: a new output takes the requested path, otherwise the first free
+// sibling copy. Hard links create the name exclusively and never follow a symlink,
+// so the source, a trusted file or a link to elsewhere is never written through.
 async function deliverUnverified(candidate, target) {
-  try {
-    await fs.link(candidate, target);
-    return target;
-  } catch (error) {
-    if (error.code !== "EEXIST") throw error;
+  const name = basename(target, ".html");
+  for (let n = 0; n <= 100; n++) {
+    const path =
+      n === 0
+        ? target
+        : join(
+            dirname(target),
+            `${name}.unverified${n === 1 ? "" : `-${n}`}.html`,
+          );
+    try {
+      await fs.link(candidate, path);
+      return path;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+    }
   }
-  const sibling = join(
-    dirname(target),
-    `${basename(target, ".html")}.unverified.html`,
-  );
-  await fs.copyFile(candidate, sibling);
-  return sibling;
+  throw new Error("No free name for the unverified HTML copy");
 }
 async function environmentResult(environment, candidate, base) {
   let html;
@@ -252,7 +259,9 @@ async function deliverDiagram(input, options) {
     };
   } catch (error) {
     const environment =
-      !committed && stage === "inspect" && environmentFailure(error.message);
+      !committed &&
+      stage === "inspect" &&
+      environmentFailure(error.message, options);
     if (environment)
       return await environmentResult(environment, candidate, {
         stage,

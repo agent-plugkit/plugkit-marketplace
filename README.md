@@ -110,6 +110,19 @@ Run the printed fix in the working directory shown, then ask the agent to export
 ### `PNG not exported: ... its browser has not been downloaded`
 
 Run `npx playwright install chromium`, or use an installed Google Chrome with `--browser chrome`.
+If the export used `--browser chrome` or `--browser msedge`, the message names that browser instead:
+install it with `npx playwright install chrome` (or `msedge`), or install Chromium and export again
+with `--browser chromium`.
+
+### `PNG not exported: ... missing libraries the browser needs to start`
+
+Linux reported `Host system is missing dependencies to run browsers` or
+`error while loading shared libraries`. Run `npx playwright install --with-deps chromium` (needs
+sudo), then export again.
+
+When the requested HTML already exists, the unverified HTML is written to the first free
+`<name>.unverified.html`, `<name>.unverified-2.html`, … next to it; existing files are never
+replaced.
 
 ### Chromium is killed inside Codex
 
