@@ -11,6 +11,39 @@ Checks an embedded diagram offline, exports its complete PNG, and checks HTML sa
 Requires Playwright in the current working directory and an installed browser.
 Visual and source-semantic review remain the author's responsibility.`;
 
+// Environment failures keep the HTML deliverable; the message names the exact fix.
+const installPlaywright =
+  "npm install --no-save playwright && npx playwright install chromium";
+export function environmentFailure(message, env = process.env) {
+  if (/Playwright is unavailable/.test(message))
+    return {
+      cause: "playwright-missing",
+      message:
+        "PNG export needs Node.js, Playwright and a Chromium browser; Playwright is not installed in this working directory.",
+      fix: `${installPlaywright}   # run in ${process.cwd()}`,
+    };
+  if (/Executable doesn't exist|distribution.*not found/i.test(message))
+    return {
+      cause: "browser-missing",
+      message:
+        "PNG export needs a Chromium browser; Playwright is installed but its browser has not been downloaded.",
+      fix: `npx playwright install chromium   # run in ${process.cwd()}; or pass --browser chrome to use an installed Google Chrome`,
+    };
+  if (
+    /Operation not permitted/.test(message) &&
+    /browser has been closed|Target page/.test(message)
+  )
+    return {
+      cause: "browser-sandboxed",
+      message:
+        env.CODEX_SANDBOX_NETWORK_DISABLED === "1"
+          ? "Chromium was killed by the Codex sandbox: workspace-write without network access blocks the socket calls Chromium needs at startup."
+          : "Chromium was killed by a sandbox or seccomp policy that blocks socket calls it needs at startup.",
+      fix: "codex -c sandbox_workspace_write.network_access=true   # or set network_access = true under [sandbox_workspace_write] in ~/.codex/config.toml, then restart Codex",
+    };
+  return undefined;
+}
+
 export const digest = (bytes) => ({
   sha256: createHash("sha256").update(bytes).digest("hex"),
   bytes: Buffer.byteLength(bytes),
@@ -88,10 +121,9 @@ export async function inspectDiagram(input, options) {
         options.browser === "chromium" ? {} : { channel: options.browser },
       );
     } catch (error) {
-      if (
-        /Executable doesn't exist|distribution.*not found/i.test(error.message)
-      )
-        report.failureKind = "environment";
+      const environment = environmentFailure(error.message);
+      if (environment)
+        Object.assign(report, { failureKind: "environment", environment });
       throw error;
     }
     const context = await browser.newContext({
@@ -238,6 +270,10 @@ async function main(args) {
   const { input, options } = inspectionOptions(args);
   const report = await inspectDiagram(input, options);
   console.log(JSON.stringify(report, null, 2));
+  if (report.environment)
+    console.error(
+      `${report.environment.message}\nFix: ${report.environment.fix}\n中文：缺少 PNG 导出环境；HTML 不受影响，按上面的命令修复后重新运行。`,
+    );
   if (!report.passed)
     process.exitCode = report.failureKind === "environment" ? 2 : 1;
 }
@@ -246,6 +282,11 @@ if (
   import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
 )
   main(process.argv.slice(2)).catch((error) => {
-    console.error(error.message);
+    const environment = environmentFailure(error.message);
+    console.error(
+      environment
+        ? `${environment.message}\nFix: ${environment.fix}\n中文：缺少 PNG 导出环境；HTML 不受影响，按上面的命令修复后重新运行。`
+        : error.message,
+    );
     process.exitCode = 2;
   });

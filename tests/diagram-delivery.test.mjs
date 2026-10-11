@@ -132,6 +132,66 @@ test("invalid arguments, input aliases, missing Python and missing Playwright fa
   noTemps(dir);
 });
 
+test("missing PNG dependencies still deliver HTML with an exact fix and never replace a trusted file", async (t) => {
+  const { dir, source, output, args } = await fixture(t);
+  const noPlaywright = await run(args, { cwd: dir });
+  assert.equal(noPlaywright.code, 2);
+  assert.equal(noPlaywright.result.committed, false);
+  assert.equal(noPlaywright.result.verified, false);
+  assert.equal(noPlaywright.result.cause, "playwright-missing");
+  assert.equal(noPlaywright.result.html, output);
+  assert.match(
+    noPlaywright.result.fix,
+    /^npm install --no-save playwright && npx playwright install chromium/,
+  );
+  const delivered = readFileSync(output, "utf8");
+  assert.match(delivered, /<!-- musekit-runtime:start -->/);
+
+  const noBrowser = await run(args, {
+    env: {
+      ...process.env,
+      PLAYWRIGHT_BROWSERS_PATH: join(dir, "missing-browsers"),
+    },
+  });
+  assert.equal(noBrowser.code, 2);
+  assert.equal(noBrowser.result.cause, "browser-missing");
+  assert.match(noBrowser.result.fix, /^npx playwright install chromium/);
+  assert.equal(
+    noBrowser.result.html,
+    join(dir, "final diagram.unverified.html"),
+  );
+  assert.equal(readFileSync(output, "utf8"), delivered);
+
+  const human = spawn(process.execPath, [cli, ...args], {
+    cwd: dir,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let err = "";
+  human.stderr.on("data", (b) => (err += b));
+  await new Promise((resolve) => human.on("close", resolve));
+  assert.match(err, /^PNG not exported: .*Playwright is not installed/m);
+  assert.match(err, /^HTML delivered without browser checks: /m);
+  assert.match(err, /^Fix: npm install --no-save playwright/m);
+  assert.match(err, /^中文：/m);
+  noTemps(dir);
+});
+
+test("sandboxed Chromium launch failures name the Codex network fix", async () => {
+  const { environmentFailure } =
+    await import("../plugins/musekit/skills/diagram-design/scripts/inspect_diagram.mjs");
+  // Abbreviated from a Codex workspace-write run with network access disabled.
+  const message =
+    "browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n[pid=16][err] ERROR:third_party/crashpad/crashpad/util/linux/socket.cc:45] setsockopt: Operation not permitted (1)";
+  const codex = environmentFailure(message, {
+    CODEX_SANDBOX_NETWORK_DISABLED: "1",
+  });
+  assert.equal(codex.cause, "browser-sandboxed");
+  assert.match(codex.message, /Codex sandbox/);
+  assert.match(codex.fix, /sandbox_workspace_write\.network_access=true/);
+  assert.equal(environmentFailure(message, {}).cause, "browser-sandboxed");
+  assert.equal(environmentFailure("Some unrelated failure", {}), undefined);
+});
+
 test("export failure and evidence-write failure leave the trusted file intact", async (t) => {
   const { dir, source, output, args } = await fixture(t);
   writeFileSync(output, "previous");

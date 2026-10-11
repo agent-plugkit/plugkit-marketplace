@@ -6,7 +6,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { digest, inspectDiagram } from "./inspect_diagram.mjs";
+import {
+  digest,
+  environmentFailure,
+  inspectDiagram,
+} from "./inspect_diagram.mjs";
 
 const execute = promisify(execFile);
 const usage =
@@ -55,11 +59,47 @@ function optionsFor(args) {
   return { input, options };
 }
 
+// Without a usable browser the packaged HTML is still delivered, but never over a
+// trusted file: a new output takes the requested path, otherwise a sibling copy.
+async function deliverUnverified(candidate, target) {
+  try {
+    await fs.link(candidate, target);
+    return target;
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+  }
+  const sibling = join(
+    dirname(target),
+    `${basename(target, ".html")}.unverified.html`,
+  );
+  await fs.copyFile(candidate, sibling);
+  return sibling;
+}
+async function environmentResult(environment, candidate, base) {
+  let html;
+  if (candidate)
+    html = await deliverUnverified(candidate, base.output).catch(
+      () => undefined,
+    );
+  return {
+    ...base,
+    ok: false,
+    committed: false,
+    exitCode: 2,
+    verified: false,
+    ...(html ? { html } : {}),
+    cause: environment.cause,
+    message: environment.message,
+    fix: environment.fix,
+  };
+}
+
 async function deliverDiagram(input, options) {
   const runId = randomUUID();
   let lock,
     lockPath,
     work,
+    candidate,
     evidenceDirectory,
     committed = false,
     target,
@@ -96,8 +136,8 @@ async function deliverDiagram(input, options) {
     const bytes = await fs.readFile(source);
     const sourceIdentity = digest(bytes);
     work = await fs.mkdtemp(join(dirname(target), ".musekit-candidate-"));
-    const snapshot = join(work, "source.html"),
-      candidate = join(work, "artifact.html");
+    const snapshot = join(work, "source.html");
+    candidate = join(work, "artifact.html");
     await fs.writeFile(snapshot, bytes, { mode: 0o600 });
     stage = "package";
     try {
@@ -123,6 +163,13 @@ async function deliverDiagram(input, options) {
       ...options,
       output: join(work, "checks"),
     });
+    if (!report.passed && report.environment)
+      return await environmentResult(report.environment, candidate, {
+        stage,
+        output: target,
+        runId,
+        errors: report.errors,
+      });
     if (!report.passed)
       return {
         ok: false,
@@ -204,6 +251,15 @@ async function deliverDiagram(input, options) {
       semanticReview: "not-performed",
     };
   } catch (error) {
+    const environment =
+      !committed && stage === "inspect" && environmentFailure(error.message);
+    if (environment)
+      return await environmentResult(environment, candidate, {
+        stage,
+        output: target,
+        runId,
+        error: error.message,
+      });
     const missing =
       (error.code === "ENOENT" && stage === "package") ||
       /Playwright is unavailable/.test(error.message);
@@ -255,6 +311,18 @@ async function main(args) {
   else if (result.ok)
     console.log(
       `HTML: ${result.output}\nPNG: ${result.png}\nReport: ${result.report}\nWarnings: ${result.warningCount}. Visual and source-semantic review are not performed.`,
+    );
+  else if (result.fix)
+    console.error(
+      [
+        `PNG not exported: ${result.message}`,
+        result.html
+          ? `HTML delivered without browser checks: ${result.html}`
+          : "HTML was not delivered.",
+        `Fix: ${result.fix}`,
+        "Then run this command again to export the PNG and check the diagram.",
+        "中文：缺少 PNG 导出环境，已交付未经浏览器检查的 HTML；按 Fix 命令修复后重新运行即可导出 PNG。",
+      ].join("\n"),
     );
   else console.error(JSON.stringify(result, null, 2));
   process.exitCode = result.exitCode;
