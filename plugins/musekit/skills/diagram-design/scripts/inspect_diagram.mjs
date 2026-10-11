@@ -15,6 +15,10 @@ Visual and source-semantic review remain the author's responsibility.`;
 // Fixes follow the selected browser: rerunning after installing Chromium cannot help
 // a Chrome or Edge channel launch, so those name the channel or switch to Chromium.
 const channelNames = { chrome: "Google Chrome", msedge: "Microsoft Edge" };
+// npm 9 fails with "Tracker idealTree already exists" when the directory has no
+// package.json, so create one first; an existing package.json is left untouched.
+const installPlaywright =
+  "[ -f package.json ] || npm init -y >/dev/null && npm install --no-save playwright";
 export function environmentFailure(
   message,
   { browser = "chromium", env = process.env } = {},
@@ -29,8 +33,8 @@ export function environmentFailure(
         ? `PNG export needs Node.js, Playwright and ${channel}; Playwright is not installed in this working directory.`
         : "PNG export needs Node.js, Playwright and a Chromium browser; Playwright is not installed in this working directory.",
       fix: channel
-        ? `npm install --no-save playwright   # ${where}; uses the installed ${channel}`
-        : `npm install --no-save playwright && npx playwright install chromium   # ${where}`,
+        ? `${installPlaywright}   # ${where}; uses the installed ${channel}`
+        : `${installPlaywright} && npx playwright install chromium   # ${where}`,
     };
   if (
     /Host system is missing dependencies|Missing system dependencies|error while loading shared libraries/i.test(

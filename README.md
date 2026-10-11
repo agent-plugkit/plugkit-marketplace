@@ -93,8 +93,11 @@ directory.”) The result is a self-contained `.html` with a built-in layout edi
 Install the PNG dependencies in the directory where the agent works:
 
 ```bash
-npm install --no-save playwright && npx playwright install chromium
+[ -f package.json ] || npm init -y >/dev/null && npm install --no-save playwright && npx playwright install chromium
 ```
+
+The `npm init -y` step only runs when the directory has no `package.json`: npm 9 refuses to install
+there (`Tracker "idealTree" already exists`). An existing `package.json` is left unchanged.
 
 On a fresh Linux machine, `npx playwright install --with-deps chromium` also installs the system
 libraries Chromium needs (requires sudo). When these are missing, the diagram is still delivered as
@@ -105,7 +108,7 @@ HTML and the command prints the exact fix.
 ### `PNG not exported: ... Playwright is not installed`
 
 Run the printed fix in the working directory shown, then ask the agent to export again:
-`npm install --no-save playwright && npx playwright install chromium`.
+`[ -f package.json ] || npm init -y >/dev/null && npm install --no-save playwright && npx playwright install chromium`.
 
 ### `PNG not exported: ... its browser has not been downloaded`
 

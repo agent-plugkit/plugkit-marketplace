@@ -145,7 +145,7 @@ test("missing PNG dependencies still deliver HTML with an exact fix and never re
   assert.equal(noPlaywright.result.html, output);
   assert.match(
     noPlaywright.result.fix,
-    /^npm install --no-save playwright && npx playwright install chromium/,
+    /^\[ -f package\.json \] \|\| npm init -y >\/dev\/null && npm install --no-save playwright && npx playwright install chromium /,
   );
   const delivered = readFileSync(output, "utf8");
   assert.match(delivered, /<!-- musekit-runtime:start -->/);
@@ -174,7 +174,10 @@ test("missing PNG dependencies still deliver HTML with an exact fix and never re
   await new Promise((resolve) => human.on("close", resolve));
   assert.match(err, /^PNG not exported: .*Playwright is not installed/m);
   assert.match(err, /^HTML delivered without browser checks: /m);
-  assert.match(err, /^Fix: npm install --no-save playwright/m);
+  assert.match(
+    err,
+    /^Fix: \[ -f package\.json \] \|\| npm init -y >\/dev\/null && npm install --no-save playwright/m,
+  );
   assert.match(err, /^中文：/m);
   noTemps(dir);
 });
@@ -321,7 +324,10 @@ test("recovery commands follow an explicit Chrome or Edge selection", async (t) 
     browser: "msedge",
   });
   assert.doesNotMatch(edgeNoPlaywright.fix, /install chromium/);
-  assert.match(edgeNoPlaywright.fix, /^npm install --no-save playwright /);
+  assert.match(
+    edgeNoPlaywright.fix,
+    /^\[ -f package\.json \] \|\| npm init -y >\/dev\/null && npm install --no-save playwright /,
+  );
   // The default browser keeps the Chromium download fix.
   assert.match(
     environmentFailure("Executable doesn't exist at /x/chrome").fix,
