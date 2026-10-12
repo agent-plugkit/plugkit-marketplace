@@ -213,19 +213,21 @@ function verifyFiles(files, lock) {
   const index = files.find(({ path }) => path === 'index.json');
   if (!index) problems.push('snapshot has no index.json');
   else {
-    let data = null;
+    let data;
     try {
       data = JSON.parse(index.bytes.toString('utf8'));
     } catch (error) {
       problems.push(`index.json is not valid JSON: ${error.message}`);
     }
-    if (data) {
+    // Same shape muse_local.py accepts: an object with a seeds list. null, false, 0 and "" are valid JSON too.
+    const isIndex = data !== null && typeof data === 'object' && !Array.isArray(data) && Array.isArray(data.seeds);
+    if (data !== undefined && !isIndex) problems.push('index.json must be an object with a seeds list');
+    if (isIndex) {
       if (data.version !== lock.version) problems.push(`index.json version ${data.version} != seeds.lock ${lock.version}`);
       if (data.schemaVersion !== lock.schemaVersion) problems.push(`index.json schemaVersion ${data.schemaVersion} != seeds.lock ${lock.schemaVersion}`);
-      for (const entry of Array.isArray(data.seeds) ? data.seeds : []) {
+      for (const entry of data.seeds) {
         if (!safeParts(entry?.file) || !paths.has(entry.file)) problems.push(`index.json lists missing or unsafe file ${entry?.file}`);
       }
-      if (!Array.isArray(data.seeds)) problems.push('index.json has no seeds list');
     }
   }
   if (!paths.has('scenarios.json')) problems.push('snapshot has no scenarios.json');
@@ -253,7 +255,8 @@ export function check(root = repositoryRoot) {
 }
 
 // Write the verified snapshot next to the target, swap it in, then write scenarios.md and
-// seeds.lock. Any failure puts all three back as they were.
+// seeds.lock. Any failure puts all three back as they were; if that restore fails too, the
+// previous snapshot stays in the backup directory named in the error.
 function commit(root, lock, files) {
   const target = join(root, lock.target);
   if (!inside(root, target)) throw new Error(`seeds.lock target ${lock.target} is outside the repository`);
@@ -262,6 +265,7 @@ function commit(root, lock, files) {
   const backup = join(dirname(target), `.seeds-backup-${token}`);
   const saved = [lockPath(root), scenariosPath(root)].map((path) => [path, existsSync(path) ? readFileSync(path) : null]);
   let swapped = false;
+  let restored = true;
   try {
     for (const { path, bytes } of files) {
       const destination = join(staging, ...path.split('/'));
@@ -276,21 +280,29 @@ function commit(root, lock, files) {
     writeFileSync(lockPath(root), `${JSON.stringify(lock, null, 2)}\n`);
   } catch (error) {
     if (swapped) {
+      // Restore the snapshot and the two files independently so one failure does not block the other.
       try {
         rmSync(target, { recursive: true, force: true });
         if (existsSync(backup)) renameSync(backup, target);
-        for (const [path, bytes] of saved) {
+      } catch (restoreError) {
+        restored = false;
+        error.message += `\nRestoring the previous snapshot also failed: ${restoreError.message}`;
+        if (existsSync(backup)) error.message += `\nThe previous snapshot is kept at ${backup}; move it to ${target} by hand.`;
+      }
+      for (const [path, bytes] of saved) {
+        try {
           if (!bytes) rmSync(path, { force: true });
           else if (!existsSync(path) || !readFileSync(path).equals(bytes)) writeFileSync(path, bytes);
+        } catch (restoreError) {
+          error.message += `\nRestoring ${path} also failed: ${restoreError.message}`;
         }
-      } catch (restoreError) {
-        error.message += `\nRestoring the previous snapshot also failed: ${restoreError.message}`;
       }
     }
     throw error;
   } finally {
     rmSync(staging, { recursive: true, force: true });
-    rmSync(backup, { recursive: true, force: true });
+    // Without a successful restore the backup is the only copy of the previous snapshot.
+    if (restored) rmSync(backup, { recursive: true, force: true });
   }
 }
 

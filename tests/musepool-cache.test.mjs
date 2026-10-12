@@ -3,10 +3,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
+import fs, {
   chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync,
   writeFileSync,
 } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -629,6 +630,108 @@ test('a failed write during sync restores the lock, snapshot and scenarios.md', 
   } finally {
     chmodSync(join(repo, 'seeds.lock'), 0o644);
   }
+  assert.deepEqual(snapshot(), before);
+  assert.deepEqual(checkSeedSnapshot(repo), []);
+});
+
+// Replace node:fs functions for every importer, sync-seeds.mjs included, until the test ends.
+function injectFs(t, faults) {
+  const originals = Object.fromEntries(Object.keys(faults).map((name) => [name, fs[name]]));
+  for (const [name, fault] of Object.entries(faults)) {
+    fs[name] = (...args) => fault(originals[name], ...args);
+  }
+  syncBuiltinESMExports();
+  const restore = () => {
+    Object.assign(fs, originals);
+    syncBuiltinESMExports();
+  };
+  t.after(restore);
+  return restore;
+}
+
+function fsError(code, path) {
+  return Object.assign(new Error(`${code}: injected fault, '${path}'`), { code });
+}
+
+test('an injected lock write failure restores the snapshot and removes the backup', (t) => {
+  const { dir, repo, snapshot } = seedRepo(t);
+  const before = snapshot();
+  const good = makeRelease(dir, '1.0.4');
+  injectFs(t, {
+    writeFileSync: (original, path, ...rest) => {
+      if (path === join(repo, 'seeds.lock')) throw fsError('EIO', path);
+      return original(path, ...rest);
+    },
+  });
+  assert.throws(() => sync({ root: repo, sourcePath: good.release, pinning: true }), (error) => {
+    assert.match(error.message, /EIO: injected fault/);
+    assert.doesNotMatch(error.message, /also failed|kept at/);
+    return true;
+  });
+  assert.deepEqual(snapshot(), before);
+  assert.deepEqual(checkSeedSnapshot(repo), []);
+});
+
+test('when restoring the snapshot fails, sync keeps the backup and reports where it is', (t) => {
+  const { dir, repo, snapshot } = seedRepo(t);
+  const before = snapshot();
+  const target = join(repo, lock.target);
+  const good = makeRelease(dir, '1.0.5');
+  const restoreFs = injectFs(t, {
+    writeFileSync: (original, path, ...rest) => {
+      if (path === join(repo, 'seeds.lock')) throw fsError('EIO', path);
+      return original(path, ...rest);
+    },
+    rmSync: (original, path, ...rest) => {
+      if (path === target) throw fsError('EBUSY', path);
+      return original(path, ...rest);
+    },
+  });
+  let backup;
+  assert.throws(() => sync({ root: repo, sourcePath: good.release, pinning: true }), (error) => {
+    assert.match(error.message, /EIO: injected fault/);
+    assert.match(error.message, /Restoring the previous snapshot also failed: EBUSY/);
+    backup = error.message.match(/previous snapshot is kept at (.+); move it to (.+) by hand/)?.[1];
+    assert.ok(backup, error.message);
+    return true;
+  });
+  // The backup holds the untouched previous snapshot; seeds.lock and scenarios.md are still restored.
+  assert.equal(dirname(backup), dirname(target));
+  assert.equal(contentHash(readDirectory(backup)), before.content);
+  assert.deepEqual(readFileSync(join(repo, 'seeds.lock')), before.lock);
+  assert.deepEqual(readFileSync(join(repo, 'plugins/musekit/skills/musepool/references/scenarios.md')), before.scenarios);
+  assert.equal(contentHash(readDirectory(target)), good.manifest.contentHash);
+  assert.ok(!readdirSync(dirname(target)).some((name) => name.startsWith('.seeds-staging-')));
+
+  // Following the message by hand brings the repository back to where it started.
+  restoreFs();
+  rmSync(target, { recursive: true, force: true });
+  renameSync(backup, target);
+  assert.deepEqual(snapshot(), before);
+  assert.deepEqual(checkSeedSnapshot(repo), []);
+});
+
+test('sync and --check reject an index.json that is not an object with a seeds list', (t) => {
+  const { dir, repo, snapshot } = seedRepo(t);
+  const before = snapshot();
+  const target = join(repo, lock.target);
+  const shapes = ['null', 'false', '0', '""', '[]', '{}', '{"seeds":null}', '{"seeds":{}}'];
+  for (const [i, shape] of shapes.entries()) {
+    // An unpacked library whose contentHash seeds.lock pins, so only the index shape can fail.
+    const library = join(dir, `library-${i}`);
+    cpSync(seeds, library, { recursive: true });
+    writeFileSync(join(library, 'index.json'), shape);
+    const pinned = { ...lock, contentHash: contentHash(readDirectory(library)) };
+    writeFileSync(join(repo, 'seeds.lock'), `${JSON.stringify(pinned, null, 2)}\n`);
+    assert.throws(() => sync({ root: repo, sourcePath: library }), /^Error: index\.json must be an object with a seeds list$/, shape);
+    assert.deepEqual(readdirSync(dirname(target)).sort(), before.siblings, shape);
+    assert.equal(contentHash(readDirectory(target)), before.content, shape);
+
+    writeFileSync(join(target, 'index.json'), shape);
+    assert.deepEqual(checkSeedSnapshot(repo), ['index.json must be an object with a seeds list'], shape);
+    cpSync(join(seeds, 'index.json'), join(target, 'index.json'));
+  }
+  writeFileSync(join(repo, 'seeds.lock'), before.lock);
   assert.deepEqual(snapshot(), before);
   assert.deepEqual(checkSeedSnapshot(repo), []);
 });
