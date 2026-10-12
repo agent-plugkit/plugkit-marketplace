@@ -76,11 +76,11 @@ Full-viewport poster layout. Header floats title left, dates right. Main content
 
 # Typography
 
-Dual font system: **Bloom** (custom sans-serif) for all-caps UI text—headers, navigation, labels; **Times New Roman** for body content, descriptions, and event details. Bloom set at `4.7vw` with `-0.03em` letter-spacing for the event title. Navigation links at `3.5vw`. H2s use `0.04em` letter-spacing. Selection highlight in pink (`#FFC0CB`).
+Dual font system: **Bloom** (custom sans-serif) for all-caps UI text—headers, navigation, labels; **Times New Roman** for body content, descriptions, and event details. Bloom set at `4.7vw` with `-0.03em` letter-spacing for the event title. Navigation links at `3.5vw`. H2s use `0.04em` letter-spacing. Selection highlight in pink (`#FFC0CB`) with selected text in Selection Olive (`#535E1D`).
 
 # Color
 
-Restricted palette: olive green `#576221` for all text and borders; warm gray `#e3dbce` for background; pink `#FFC0CB` for text selection. No gradients, no shadows—flat color fields. Borders are solid 2px (1px on mobile) in the olive green.
+Restricted palette: olive green `#576221` for all text and borders; warm gray `#e3dbce` for background; pink `#FFC0CB` for the text-selection highlight, with selected text in Selection Olive `#535E1D` (4.57:1 on the pink; the base olive reaches only 4.30:1 there). No gradients, no shadows—flat color fields. Borders are solid 2px (1px on mobile) in the olive green.
 
 # Imagery
 
@@ -92,7 +92,7 @@ Navigation cards are the core component: positioned relative containers with fou
 
 # Motion
 
-SmoothState page transitions: 350ms fade-in on load, fade-out on exit. Exhibitor list uses `slideToggle` for accordion expand/collapse. List toggle buttons animate between `+` and `–`. All transitions use `ease-out` or `ease-in` timing. See references/motion.md for transition implementation.
+SmoothState page transitions: 350ms fade-in on load, fade-out on exit. Exhibitor list uses `slideToggle` for accordion expand/collapse. List toggle buttons animate between `+` and `–`. All transitions use `ease-out` or `ease-in` timing.
 
 # Algorithms
 

@@ -35,3 +35,34 @@ jobs:
             printf '%s\n' "$repository_status"
             exit 1
           fi
+
+  musepool-scripts:
+    # muse_local.py and sync-seeds.mjs write files from archives and manage the seed cache;
+    # run their tests where path rules, locking and file systems differ from Linux.
+    name: Musepool scripts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - name: Check out files byte for byte
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Seed snapshot matches seeds.lock
+        run: node scripts/sync-seeds.mjs --check
+
+      - name: Musepool script tests
+        env:
+          PYTHON: python
+        run: node --test tests/musepool-cache.test.mjs

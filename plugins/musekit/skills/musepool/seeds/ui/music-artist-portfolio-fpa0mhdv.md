@@ -60,7 +60,7 @@ dimensions_with_reference: []
 
 # Narrative
 
-A music artist's personal website designed as a functional parody of the iOS Phone app's "Recents" call log. The entire site presents as a smartphone interface where each call entry maps to different content: music videos open a YouTube-style player overlay, merchandise links to a shop, agent contact opens email, social links open external profiles. The narrative flow is a single scrollable list with interactive rows that trigger app-like transitions.
+A music artist's personal website designed as a functional parody of a mainstream smartphone's native recent-calls log. The entire site presents as a smartphone interface where each call entry maps to different content: music videos open a video-platform-style player overlay, merchandise links to a shop, agent contact opens email, social links open external profiles. The narrative flow is a single scrollable list with interactive rows that trigger app-like transitions.
 
 # Tech Stack
 
@@ -72,23 +72,23 @@ Full-viewport mobile-first layout. Single-column list with fixed header (70px he
 
 # Typography
 
-System font stack: `-apple-system, BlinkMacSystemFont, helvetica`. Header "Recents" at 38px with 700 weight. Call names at 1.15em (≈18.4px) with 500 weight. Type labels and timestamps at 100 weight in `#8a898f`. Missed calls in `#ff3232` (iOS system red).
+System font stack: `-apple-system, BlinkMacSystemFont, helvetica`. The recent-calls header title at 38px with 700 weight. Call names at 1.15em (≈18.4px) with 500 weight. Type labels and timestamps at 100 weight in Label Gray `#76757B` (4.56:1 on white). Missed calls in Missed Red `#EA0C1D` (4.59:1 on white), a deeper value of the native system red `#ff3232`.
 
 # Color
 
-Pure iOS palette: white (`#ffffff`) background, light gray header (`#f0f0f0`), medium gray text (`#8a898f`), iOS red for missed (`#ff3232`), iOS blue for info icons (`#007AFF` in SVG). Video app uses dark chrome (`#222222` header, `#141414` background for countdown). No custom brand colors—entirely mimics native iOS system colors.
+Pure native-phone palette: white (`#ffffff`) background, light gray header (`#f0f0f0`); native medium gray (`#8a898f`, 3.46:1 on white) for icons and other marks, with the darker Label Gray (`#76757B`, 4.56:1) for text; system red (`#ff3232`, 3.64:1) for non-text missed-call marks such as a dot or badge, with Missed Red (`#EA0C1D`, 4.59:1) for missed-call text; system blue for info icons (`#007AFF` in SVG). Video app uses dark chrome (`#222222` header, `#141414` background for countdown). No custom brand colors—entirely mimics the native mobile system colors.
 
 # Imagery
 
-SVG iconography mimicking iOS Phone app: outgoing call arrow, FaceTime video camera icon, info "i" in circle. Icons are simple line-art SVG with `#cdcdcd` or `#ccc` fills. No photography or illustrations—pure UI chrome.
+SVG iconography mimicking the native phone app: outgoing call arrow, video-call camera icon, info "i" in circle. Icons are simple line-art SVG filled with the medium gray `#8a898f` (3.46:1 on white). The native light grays `#cdcdcd` and `#ccc` (about 1.6:1) are too faint for icons that carry meaning; keep them for disabled or purely decorative glyphs only. No photography or illustrations—pure UI chrome.
 
 # Components
 
-Call row component: 64px fixed height, left-aligned icon (20% height, 11px from left), name and type stacked vertically (35px left indent), timestamp right-aligned (50px from right), info icon at far right (15px from right, 35% height). Hairline separator using CSS gradient background. Hover/tap reveals link target. Back button in sub-views uses inverted arrow + "Phone" text.
+Call row component: 64px fixed height, left-aligned icon (20% height, 11px from left), name and type stacked vertically (35px left indent), timestamp right-aligned (50px from right), info icon at far right (15px from right, 35% height). Hairline separator using CSS gradient background. Hover/tap reveals link target. Back button in sub-views uses inverted arrow + the parent app's name, as in native navigation.
 
 # Motion
 
-App-style slide transitions using GSAP TweenMax. Duration 0.2s with `Power1.easeInOut` easing. Video and countdown apps slide in from right (`left: 100vw` to `left: 0vw`) while main phone view slides left (`left: 0vw` to `left: -100vw`). Reverse animation on back navigation. See references/motion.md for implementation.
+App-style slide transitions using GSAP TweenMax. Duration 0.2s with `Power1.easeInOut` easing. Video and countdown apps slide in from right (`left: 100vw` to `left: 0vw`) while main phone view slides left (`left: 0vw` to `left: -100vw`). Reverse animation on back navigation.
 
 # Algorithms
 
@@ -100,8 +100,8 @@ Hairline borders using gradient technique: `linear-gradient(to bottom, #c8c8c8 0
 
 # Craft
 
-Scrollbar hidden via `::-webkit-scrollbar { display: none; }`. Touch scrolling enabled with `-webkit-overflow-scrolling: touch`. Info icon uses native iOS blue (`#007AFF`). Emoji used in call names (📦📦, 💀) for visual personality. Missed call count in parentheses following iOS convention.
+Scrollbar hidden via `::-webkit-scrollbar { display: none; }`. Touch scrolling enabled with `-webkit-overflow-scrolling: touch`. Info icon uses the native system blue (`#007AFF`). Emoji used in some call names for visual personality. Missed call count in parentheses following the native convention.
 
 # Coherence
 
-The design succeeds through absolute commitment to the iOS metaphor—every pixel, color, and interaction pattern mirrors the native Phone app. The joke/personality emerges from the content (celebrity names as "callers", emoji flourishes) while the container remains perfectly serious system UI. The GSAP transitions complete the app illusion by matching iOS navigation physics.
+The design succeeds through absolute commitment to the native phone metaphor—every pixel, color, and interaction pattern mirrors the system call log. The joke/personality emerges from the content (playful caller names, emoji flourishes) while the container remains perfectly serious system UI. The GSAP transitions complete the app illusion by matching native mobile navigation physics.

@@ -22,7 +22,9 @@ import pypdfium2 as pdfium
 WIDTH_MM, HEIGHT_MM = 160, 110
 DPI = 300
 BLUE = colors.HexColor("#2148b8")
-WARM = colors.HexColor("#b45431")
+WARM = colors.HexColor("#c65f38")
+# 文字用加深的 Terracotta Text，在白底上达到 WCAG 4.5:1；点、线仍用印版色。
+WARM_TEXT = colors.HexColor("#ae4921")
 INK = colors.HexColor("#26314b")
 MUTED = colors.HexColor("#626e82")
 
@@ -72,7 +74,7 @@ def build_figure(data_path):
     drawing.add(chart)
 
     # 统计表达独立于 seed：中心横杠为均值，须线为均值 ± 样本 SD。
-    for position, (key, color) in enumerate(zip(groups, (BLUE, WARM)), start=1):
+    for position, (key, color, text_color) in enumerate(zip(groups, (BLUE, WARM), (BLUE, WARM_TEXT)), start=1):
         mean, sd = summary[key]
         x = chart.x + (position - 0.4) / 2.2 * chart.width
         y = chart.y + mean / 24 * chart.height
@@ -85,7 +87,7 @@ def build_figure(data_path):
         drawing.add(Line(x - 8, y, x + 8, y, strokeColor=color, strokeWidth=1.8))
         drawing.add(String(x, high + 12, f"{mean:g} ± {sd:.2f}",
                            fontName="Helvetica", fontSize=9.5,
-                           fillColor=color, textAnchor="middle"))
+                           fillColor=text_color, textAnchor="middle"))
 
     drawing.add(String(237, 51, "Condition", fontName="Helvetica",
                        fontSize=9, fillColor=INK, textAnchor="middle"))

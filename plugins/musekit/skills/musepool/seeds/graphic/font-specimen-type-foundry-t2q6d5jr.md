@@ -62,11 +62,11 @@ dimensions_with_reference: []
 
 # Narrative
 
-A monospace pixel font specimen site presenting "Departure Mono" — a technical, lo-fi typeface. The narrative unfolds as a space mission dossier: hero introduces the font with flight departure board aesthetics, followed by type samples in ASCII/terminal style, a detailed glyph browser with anatomical measurements, a fictional Kerberos 5 mission report (complete with data tables and scientific analysis), and closes with an interactive 8-bit Breakout game demonstrating the font in game UI contexts.
+A monospace pixel font specimen site presenting an open-source pixel monospace typeface — technical and lo-fi in character. The narrative unfolds as a space mission dossier: hero introduces the font with flight departure board aesthetics, followed by type samples in ASCII/terminal style, a detailed glyph browser with anatomical measurements, a fictional space mission report (complete with data tables and scientific analysis), and closes with an interactive 8-bit brick-breaker game demonstrating the font in game UI contexts.
 
 # Tech Stack
 
-Static HTML/CSS/JS site built with Vite. Custom pixel font loaded via @font-face (DepartureMono-Regular.otf/woff2). Interactive glyph browser and Breakout game implemented in vanilla JavaScript with canvas rendering. SVG illustrations for technical diagrams (Mercury, Apollo 1 architecture, TCP packet structure).
+Static HTML/CSS/JS site built with Vite. Custom pixel font loaded via @font-face (OTF and WOFF2). Interactive glyph browser and brick-breaker game implemented in vanilla JavaScript with canvas rendering. SVG illustrations for technical diagrams (a vintage spacecraft schematic, an early flight-computer block diagram, a network packet structure).
 
 # Layout
 
@@ -74,27 +74,27 @@ Single-column scrolling layout with max-width containers. Hero section uses laye
 
 # Typography
 
-Primary: **Departure Mono** (custom pixel font, 8x8 pixel grid, monospaced). Font renders at pixel-perfect sizes (no anti-aliasing). Hierarchy established through size contrast: massive hero title (DEPARTURE MOƝO with stylized N), body text at readable pixel scale, comments prefixed with "░" block character. ASCII art used for decorative elements (flight board borders, keyboard layout, TCP packet diagram). All-caps treatment for headers and UI labels.
+Primary: the specimen's own **pixel monospace** (8x8 pixel grid, monospaced). Font renders at pixel-perfect sizes (no anti-aliasing). Hierarchy established through size contrast: massive all-caps pixel hero title with one letter swapped for a stylized variant glyph, body text at readable pixel scale, comments prefixed with "░" block character. ASCII art used for decorative elements (flight board borders, keyboard layout, packet diagram). All-caps treatment for headers and UI labels.
 
 # Color
 
-Palette: **#222222** (primary text/borders), **#C0C0C0** (secondary/muted), **#6C6C58** (diagram lines), **#FFFFFF** (background). High-contrast monochrome with warm gray undertones. No gradients — flat fills only. SVG diagrams use stroke-based rendering in muted olive-gray (#6C6C58). Hover states invert or highlight in pure black.
+Palette: **#222222** (primary text/borders), **#757575** (secondary/muted text, 4.60:1 on white), **#C0C0C0** (decorative divider lines only), **#6C6C58** (diagram lines), **#FFFFFF** (background). The light gray #C0C0C0 reaches only 1.81:1 on white, so it is kept for purely decorative divider lines: it never carries text, and no structure or component depends on it alone to be seen. Lines that mark a needed boundary use the primary #222222 (15.90:1 on white). Secondary and muted text uses the darker neutral gray #757575. High-contrast monochrome with warm gray undertones. No gradients — flat fills only. SVG diagrams use stroke-based rendering in muted olive-gray (#6C6C58). Hover states invert or highlight in pure black.
 
 # Imagery
 
-SVG-based technical illustrations: Mercury capsule diagram with labeled components and dimension lines, Apollo 1 computer architecture block diagram, TCP packet structure rendered as ASCII tables, keyboard layout diagram. Floating ephemera in hero: planet, brief, newspaper clipping, paperclip, badge, highlighter — all drawn in flat vector style matching the pixel aesthetic. No photography — entirely vector/typographic.
+SVG-based technical illustrations: a vintage space capsule diagram with labeled components and dimension lines, an early flight-computer architecture block diagram, a network packet structure rendered as ASCII tables, keyboard layout diagram. Floating ephemera in hero: planet, brief, newspaper clipping, paperclip, badge, highlighter — all drawn in flat vector style matching the pixel aesthetic. No photography — entirely vector/typographic.
 
 # Components
 
-Menu links styled as terminal commands ("> GITHUB", "♥ DONATE", "↓ DOWNLOAD"). Glyph browser items are clickable tiles with tabindex, showing character + Unicode value on selection. ASCII table borders using box-drawing characters (┌─┐│). Blinking cursor effect on flight board rows (CSS animation). Comment blocks use "░" prefix character for meta commentary.
+Menu links styled as terminal commands: a symbol prefix (prompt caret, heart, down arrow) followed by an all-caps link label for source, support and download. Glyph browser items are clickable tiles with tabindex, showing character + Unicode value on selection. ASCII table borders using box-drawing characters (┌─┐│). Blinking cursor effect on flight board rows (CSS animation). Comment blocks use "░" prefix character for meta commentary.
 
 # Motion
 
-CSS blink animation on flight status rows (0.8s interval). Smooth scroll behavior. Glyph browser: click updates specimen display with selected character, showing anatomy measurements (ascender 400, x-height 300, baseline 0, descender -100). Canvas-based Breakout game with keyboard controls, ball physics, brick destruction, score display in pixel font. Audio elements present for game feedback.
+CSS blink animation on flight status rows (0.8s interval). Smooth scroll behavior. Glyph browser: click updates specimen display with selected character, showing anatomy measurements (ascender, x-height, baseline, descender as font units). Canvas-based brick-breaker game with keyboard controls, ball physics, brick destruction, score display in pixel font. Audio elements present for game feedback.
 
 # Algorithms
 
-The game implements classic Breakout physics: ball velocity with wall/paddle/brick collision detection, paddle movement constrained to canvas bounds, brick grid generation with row/column iteration, score increment on brick hit. Glyph browser filters Unicode ranges (Basic Latin, etc.) into segment headers.
+The game implements classic brick-breaker physics: ball velocity with wall/paddle/brick collision detection, paddle movement constrained to canvas bounds, brick grid generation with row/column iteration, score increment on brick hit. Glyph browser filters Unicode ranges (Basic Latin, etc.) into segment headers.
 
 # Material
 
@@ -102,7 +102,7 @@ Flat digital aesthetic — no texture, no shadow, no depth. Pixel-perfect render
 
 # Craft
 
-Pixel font renders at exact multiples to prevent subpixel blur. Version number (v1.500) displayed in superscript style. Responsive breakpoints hide complex diagrams on small screens (hidden-small class). Footer credits in same monospace treatment with SIL OFL license mention.
+Pixel font renders at exact multiples to prevent subpixel blur. The font's version number is displayed in superscript style. Responsive breakpoints hide complex diagrams on small screens. Footer credits in same monospace treatment with an open font license mention.
 
 # Coherence
 

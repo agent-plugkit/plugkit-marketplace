@@ -5,7 +5,7 @@ description: 搜索、比较本地设计参考并提炼 Markdown seed 简报。�
 
 # Musepool
 
-从真实的设计先例中找到值得借鉴的细节，把它们解释成当前任务可用的灵感。库内有 29 个 seed，包含布局、字体、颜色、图像、交互与工艺的具体记录；部分附代码级参考。检索完全在本地进行。
+从真实的设计先例中找到值得借鉴的细节，把它们解释成当前任务可用的灵感。seed 库来自独立维护的 [Muspro Seeds](https://github.com/agent-plugkit/muspro-seeds)，记录布局、字体、颜色、图像、交互与工艺的具体做法；部分附代码级参考。检索完全在本地进行。
 
 ## 查找参考
 
@@ -17,7 +17,10 @@ python3 scripts/muse_local.py list --scenario graphic
 python3 scripts/muse_local.py search "number density hierarchy"
 python3 scripts/muse_local.py search "annotation" --scenario information
 python3 scripts/muse_local.py show mC1nkP2t
+python3 scripts/muse_local.py status
 ```
+
+Skill 内置一份锁定版本的 seed 快照，离线即可检索；`list`、`search` 首行注明当前来源与版本，`show` 把它写到 stderr。查找顺序为环境变量 `MUSEPOOL_SEEDS_DIR` 指向的目录、本机缓存、内置快照。用户想获取新 seed 时运行 `update`：它从 Muspro Seeds 的 GitHub Release 下载并校验，失败时不改动当前库。禁网环境把 Release 中的 tar.gz 与 `manifest.json` 一起下载到同一目录，再用 `update --from <tar.gz>` 安装；缺少对应 manifest 时拒绝安装。`update --rollback` 切回上一版缓存。普通检索不需要先更新。
 
 | 分类 | 主要借鉴问题 |
 | --- | --- |
@@ -25,7 +28,7 @@ python3 scripts/muse_local.py show mC1nkP2t
 | `graphic` 平面 | 字图关系、视觉焦点、色彩、材质；包含海报、封面和社媒图 |
 | `information` 信息表达 | 信息密度、标注、阅读顺序、解释方法 |
 
-分类是检索入口。一个 seed 可以为不同制作 Skill 提供不同维度的启发，无需先用尽某一分类。[场景指南](references/scenarios.md)列出全部参考与适用边界。
+分类是检索入口。一个 seed 可以为不同制作 Skill 提供不同维度的启发，无需先用尽某一分类。[场景指南](references/scenarios.md)列出内置快照中的参考与适用边界。
 
 ## 广搜 → 取深 → 提炼
 

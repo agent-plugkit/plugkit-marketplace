@@ -47,7 +47,7 @@ tags:
   - dark-led
   tech:
   - vanilla-js
-  - webflow
+  - framer
   - other-tech
   typography:
   - display-serif
@@ -79,7 +79,7 @@ Dual font system: **TT Trailers Black** (display, uppercase, tight line-height 0
 
 # Color
 
-High-contrast palette: **#000000** (hero background), **#ededed** (hero text), **#efefef** (intro background), **#ff8e4d** (vibrant orange section), **#0099ff** (link accent), **#111111** (body text). Single accent approach — blue for interactive, orange for energy/CTA sections.
+High-contrast palette: **#000000** (hero background), **#ededed** (hero text), **#efefef** (intro background), **#ff8e4d** (vibrant orange section), **#0099ff** (link accent on the black hero, 7.00:1), **#111111** (body text). Links on the light #efefef intro field use Link Blue Text **#006FBB** (4.57:1; #0099ff reaches only 2.60:1 there). Single accent approach — blue for interactive, orange for energy/CTA sections.
 
 # Imagery
 
@@ -87,11 +87,11 @@ Project showcase uses mixed media: mobile app mockups (sports apps, running apps
 
 # Components
 
-Minimal component system. Navigation is just a centered SVG logo mark. Links use underline-on-hover pattern with color shift to #0088ff. No buttons, cards, or forms. Work gallery relies on native horizontal scroll.
+Minimal component system. Navigation is just a centered SVG logo mark. Links use underline-on-hover pattern with color shift to #0088ff on the black hero (5.96:1) and to #006BCB on the light intro field (4.60:1; #0088ff reaches only 3.06:1 there). No buttons, cards, or forms. Work gallery relies on native horizontal scroll.
 
 # Motion
 
-Horizontal auto-scrolling marquee for work gallery (infinite loop, multiple project strips). Kinetic type treatment in orange section — oversized words animate/scroll into view. Smooth scroll behavior site-wide. See references/motion.md for timing parameters.
+Horizontal auto-scrolling marquee for work gallery (infinite loop, multiple project strips). Kinetic type treatment in orange section — oversized words animate/scroll into view. Smooth scroll behavior site-wide.
 
 # Algorithms
 

@@ -1,14 +1,14 @@
 {
   "name": "musekit",
-  "version": "0.5.1",
-  "description": "设计灵感与场景制作工具箱：29 个本地种子，以及界面、平面、图解、学术图和文章配图编排。",
+  "version": "0.6.0",
+  "description": "设计灵感与场景制作工具箱：本地设计种子库，以及界面、平面、图解、学术图和文章配图编排。",
   "author": {
     "name": "Agent Plugkit"
   },
   "interface": {
     "displayName": "Musekit",
     "shortDescription": "从灵感到场景作品",
-    "longDescription": "用 Musepool 探索 29 个本地设计种子，再由界面、平面、图解或学术图 Skill 完成制作与检查。文章配图由 article-illustration 编排后交给对应场景。每个场景有自己的方法，也可直接使用用户参考或既有设计系统。",
+    "longDescription": "用 Musepool 探索本地设计种子库，再由界面、平面、图解或学术图 Skill 完成制作与检查。文章配图由 article-illustration 编排后交给对应场景。每个场景有自己的方法，也可直接使用用户参考或既有设计系统。",
     "category": "General",
     "developerName": "Agent Plugkit",
     "capabilities": [

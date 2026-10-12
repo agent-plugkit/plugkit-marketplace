@@ -67,11 +67,11 @@ dimensions_with_reference: []
 
 # Narrative
 
-A microbiome science company landing page with elevated production values. The narrative flows from immersive hero video through product education to social proof and scientific credibility. Opening with a full-bleed video hero establishing the "Whole body health starts in the gut" thesis, followed by a product carousel (flagship probiotic, daily multivitamin, energy supplement, sleep supplement), then educational content about probiotic science, a "You are more than human" microbiome explainer with 3D head visualization, member testimonials carousel, stories from scientists/innovators grid, and closing with the R&D division section and newsletter signup footer.
+A microbiome science company landing page with elevated production values. The narrative flows from immersive hero video through product education to social proof and scientific credibility. Opening with a full-bleed video hero that states a gut-first, whole-body-health thesis in a short declarative line, followed by a product carousel of a few daily supplement lines, then educational content about probiotic science, a microbiome explainer that frames the body as a shared human–microbe ecosystem, with 3D head visualization, member testimonials carousel, stories from scientists/innovators grid, and closing with a research division section and newsletter signup footer.
 
 # Tech Stack
 
-Next.js (Turbopack build) with React 19. Swiper.js for carousels (vertical hero slider, product carousel, testimonial slider). Framer Motion for animations (page transitions, scroll reveals, hover states). Mux Player for video delivery. Custom SeedSans typeface family. Styled Components for CSS-in-JS.
+Next.js (Turbopack build) with React 19. Swiper.js for carousels (vertical hero slider, product carousel, testimonial slider). Framer Motion for animations (page transitions, scroll reveals, hover states). A hosted video player for video delivery. A brand-commissioned custom sans-serif typeface family. Styled Components for CSS-in-JS.
 
 # Layout
 
@@ -79,7 +79,7 @@ Full-bleed immersive hero with vertical slider occupying 100vh. Asymmetric edito
 
 # Typography
 
-Custom SeedSans family (Light, Regular, Medium, with Italic variants for each). Large display headlines use Light weight at 48-64px with tight leading. Body text in Regular at 16-18px. Trademark symbols (™, ®) use superscript styling with 75% font-size and negative top positioning. All-caps eyebrow text for section labels using wide tracking. Editorial-style headlines often break across lines mid-phrase for rhythmic pacing.
+A brand-commissioned sans-serif family — clean, slightly humanist, calm and clinical rather than technical (Light, Regular, Medium, with Italic variants for each). Large display headlines use Light weight at 48-64px with tight leading. Body text in Regular at 16-18px. Trademark symbols (™, ®) use superscript styling with 75% font-size and negative top positioning. All-caps eyebrow text for section labels using wide tracking. Editorial-style headlines often break across lines mid-phrase for rhythmic pacing.
 
 # Color
 
@@ -87,11 +87,11 @@ Deep forest green dominant: `#1c3a13` (primary brand, buttons, footer background
 
 # Imagery
 
-High-production video backgrounds in hero (microbiome animations, nature footage). Product photography with soft shadow on neutral backgrounds. 3D rendered capsule visualizations showing dual-layer technology. Scientific illustrations—human head profile with microbiome overlay. Lifestyle photography with film grain aesthetic for member stories. UGC-style testimonials with natural lighting. All imagery shares muted, desaturated quality matching the forest green palette.
+High-production video backgrounds in hero (microbiome animations, nature footage). Product photography with soft shadow on neutral backgrounds. 3D renders explaining the product technology. Scientific illustrations—human head profile with microbiome overlay. Lifestyle photography with film grain aesthetic for member stories. UGC-style testimonials with natural lighting. All imagery shares muted, desaturated quality matching the forest green palette.
 
 # Components
 
-Primary buttons: pill-shaped (full rounded), forest green fill with white text, 48px height, hover scale transform. Product cards: white background, centered product image, pill-shaped "Shop Now" CTA, price below. Accordion/expanders: border-bottom divider, plus/minus icon toggle, large title with body content reveal. Video player: custom Mux integration with poster images. Cookie banner: white background, green buttons matching brand palette.
+Primary buttons: pill-shaped (full rounded), forest green fill with white text, 48px height, hover scale transform. Product cards: white background, centered product image, pill-shaped shop CTA, price below. Accordion/expanders: border-bottom divider, plus/minus icon toggle, large title with body content reveal. Video player: custom hosted-player integration with poster images. Cookie banner: white background, green buttons matching brand palette.
 
 # Motion
 
@@ -111,4 +111,4 @@ Custom cursor treatment on interactive elements. Trademark symbol formatting wit
 
 # Coherence
 
-The forest green palette, custom SeedSans typography, and scientific imagery work together to establish microbiome credibility. The editorial layout rhythm—alternating between immersive full-bleed and contained asymmetric grids—maintains visual interest while guiding users through education to conversion. Motion is restrained and purposeful, supporting the premium health brand positioning without distraction.
+The forest green palette, custom sans-serif typography, and scientific imagery work together to establish microbiome credibility. The editorial layout rhythm—alternating between immersive full-bleed and contained asymmetric grids—maintains visual interest while guiding users through education to conversion. Motion is restrained and purposeful, supporting the premium health brand positioning without distraction.

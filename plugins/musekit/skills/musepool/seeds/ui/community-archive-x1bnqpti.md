@@ -104,3 +104,7 @@ Standard implementation, no special design.
 # Craft
 
 **Border radius**: 1.2rem (br12) for large containers, .4em for pills. **Borders**: Consistent 1.5px solid black throughout. **Focus**: Not customized. **Scrollbar**: Not customized. The dotted underline on links (`.1em dotted #000`) is a distinctive craft detail.
+
+# Coherence
+
+The warm tan ground and strict black-and-white palette turn the archive into one shared scrapbook: sepia-toned historical photos, scanned documents, object shots and text-only entries all sit on the same paper-like color, so contributions of very different origin read as a single collection. One line language—1.5px solid black—draws the pills, the banner and the borders, with the dotted link underline as its one distinctive variation. The irregular masonry grid gives each community-contributed treasure its own size within an endless scroll, while the bold Adesso manifesto header states the archive's purpose first, keeping the tone documentary yet personal.

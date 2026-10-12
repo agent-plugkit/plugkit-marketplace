@@ -8,7 +8,7 @@ Musekit 将设计灵感与场景制作分开：
 
 | Skill | 用途 |
 | --- | --- |
-| `musepool` | 探索 29 个本地设计种子，输出 Markdown seed 简报 |
+| `musepool` | 探索本地设计种子库（[Muspro Seeds](https://github.com/agent-plugkit/muspro-seeds)），输出 Markdown seed 简报 |
 | `ui-design` | 设计并实现前端界面，验证真实交互和响应式布局 |
 | `graphic-design` | 制作海报、杂志封面和社媒图文等平面作品 |
 | `diagram-design` | 从 Mermaid 或关系说明制作精美图解，共用测量与连线代码，成品内置离线布局编辑和 PNG 导出 |
@@ -31,7 +31,7 @@ Musekit `0.1.0` 整体替换 `musepool`、`design-compile` 和 `mermaid-render` 
 
 `musepool-export` 已合并到 `musepool` 的 Markdown seed 简报；旧 JSON reference bundle、编译 manifest 和 `design-compile` 状态契约不再提供。已有材料可提取为普通设计参考，不需要转换器。`render` 的图解制作入口改为 `diagram-design`，整图生图仍可由用户明确选择。
 
-本地检索继续提供 `list/search/show`，`--scenario` 改用 `ui`、`graphic`、`information`；旧分类参数与旧插件路径不提供兼容别名。29 个 seed 的 ID、来源与详细参考保留，`show <id>` 仍可定位同一参考。
+本地检索继续提供 `list/search/show`，`--scenario` 改用 `ui`、`graphic`、`information`；旧分类参数与旧插件路径不提供兼容别名。原有 seed 的 ID、来源与详细参考保留，`show <id>` 仍可定位同一参考。
 
 ## Install
 

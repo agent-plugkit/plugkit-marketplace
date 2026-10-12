@@ -18,7 +18,9 @@
     "validate": "agent-plugkit validate --all",
     "test:plugins": "node --test tests/*.test.mjs",
     "check:public": "node scripts/check-public-tree.mjs",
-    "check": "npm run check:public && npm run check:diagram && npm run build:plugins && npm run build:index && npm run validate && npm run test:plugins && npm run test:browser",
+    "sync:seeds": "node scripts/sync-seeds.mjs",
+    "check:seeds": "node scripts/sync-seeds.mjs --check",
+    "check": "npm run check:public && npm run check:seeds && npm run check:diagram && npm run build:plugins && npm run build:index && npm run validate && npm run test:plugins && npm run test:browser",
     "release:local": "npm run check && agent-plugkit release-local"
   },
   "devDependencies": {

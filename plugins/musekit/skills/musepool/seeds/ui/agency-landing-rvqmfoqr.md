@@ -65,11 +65,11 @@ dimensions_with_reference: []
 
 # Narrative
 
-A creative agency landing page targeting B2B marketing. The narrative flows from credibility (star rating + client logos) through value proposition ("Creative that wins") to process explanation (3-step how-it-works with animated widgets), service showcase (tabbed portfolio), social proof (infinite testimonial marquee), and conversion (newsletter + contact). The story emphasizes "in-house creative team without overheads" for enterprise clients.
+A creative agency landing page targeting B2B marketing. The narrative flows from credibility (star rating + client logos) through a short, results-first value proposition that promises performance-driven creative to process explanation (3-step how-it-works with animated widgets), service showcase (tabbed portfolio), social proof (infinite testimonial marquee), and conversion (newsletter + contact). The story pitches the agency as a substitute for an in-house creative team, minus the hiring and overhead cost, for enterprise clients.
 
 # Tech Stack
 
-Webflow-built site with custom CSS animations. Uses jQuery for interactions. Custom @font-face loading for Almarena Neue Display family. CSS keyframe animations for marquees. Tab system uses stacked grid technique for equal-height panes.
+Webflow-built site with custom CSS animations. Uses jQuery for interactions. Custom @font-face loading for a licensed display sans family. CSS keyframe animations for marquees. Tab system uses stacked grid technique for equal-height panes.
 
 # Layout
 
@@ -77,21 +77,21 @@ Dark graphite background (#2F282F) with full-bleed sections. Hero centers conten
 
 # Typography
 
-Primary font: **Almarena Neue Display** (Regular, Medium, SemiBold, Bold weights). Large display headings (approx 48-64px) with tight tracking. Body text uses lighter weight at comfortable line-height. Uppercase eyebrow labels with small circular dot indicator. Hierarchy: Display > Heading-2 > Body-standard > Caption.
+Primary font: a **contemporary display grotesk** — wide, smooth and confident, with a friendly, slightly rounded geometry (Regular, Medium, SemiBold, Bold weights). Large display headings (approx 48-64px) with tight tracking. Body text uses lighter weight at comfortable line-height. Uppercase eyebrow labels with small circular dot indicator. Hierarchy: Display > Heading-2 > Body-standard > Caption.
 
 # Color
 
-Dark graphite background `#2F282F` dominates. Primary accent is violet/purple `#874FD4` used for buttons, icons, and interactive elements. Secondary accents: yellow `#FFEB85`, green, pink for avatar backgrounds. Text is white/off-white on dark. Gradient stops for hover states: `#368CFB`, `#5CAEFE`, `#FFEB85`.
+Dark graphite background `#2F282F` dominates. Primary accent is violet/purple `#874FD4`, used as the primary button fill: white labels on it reach 5.12:1, and a filled button is identified by its label, so the fill needs no 3:1 against the graphite (it measures 2.79:1). Icons, secondary-button borders and other interactive marks drawn directly on the graphite use Violet UI `#945DE3`, a lighter value of the same hue at 3.36:1 on `#2F282F`. Secondary accents: yellow `#FFEB85`, green, pink for avatar backgrounds. Text is white/off-white on dark. Gradient stops for hover states: `#368CFB`, `#5CAEFE`, `#FFEB85`.
 
 # Imagery
 
-3D-rendered emoji avatars (Memoji-style) are signature visual elements - used in star-rating component, testimonial cards, and process widgets. Portfolio showcase uses full-bleed project mockups. Client logos in grayscale for logo wall. Custom cursor pointer graphics with team role labels ("Designer", "Account Manager").
+3D-rendered cartoon avatars (stylized 3D emoji-like heads) are signature visual elements - used in star-rating component, testimonial cards, and process widgets. Portfolio showcase uses full-bleed project mockups. Client logos in grayscale for logo wall. Custom cursor pointer graphics with team role labels (designer, account manager).
 
 # Components
 
-**Buttons**: Dual-text slide animation on hover (text wraps translate vertically). Primary uses violet fill, secondary uses transparent with border.
+**Buttons**: Dual-text slide animation on hover (text wraps translate vertically). Primary uses violet fill, secondary uses transparent with a Violet UI border.
 
-**Star Rating Eyebrow**: Avatar group (3 circular 3D emojis) + star SVG + "Trusted by" text - used as social proof header.
+**Star Rating Eyebrow**: Avatar group (3 circular 3D emojis) + star SVG + a short trust-claim line - used as social proof header.
 
 **Service Tabs**: Horizontal scrollable menu with pill-style active state. Content area shows full-bleed project image.
 
@@ -101,7 +101,7 @@ Dark graphite background `#2F282F` dominates. Primary accent is violet/purple `#
 
 # Motion
 
-Multiple marquee animations: header portfolio track (200s linear), logo wall (80s linear), testimonials (150s linear). All pause on hover. Tab transitions use opacity fade (300ms in, 100ms out). Buttons use text-slide transform. Navbar hides on scroll down, shows on scroll up (translateY transition). See references/motion.md for implementation details.
+Multiple marquee animations: header portfolio track (200s linear), logo wall (80s linear), testimonials (150s linear). All pause on hover. Tab transitions use opacity fade (300ms in, 100ms out). Buttons use text-slide transform. Navbar hides on scroll down, shows on scroll up (translateY transition).
 
 # Algorithms
 
@@ -114,3 +114,7 @@ Standard implementation, no special design.
 # Craft
 
 Gradient fade masks on marquee edges using `-webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent)`. Custom scrollbar hiding for tab menu (`-ms-overflow-style: none`, `scrollbar-width: none`). Line-clamp utility for text truncation. Reduced motion media query support for all animations.
+
+# Coherence
+
+The dark graphite ground and the violet primary accent carry the page from credibility through process and services to conversion. The 3D cartoon avatars are the recurring device—in the star-rating eyebrow, the process widgets and the testimonial cards—giving a B2B pitch a friendly human face, echoed by the slightly rounded geometry of the display grotesk. Continuous marquees for the portfolio track, the logo wall and the testimonials, together with the text-slide buttons and the hide-on-scroll navbar, keep the page in steady motion, while gradient edge masks and reduced-motion support keep that motion polished and optional.
