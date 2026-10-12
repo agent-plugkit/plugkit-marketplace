@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { parse } from 'yaml';
@@ -26,7 +26,7 @@ function walk(dir) {
 
 function frontmatter(path) {
   const text = readFileSync(path, 'utf8');
-  const match = /^---\n([\s\S]*?)\n---(?:\n|$)/.exec(text);
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
   assert.ok(match, `Missing frontmatter: ${relative(root, path)}`);
   return parse(match[1]);
 }
@@ -109,7 +109,7 @@ test('local release inventory contains every Musekit source and shared reference
     .filter((entry) => entry.kind === 'file')
     .map((entry) => [entry.releaseRelativePath, entry.bytes]));
   for (const path of walk(plugin)) {
-    const name = relative(root, path);
+    const name = relative(root, path).split(sep).join('/');
     assert.ok(bundled.has(name), `Missing from package: ${name}`);
     assert.deepEqual(bundled.get(name), readFileSync(path), `Package content differs: ${name}`);
   }
@@ -124,7 +124,7 @@ test('seed IDs named by examples and the shared brief exist in the bundled snaps
   const cited = new Set();
   const documents = [
     join(plugin, 'references/seed-brief.md'),
-    ...walk(join(plugin, 'skills')).filter((path) => /\/references\/examples\.md$/.test(path)),
+    ...walk(join(plugin, 'skills')).filter((path) => /\/references\/examples\.md$/.test(path.split(sep).join('/'))),
   ];
   for (const path of documents) {
     for (const [, id] of readFileSync(path, 'utf8').matchAll(/`([A-Za-z0-9]{8})`/g)) {
