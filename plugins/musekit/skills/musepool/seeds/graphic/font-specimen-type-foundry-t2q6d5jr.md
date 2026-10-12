@@ -78,7 +78,7 @@ Primary: the specimen's own **pixel monospace** (8x8 pixel grid, monospaced). Fo
 
 # Color
 
-Palette: **#222222** (primary text/borders), **#757575** (secondary/muted text, 4.60:1 on white), **#C0C0C0** (divider lines only), **#6C6C58** (diagram lines), **#FFFFFF** (background). The light gray #C0C0C0 reaches only 1.81:1 on white, so it is kept for divider lines and never carries text; secondary and muted text uses the darker neutral gray #757575. High-contrast monochrome with warm gray undertones. No gradients — flat fills only. SVG diagrams use stroke-based rendering in muted olive-gray (#6C6C58). Hover states invert or highlight in pure black.
+Palette: **#222222** (primary text/borders), **#757575** (secondary/muted text, 4.60:1 on white), **#C0C0C0** (decorative divider lines only), **#6C6C58** (diagram lines), **#FFFFFF** (background). The light gray #C0C0C0 reaches only 1.81:1 on white, so it is kept for purely decorative divider lines: it never carries text, and no structure or component depends on it alone to be seen. Lines that mark a needed boundary use the primary #222222 (15.90:1 on white). Secondary and muted text uses the darker neutral gray #757575. High-contrast monochrome with warm gray undertones. No gradients — flat fills only. SVG diagrams use stroke-based rendering in muted olive-gray (#6C6C58). Hover states invert or highlight in pure black.
 
 # Imagery
 
