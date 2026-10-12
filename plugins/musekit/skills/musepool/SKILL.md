@@ -20,7 +20,7 @@ python3 scripts/muse_local.py show mC1nkP2t
 python3 scripts/muse_local.py status
 ```
 
-Skill 内置一份锁定版本的 seed 快照，离线即可检索；`list`、`search` 首行注明当前来源与版本，`show` 把它写到 stderr。查找顺序为环境变量 `MUSEPOOL_SEEDS_DIR` 指向的目录、本机缓存、内置快照。用户想获取新 seed 时运行 `update`：它从 Muspro Seeds 的 GitHub Release 下载并校验，失败时不改动当前库。禁网环境用 `update --from <tar.gz>` 安装已下载的发布包；`update --rollback` 切回上一版缓存。普通检索不需要先更新。
+Skill 内置一份锁定版本的 seed 快照，离线即可检索；`list`、`search` 首行注明当前来源与版本，`show` 把它写到 stderr。查找顺序为环境变量 `MUSEPOOL_SEEDS_DIR` 指向的目录、本机缓存、内置快照。用户想获取新 seed 时运行 `update`：它从 Muspro Seeds 的 GitHub Release 下载并校验，失败时不改动当前库。禁网环境把 Release 中的 tar.gz 与 `manifest.json` 一起下载到同一目录，再用 `update --from <tar.gz>` 安装；缺少对应 manifest 时拒绝安装。`update --rollback` 切回上一版缓存。普通检索不需要先更新。
 
 | 分类 | 主要借鉴问题 |
 | --- | --- |
