@@ -8,7 +8,7 @@
 
 **来源**：Musepool 的 one/two-ink editorial print system（`mC1nkP2t`），来自 [mono-color-skill](https://github.com/yanliudesign/mono-color-skill)。
 
-**值得借鉴**：原参考把一块主印版用于主体与标题，把另一块印版集中用于少量重要信息。Cobalt `#2148B8` 与 Terracotta `#C65F38` 的组合用冷暖差建立主次；大尺度焦点旁保留安静区域，让读者知道先看哪里。
+**值得借鉴**：原参考把一块主印版用于主体与标题，把另一块印版集中用于少量重要信息。Cobalt `#2148B8` 与 Terracotta `#C65F38` 的组合用冷暖差建立主次；Terracotta 原色留给色块、标记和大字，日期与小字改用加深的 Terracotta Text `#AE4921`（在三种纸色上均 ≥ 4.5:1）；大尺度焦点旁保留安静区域，让读者知道先看哪里。
 
 **适用条件**：这是一种分配注意力的方法。平面作品可采用具体印刷工艺；界面与科学图先满足可用性和信息编码，再决定是否借用色板。
 

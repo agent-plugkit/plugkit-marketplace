@@ -15,8 +15,16 @@ no additional notice is required for them.
 mC1nkP2t (graphic/editorial-print-system-mc1nkp2t.md) adapts system-level
 guidance from yanliudesign/mono-color-skill
 (https://github.com/yanliudesign/mono-color-skill) at revision
-de607fedfff647eaf5400e0aa43085787d7d1fca, which is distributed under the
-following license:
+de607fedfff647eaf5400e0aa43085787d7d1fca. The seed has been modified:
+
+  已修改（2026-10-12，为满足 WCAG 对比度调整色值）
+  Modified on 2026-10-12 to meet WCAG 2.x contrast (Muspro Seeds v1.1.0).
+  Every ink keeps its original plate value for color fields, marks and large
+  type, and gains a text value that reaches at least 4.5:1 on all three papers
+  (for example Terracotta #C65F38 -> Terracotta Text #AE4921). The seed states
+  each value's role and contrast ratio.
+
+The source is distributed under the following license:
 
   MIT License
 

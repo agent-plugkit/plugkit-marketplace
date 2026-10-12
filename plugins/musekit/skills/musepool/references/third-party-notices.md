@@ -6,6 +6,8 @@ Musepool's seeds come from [Muspro Seeds](https://github.com/agent-plugkit/muspr
 
 The `graphic/editorial-print-system-mc1nkp2t.md` seed adapts system-level guidance from [yanliudesign/mono-color-skill](https://github.com/yanliudesign/mono-color-skill) at revision `de607fedfff647eaf5400e0aa43085787d7d1fca`.
 
+已修改（2026-10-12，为满足 WCAG 对比度调整色值）。Since Muspro Seeds 1.1.0 every ink keeps its original plate value for color fields, marks and large type, and gains a text value that reaches at least 4.5:1 on all three papers (for example Terracotta `#C65F38` → Terracotta Text `#AE4921`). The seed lists each value with its role and contrast ratio.
+
 MIT License
 
 Copyright (c) 2026 Yan Liu

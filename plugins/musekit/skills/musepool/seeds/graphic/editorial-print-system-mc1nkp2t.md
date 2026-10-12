@@ -127,6 +127,36 @@ Controlled two-ink recipes include:
 
 Assign a content role to every plate before composing. The dominant plate normally carries 70%–85% of printed coverage; the accent carries 15%–30% and is reserved for a specific job such as dates, annotations, selected objects, or one overlap event. The darker intersection produced by multiply/overprint is not a third ink. Do not add gradients, rainbow accents, or full-color photography.
 
+## Plate and text values
+
+Every ink has two values with separate jobs. The plate value above is the printed color: use it for color fields, screened imagery, overprint events, rules, marks and other non-text gestures, and for large display type only on papers where it reaches 3:1. Running text, captions, dates, issue numbers, metadata and other small type use the text value, which reaches at least 4.5:1 on all three papers. Where the plate already reaches 4.5:1 everywhere, the two values are the same. A text value is a deeper print of the same hue, not an extra plate: small type set in Terracotta Text keeps a two-ink page a two-ink page.
+
+Ratios below are WCAG 2.x contrast against Neutral White / Cool Gray / Pale Beige, truncated to two decimals. Text needs 4.5:1; large type (at least 24 px / 18 pt regular or 14 pt / about 18.7 px bold) and non-text marks need 3:1.
+
+| Ink | Plate | Plate on W / G / B | Plate allowed for large type and marks | Text value | Text on W / G / B |
+| --- | --- | --- | --- | --- | --- |
+| Cobalt | `#2148B8` | 7.48 / 6.42 / 6.94 | all three papers | same as plate | 7.48 / 6.42 / 6.94 |
+| Royal Blue | `#2058D4` | 5.89 / 5.06 / 5.46 | all three papers | same as plate | 5.89 / 5.06 / 5.46 |
+| Botanical Green | `#008A4B` | 4.23 / 3.64 / 3.93 | all three papers | Botanical Green Text `#037841` | 5.33 / 4.57 / 4.94 |
+| Mint Green | `#5EB783` | 2.34 / 2.01 / 2.17 | none — fields and screens only | Mint Green Text `#127747` | 5.34 / 4.59 / 4.96 |
+| Terracotta Orange | `#C65F38` | 3.94 / 3.38 / 3.65 | all three papers | Terracotta Text `#AE4921` | 5.32 / 4.57 / 4.93 |
+| Signal Red | `#C83232` | 5.07 / 4.35 / 4.70 | all three papers | Signal Red Text `#C42E2F` | 5.31 / 4.56 / 4.92 |
+| Aubergine | `#63365F` | 9.03 / 7.75 / 8.37 | all three papers | same as plate | 9.03 / 7.75 / 8.37 |
+| Charcoal | `#30343A` | 11.96 / 10.28 / 11.10 | all three papers | same as plate | 11.96 / 10.28 / 11.10 |
+| Powder Blue | `#9EB8D3` | 1.95 / 1.68 / 1.81 | none — fields and screens only | Powder Blue Text `#536A83` | 5.34 / 4.59 / 4.95 |
+| Oxblood | `#8F3434` | 7.41 / 6.36 / 6.87 | all three papers | same as plate | 7.41 / 6.36 / 6.87 |
+| Electric Blue | `#173AE3` | 7.30 / 6.27 / 6.77 | all three papers | same as plate | 7.30 / 6.27 / 6.77 |
+| Carbon | `#242321` | 15.01 / 12.89 / 13.93 | all three papers | same as plate | 15.01 / 12.89 / 13.93 |
+| Warm Charcoal | `#302D2E` | 13.03 / 11.19 / 12.09 | all three papers | same as plate | 13.03 / 11.19 / 12.09 |
+| Ultramarine | `#263E99` | 8.99 / 7.73 / 8.34 | all three papers | same as plate | 8.99 / 7.73 / 8.34 |
+| Safety Orange | `#E55D2B` | 3.38 / 2.90 / 3.14 | White, Beige only | Safety Orange Text `#BA3D02` | 5.34 / 4.59 / 4.95 |
+| Cyan | `#159DDA` | 2.92 / 2.51 / 2.71 | none — fields and screens only | Cyan Text `#036F9D` | 5.33 / 4.58 / 4.94 |
+| Brick Red | `#B64032` | 5.32 / 4.57 / 4.94 | all three papers | same as plate | 5.32 / 4.57 / 4.94 |
+| Tangerine | `#E46C2D` | 3.09 / 2.66 / 2.87 | White only | Tangerine Text `#B04803` | 5.32 / 4.57 / 4.93 |
+| Slate Blue | `#4773A5` | 4.71 / 4.04 / 4.36 | all three papers | Slate Blue Text `#3E6A9C` | 5.36 / 4.60 / 4.97 |
+
+Knocked-out paper inside a solid ink field has the same ratio as that ink on paper, so knockouts follow the plate column: Botanical Green, Terracotta, Signal Red and Slate Blue fields take large knocked-out type only, Safety Orange and Tangerine fields only on the papers listed, and Mint Green, Powder Blue and Cyan fields take none. Never set type over a halftone screen or an overprint: put it on open paper or on a solid field whose pair has been checked. In the Cobalt + Terracotta recipe, Cobalt carries the headline and body copy as it is, Terracotta `#C65F38` stays on color fields, marks and large type, and dates or annotations in the accent role use Terracotta Text `#AE4921`.
+
 # Imagery
 
 Treat photography as material to reproduce, not as a full-color image under a tint. Convert it through clean plate separation, visible halftone dots, risograph grain, cyanotype-like exposure, newspaper screening, or photocopy breakup. Preserve identity and factual content: crop, isolate, enlarge, simplify, or screen the supplied subject without replacing it.
@@ -179,7 +209,7 @@ Limited inks do not imply yellow paper, sepia, distressed borders or nostalgic p
 
 # Craft
 
-Inspect both full size and thumbnail size. Confirm the exact ink count, explicit plate roles, recognizable subject, one dominant focal event, a quieter release zone, and a readable type hierarchy. Check that exposed paper is a real compositional shape rather than unused margin, and that any manual gesture belongs to one family.
+Inspect both full size and thumbnail size. Confirm the exact ink count, explicit plate roles, recognizable subject, one dominant focal event, a quieter release zone, and a readable type hierarchy. Check that small type uses text values and that every type color meets its contrast threshold on the chosen paper. Check that exposed paper is a real compositional shape rather than unused margin, and that any manual gesture belongs to one family.
 
 If exact text renders incorrectly, separate image generation from typography and overlay the type in a layout tool. Never accept garbled wording, invent branding to fill space, or claim fidelity when a source composition was traced. Change at least four structural variables from any supplied reference: subject/crop, grid, title location, line breaks, type pairing, ratio, metadata treatment, component topology, or disruption device.
 
@@ -194,8 +224,9 @@ The system stays coherent because every decision answers the same physical model
 ```css
 :root {
   --paper: #fafaf7;
-  --ink-primary: #2148b8;
-  --ink-accent: #c65f38;
+  --ink-primary: #2148b8;      /* plate and text: 7.48:1 on paper */
+  --ink-accent: #c65f38;       /* plate: fields, marks, large type; 3.94:1 */
+  --ink-accent-text: #ae4921;  /* dates, captions, small type; 5.32:1 */
 }
 
 .print-page {
@@ -211,9 +242,10 @@ The system stays coherent because every decision answers the same physical model
 
 .plate--primary { color: var(--ink-primary); }
 .plate--accent  { color: var(--ink-accent); }
+.text--accent   { color: var(--ink-accent-text); }
 ```
 
-Use separate masks for the two plates. Do not place a full-color image below them; the substrate should show wherever both masks are empty.
+Use separate masks for the two plates. Do not place a full-color image below them; the substrate should show wherever both masks are empty. Small type in the accent role takes `--ink-accent-text`, not the plate value.
 
 ## Halftone Pipeline
 
@@ -237,6 +269,7 @@ Keep the grid origin and imperfection seed stable across retries. Registration d
   "substrate": "Neutral White #FAFAF7",
   "mode": "controlled two-ink",
   "inks": ["Cobalt #2148B8", "Terracotta #C65F38"],
+  "text_values": ["Cobalt #2148B8", "Terracotta Text #AE4921"],
   "plate_roles": ["screened subject and headline", "date and one overlap event"],
   "focal_event": "extreme crop crossed by the headline",
   "release_zone": "quiet upper-right paper field",
