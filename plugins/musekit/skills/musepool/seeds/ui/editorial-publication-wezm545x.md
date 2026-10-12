@@ -94,7 +94,7 @@ Scroll-triggered animations via GSAP. Font mixer letters have micro-transforms o
 
 # Algorithms
 
-Procedural SVG generation for text masking. The `chaos-text` component creates randomized dot patterns using configurable parameters: `amount:300`, `radius:10`, `radiusMax:30`, shapes include `circle`, `ellipse`, `rectangle`. Dot placement uses collision detection (`overlaps()` method) with `triesLimit:10000`. Random stroke widths `0–5px`. Mask applied via `mask-image: url("data:image/svg+xml;base64,...")`. See references/algorithms.md for implementation.
+Procedural SVG generation for text masking. The `chaos-text` component creates randomized dot patterns using configurable parameters: `amount:300`, `radius:10`, `radiusMax:30`, shapes include `circle`, `ellipse`, `rectangle`. Dot placement uses collision detection (`overlaps()` method) with `triesLimit:10000`. Random stroke widths `0–5px`. Mask applied via `mask-image: url("data:image/svg+xml;base64,...")`.
 
 # Material
 

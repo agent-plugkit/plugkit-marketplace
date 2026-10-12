@@ -87,7 +87,7 @@ A reusable one- and two-ink editorial print system for posters, zines, covers, p
 
 The source system is expressed as machine-readable design catalogs plus a structured decision manifest. This Musepool entry keeps that system as a discoverable style reference; it does not add a renderer, a new CLI command, or a plugin-wide recipe contract. In an image-generation workflow, turn the selected constraints into the final prompt. In code-rendered work, use CSS custom properties for paper and ink tokens, SVG masks or Canvas for plate separation and halftone screening, and `mix-blend-mode: multiply` only where two physical plates are meant to overlap. A plain CSS monochrome filter is not an equivalent implementation because it does not create separate ink coverage or exposed substrate.
 
-No visual examples from the source project are bundled in this seed. System rules and implementation guidance are adapted from the MIT-licensed source at the revision recorded in frontmatter; see `references/third-party-notices.md`.
+No visual examples from the source project are bundled in this seed. System rules and implementation guidance are adapted from the MIT-licensed source at the revision recorded in frontmatter; see the `NOTICE` file distributed with these seeds.
 
 # Layout
 

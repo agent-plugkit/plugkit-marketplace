@@ -91,7 +91,7 @@ Photography-led content showing children in workshop settings, urban interventio
 
 # Components
 
-Pill-shaped buttons with 999999rem border-radius, 3px primary-red border, white fill. Cards with 3rem border-radius, gradient fills (yellow-to-pastel combinations). Form inputs with floating labels, 0.5rem radius, violet-blue borders that transition to primary red on focus. Custom radio/checkbox inputs with primary-red active states.
+Pill-shaped buttons with 999999rem border-radius, 3px primary-red border, white fill. Cards with 3rem border-radius, gradient fills (yellow-to-pastel combinations). Form inputs with floating labels, 0.5rem radius, violet-blue (#8888dd) borders that transition to primary red on focus. The violet-blue border reaches 3:1 only against white (3.17:1) and the navy (5.22:1); on the pale lavender, blush pink and warm yellow surfaces (2.58 / 2.17 / 2.31:1) input borders use Violet UI (#6967B9, 4.02 / 3.39 / 3.60:1). Custom radio/checkbox inputs with primary-red active states.
 
 # Motion
 

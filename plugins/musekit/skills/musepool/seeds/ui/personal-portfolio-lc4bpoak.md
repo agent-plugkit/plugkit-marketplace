@@ -68,15 +68,15 @@ Next.js with Tailwind CSS. Swiper.js for horizontal portfolio carousel. React To
 
 # Layout
 
-Centered single-column layout with `max-w-[688px]` content well. Generous vertical rhythm with `gap-8 sm:gap-12` between sections. Fixed floating navigation bar at bottom center (`fixed left-1/2 -translate-x-1/2 bottom-6`). Horizontal overflow carousel for portfolio work with gradient fade at edges (`bg-gradient-to-b from-brand-dark/0 to-brand-dark`).
+Centered single-column layout with `max-w-[688px]` content well. Generous vertical rhythm with `gap-8 sm:gap-12` between sections. Fixed floating navigation bar at bottom center (`fixed left-1/2 -translate-x-1/2 bottom-6`). Horizontal overflow carousel for portfolio work with gradient fade at edges (a vertical gradient from the transparent page color to the solid page navy).
 
 # Typography
 
-Monospace font family throughout — IBM Plex Mono or similar grotesque monospace. Large intro text at `text-xl sm:text-2xl`. Section headings use inline-block white background highlight (`bg-white text-brand-dark dark:text-brand-light`) creating a marker-style emphasis. Body text at `text-lg sm:text-xl` in the intro quote box. Tight line-height with `leading-relaxed` on section content.
+Monospace font family throughout — IBM Plex Mono or similar grotesque monospace. Large intro text at `text-xl sm:text-2xl`. Section headings use inline-block white background highlight with page-navy text (following the page color when the theme inverts), creating a marker-style emphasis. Body text at `text-lg sm:text-xl` in the intro quote box. Tight line-height with `leading-relaxed` on section content.
 
 # Color
 
-Deep navy background (`bg-brand-dark` / `dark:bg-brand-light` — approximately `#0a0a1a` or similar deep blue-black). Pure white text at 75% opacity default, 100% for emphasis. White background blocks for highlighted text and section headings. Dark mode inverts to white page background with navy text. Accent colors come from portfolio screenshots rather than UI chrome.
+Deep navy background (one page-color role that swaps to the light page color when the theme inverts — approximately `#0a0a1a` or similar deep blue-black). Pure white text at 75% opacity default, 100% for emphasis. White background blocks for highlighted text and section headings. Dark mode inverts to white page background with navy text. Accent colors come from portfolio screenshots rather than UI chrome.
 
 # Imagery
 
@@ -86,15 +86,15 @@ Portfolio carousel displays UI screenshots at 640×480px with `shadow-xl` elevat
 
 **Floating nav**: Pill-shaped container (`rounded-full`) with `backdrop-blur-xl` glassmorphism, `shadow-2xl`, semi-transparent background (`bg-black/50` dark / `dark:bg-white/75` light). Two pill clusters: a primary call-booking CTA and secondary social links.
 
-**Quote box**: Bordered container (`border border-brand-subtle`) with decorative 8px corner squares (`size-2 border border-brand-subtle`) positioned absolutely at four corners, creating a technical/drafting aesthetic.
+**Quote box**: Bordered container (1px border in a subtle, low-contrast tint of the page color) with decorative 8px corner squares carrying the same subtle border, positioned absolutely at four corners, creating a technical/drafting aesthetic.
 
-**Highlighted headings**: Section titles wrapped in `bg-white` inline blocks with `text-brand-dark` / `dark:text-brand-light`, creating high-contrast labels against the dark page.
+**Highlighted headings**: Section titles wrapped in `bg-white` inline blocks with page-navy text (the light page color when the theme inverts), creating high-contrast labels against the dark page.
 
 **Carousel**: Swiper.js horizontal scroll with `max-w-[688px]` slides, `shadow-xl` images, and descriptive captions at 60% opacity white.
 
 # Motion
 
-Scroll-triggered fade-in animations on sections (`intro-fadeout` class with opacity/blur/transform transitions). Carousel supports touch/drag navigation with momentum. Navigation pills have subtle hover transitions (`hover:bg-white/10`, `dark:hover:bg-brand-light/10`).
+Scroll-triggered fade-in animations on sections: each section transitions opacity, blur and a small transform as it enters. Carousel supports touch/drag navigation with momentum. Navigation pills have subtle hover transitions (`hover:bg-white/10`, or a 10% tint of the page color in the inverted theme).
 
 # Algorithms
 

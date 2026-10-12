@@ -82,7 +82,7 @@ Dual-font system: a clean, friendly geometric sans-serif with round bowls (weigh
 
 # Color
 
-Neutral base with section-specific accents. Background: `#e5e5e5` (light warm gray). Text: `#000` (pure black). Section highlight colors assigned per thematic cluster: mustard yellow (`#CAA266`), sage green (`#AABB87`), cornflower blue (`#5D80D9`). Each section uses its highlight for borders, active states, and player chrome via CSS custom property `--section-highlight`. Mustard and sage reach only 1.87:1 and 1.63:1 on `#e5e5e5`, so their `--section-highlight` values are Mustard UI (`#9A7438`, 3.38:1) and Sage UI (`#71814F`, 3.36:1); cornflower (3.00:1) is used as is. The original `#CAA266` and `#AABB87` only tint the cards. Cards have subtle background tints at 10% opacity (`--section-highlight-background`).
+Neutral base with section-specific accents. Background: `#e5e5e5` (light warm gray). Text: `#000` (pure black). Section highlight colors assigned per thematic cluster: mustard yellow (`#CAA266`), sage green (`#AABB87`), cornflower blue (`#5D80D9`). Each section uses its highlight for borders, active states, and player chrome via CSS custom property `--section-highlight`. Mustard and sage reach only 1.87:1 and 1.63:1 on `#e5e5e5`, and cornflower reaches 3.00:1 on the page but only 2.72:1 on its own card tint, so the `--section-highlight` values are Mustard UI (`#9A7438`, 3.38:1), Sage UI (`#71814F`, 3.36:1) and Cornflower UI (`#4E70C8`, 3.72:1). The original `#CAA266`, `#AABB87` and `#5D80D9` only tint the cards. Cards have subtle background tints at 10% opacity (`--section-highlight-background`), which over the page give `#E2DED8` (mustard), `#DFE1DC` (sage) and `#D7DBE4` (cornflower). Each UI value also holds on its own card tint (3.17 / 3.21 / 3.38:1), so borders, active states and player controls may sit inside cards; black text on the tints stays above 15:1.
 
 # Imagery
 
@@ -112,7 +112,7 @@ Standard implementation, no special design.
 
 # Craft
 
-Ruled lines (1px borders) separate card sections. Careful typographic detailing: hanging punctuation via `push-single`/`pull-single` classes, proper small caps for names. Timecode pills use tabular numerals to prevent jitter. Custom SVG icons for external links (circle with arrow). Plyr video player customized to match section accent colors via CSS variables.
+Ruled lines (1px borders) separate card sections. Careful typographic detailing: hanging punctuation, where an opening quotation mark gets a negative left offset and the space before it a matching positive one, so a quote at the start of a line hangs into the margin and the text edge stays optically aligned; proper small caps for names. Timecode pills use tabular numerals to prevent jitter. Custom SVG icons for external links (circle with arrow). Plyr video player customized to match section accent colors via CSS variables.
 
 # Coherence
 

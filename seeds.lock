@@ -3,8 +3,8 @@
   "version": "1.2.0",
   "schemaVersion": "1.0.0",
   "tarball": "muspro-seeds-1.2.0.tar.gz",
-  "sha256": "430d89ca4f9715ed2035331468f849b108a82ab8da92d3bf4a6bb55dc9c1483b",
-  "contentHash": "sha256:bedc4e3c316b395b34feb6cc09389cde9a17eb276a0393bd4d9776a2ae32b5a1",
+  "sha256": "8e05b25f72cb1670f1d0a2a3e99b44e64bb37ec36aa36b5620ad41fda925317c",
+  "contentHash": "sha256:6d9c99dc04786711f3d320b84b2914cb49bf2ae66517e67051ae8410c1ee5a2a",
   "source": {
     "repository": "https://github.com/agent-plugkit/muspro-seeds",
     "release": "https://github.com/agent-plugkit/muspro-seeds/releases/download/v1.2.0/muspro-seeds-1.2.0.tar.gz",

@@ -75,11 +75,11 @@ Full-bleed canvas interface (100vw × 100vh) with floating UI islands. The tutor
 
 # Typography
 
-System font stack: `-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, PingFang SC, Noto Sans, Noto Sans CJK SC, Microsoft Yahei, Hiragino Sans GB, Arial, sans-serif`. Brand title at 72px with 2px letter-spacing, weight 400. Description at 18px italic. Tooltip text at 14px in `#757575` (4.60:1 on white). UI chrome uses 14px base with variable font sizing for canvas text (8px–78px range via data attributes).
+System font stack: `-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, PingFang SC, Noto Sans, Noto Sans CJK SC, Microsoft Yahei, Hiragino Sans GB, Arial, sans-serif`. Brand title at 72px with 2px letter-spacing, weight 400. Description at 18px italic. Tooltip text at 14px in `#757575` on white surfaces (4.60:1 on the white canvas and islands); on the soft and retro canvases it darkens to `#6E6E6E`. UI chrome uses 14px base with variable font sizing for canvas text (8px–78px range via data attributes).
 
 # Color
 
-Multi-theme system with CSS custom properties. Default theme: white canvas (`#fff`), primary accent `#6698ff` (soft blue), text `#333` for headings, `#757575` for secondary text (4.60:1 on the white canvas; the lighter `#888` is only 3.54:1, so it is kept for arrows and other marks), `#666` for UI chrome. Gray scale from `#f5f5f5` (10) to `#121212` (100). Alternative themes: soft (`#f5f5f5` bg), retro (`#f9f8ed` bg), dark (`#141414` bg), starry (`#0d2537` bg). Island backgrounds are white with subtle shadow `0 0 16px #00000014`.
+Multi-theme system with CSS custom properties. Default theme: white canvas (`#fff`), primary accent `#6698ff` (soft blue), text `#333` for headings, `#757575` for secondary text (4.60:1 on the white canvas; the lighter `#888` is only 3.54:1, so it is kept for arrows and other marks), `#666` for UI chrome. Gray scale from `#f5f5f5` (10) to `#121212` (100). Alternative themes: soft (`#f5f5f5` bg), retro (`#f9f8ed` bg), dark (`#141414` bg), starry (`#0d2537` bg). On the soft and retro canvases `#757575` drops to 4.22:1 and 4.31:1, so secondary and tooltip text there uses `#6E6E6E` (4.67:1 on `#f5f5f5`, 4.77:1 on `#f9f8ed`); text colors for the dark and starry themes are not documented. Island backgrounds are white with subtle shadow `0 0 16px #00000014`.
 
 # Imagery
 

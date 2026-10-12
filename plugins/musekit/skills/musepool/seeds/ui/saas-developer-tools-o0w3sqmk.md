@@ -59,11 +59,11 @@ dimensions_with_reference: []
 
 # Narrative
 
-A developer tools platform landing page framed as a desktop OS environment. The entire experience mimics a classic desktop operating system: textured beige wallpaper, file icons in a left sidebar, window chrome around content, and desktop-style shortcuts on the right. The narrative positions the platform as an all-in-one product platform for engineers and AI agents, pitched in a confident, informal voice. The hero shows a window titled like a document file containing the main pitch, with a mascot illustration featuring a small spiny mammal. Below, tabbed sections showcase different product capabilities (analytics, data, debugging, release) inside the same window metaphor. A playful cookie banner keeps the joking tone down to the consent prompt.
+A developer tools platform landing page framed as a desktop OS environment. The entire experience mimics a classic desktop operating system: textured beige wallpaper, file icons in a left sidebar, window chrome around content, and desktop-style shortcuts on the right. The narrative positions the platform as an all-in-one product platform for engineers and AI agents, pitched in a confident, informal voice. The hero shows a window titled like a document file containing the main pitch, with a hand-drawn mascot illustration. Below, tabbed sections showcase different product capabilities (analytics, data, debugging, release) inside the same window metaphor. A playful cookie banner keeps the joking tone down to the consent prompt.
 
 # Tech Stack
 
-Static site generator with React. Tailwind CSS for styling. Custom font system using IBM Plex Sans Variable, Open Runde (Regular, Semibold, Bold, Medium), and a custom display font for the mascot branding. CSS custom properties for theming with `data-skin` and `data-wallpaper` attributes. A slider library for carousels. A node-graph library for node-based diagrams.
+Static site generator with React. Tailwind CSS for styling. Custom font system using IBM Plex Sans Variable, Open Runde (Regular, Semibold, Bold, Medium), and a custom display font for the mascot branding. CSS custom properties for theming, switched by root-level data attributes for the interface skin and the wallpaper. A slider library for carousels. A node-graph library for node-based diagrams.
 
 # Layout
 
@@ -75,11 +75,11 @@ Primary body font: IBM Plex Sans Variable with fallbacks through system sans sta
 
 # Color
 
-Light mode dominant with warm beige/cream textured background (`#f3f0e6` range from the wallpaper). Primary accent is a vibrant orange `#f54e00` used for CTAs and highlights. The same orange also underlines active tab states. Text is near-black `#0b0b0b` for high contrast. The textured wallpaper provides an earthy, organic backdrop with greens and browns. Window chrome uses translucent white with backdrop blur (`bg-accent/75 backdrop-blur`). Dark mode support indicated via `data-wallpaper` attributes and theme-scoped dark selectors.
+Light mode dominant with warm beige/cream textured background (`#f3f0e6` range from the wallpaper). Primary accent is a vibrant orange `#f54e00` used for CTAs and highlights. The same orange also underlines active tab states. Text is near-black `#0b0b0b` for high contrast. The textured wallpaper provides an earthy, organic backdrop with greens and browns. Window chrome uses translucent white with backdrop blur (75% opacity, `backdrop-blur`). Dark mode support indicated via the wallpaper data attribute and theme-scoped dark selectors.
 
 # Imagery
 
-Custom hand-drawn illustration system featuring a mascot character (a small spiny mammal) across multiple everyday developer scenes — working at a desk, tending a garden, a mock-monster rampage, late-night coding. All illustrations share one consistent sketchy line-art style with warm, muted colors, so the mascot reads as a single character across the site.
+Custom hand-drawn mascot illustration system: one recurring character drawn in a single consistent sketchy line-art style with warm, muted colors, so the mascot reads as the same character wherever it appears across the site.
 
 # Components
 
