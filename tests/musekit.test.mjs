@@ -14,6 +14,7 @@ const seeds = join(library, 'seeds');
 const lock = JSON.parse(readFileSync(join(root, 'seeds.lock'), 'utf8'));
 const snapshot = JSON.parse(readFileSync(join(seeds, 'index.json'), 'utf8'));
 const index = snapshot.seeds;
+const config = parse(readFileSync(join(plugin, 'plugin.yaml'), 'utf8'));
 const skillNames = ['musepool', 'ui-design', 'graphic-design', 'diagram-design', 'scientific-figure', 'article-illustration'];
 
 function walk(dir) {
@@ -53,9 +54,8 @@ test('bundled snapshot matches seeds.lock and index metadata matches bundled fil
 });
 
 test('declared skills are discoverable and all local Markdown references are bundled', () => {
-  const config = parse(readFileSync(join(plugin, 'plugin.yaml'), 'utf8'));
   assert.equal(config.name, 'musekit');
-  assert.equal(config.version, '0.5.1');
+  assert.match(config.version, /^\d+\.\d+\.\d+$/);
   const article = frontmatter(join(plugin, 'skills/article-illustration/SKILL.md'));
   assert.match(article.description, /整篇/);
   assert.match(article.description, /公众号排版/);
@@ -89,10 +89,11 @@ test('generated client indexes replace old design plugins and keep portable meta
     const entry = entries.find((item) => item.name === 'musekit');
     const source = typeof entry.source === 'string' ? entry.source : entry.source.path;
     assert.equal(source, './plugins/musekit', path);
+    if ('version' in entry) assert.equal(entry.version, config.version, path);
   }
   const portable = JSON.parse(readFileSync(join(plugin, 'plugin.json'), 'utf8'));
   assert.equal(portable.name, 'musekit');
-  assert.equal(portable.version, '0.5.1');
+  assert.equal(portable.version, config.version);
   for (const field of ['interface', 'platform', 'category']) assert.ok(!(field in portable));
   const codex = JSON.parse(readFileSync(join(plugin, '.codex-plugin/plugin.json'), 'utf8'));
   assert.equal(resolve(plugin, codex.skills), join(plugin, 'skills'));
