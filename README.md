@@ -175,6 +175,11 @@ artwork in `references/examples/source/`, run `npm run build:diagram` before the
 development dependencies above are only for this repository; what plugin users need is listed under
 [Runtime requirements](#runtime-requirements).
 
+## Releases
+
+After a plugin version change is merged into `main`, tag the merge commit as
+`<plugin>-v<version>` (for example `musekit-v0.6.0`) and create a GitHub Release for that tag.
+
 ## License
 
 MIT
