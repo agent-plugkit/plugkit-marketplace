@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "1.0.0",
+  "version": "1.0.0",
+  "scenarios": [
+    {
+      "id": "ui",
+      "name": "界面",
+      "seeds": [
+        {
+          "id": "vEj9F5om",
+          "file": "ui/interactive-audio-experience-vej9f5om.md",
+          "title": "声音与输入体验",
+          "summary": "键盘输入、声音反馈与克制的沉浸界面。"
+        },
+        {
+          "id": "rvYJrbZh",
+          "file": "ui/artist-portfolio-rvyjrbzh.md",
+          "title": "艺术家作品集",
+          "summary": "连续文字目录、字体对比与作品预览。"
+        },
+        {
+          "id": "weZM545X",
+          "file": "ui/editorial-publication-wezm545x.md",
+          "title": "文化刊物",
+          "summary": "分屏文章导读、标题节奏与滚动叙事。"
+        },
+        {
+          "id": "x1BNQPTi",
+          "file": "ui/community-archive-x1bnqpti.md",
+          "title": "社区档案",
+          "summary": "内容集合的浏览方式、信息密度与社区语气。"
+        },
+        {
+          "id": "swwKiFDe",
+          "file": "ui/education-product-swwkifde.md",
+          "title": "布局教育产品",
+          "summary": "课程内容、购买决策与长页信息层级。"
+        },
+        {
+          "id": "pu9ToBED",
+          "file": "ui/supply-chain-intelligence-dashboard-pu9tobed.md",
+          "title": "供应链仪表盘",
+          "summary": "高密度监测、警示优先级与工具区域。"
+        },
+        {
+          "id": "rVQmfOqR",
+          "file": "ui/agency-landing-rvqmfoqr.md",
+          "title": "创意机构首页",
+          "summary": "服务比较、过程说明与交互演示。"
+        },
+        {
+          "id": "Nv0J2QBT",
+          "file": "ui/generative-music-visualization-nv0j2qbt.md",
+          "title": "生成式音乐体验",
+          "summary": "算法、声音与持续变化的画面如何联动。"
+        },
+        {
+          "id": "FpA0MHDV",
+          "file": "ui/music-artist-portfolio-fpa0mhdv.md",
+          "title": "音乐人作品集",
+          "summary": "借用通话列表隐喻组织内容与交互。"
+        },
+        {
+          "id": "upXsOXv8",
+          "file": "ui/health-ecommerce-upxsoxv8.md",
+          "title": "健康电商",
+          "summary": "产品教育、购买路径与品牌层级；不作为科学结论或学术制图规范。"
+        },
+        {
+          "id": "lC4BpOAk",
+          "file": "ui/personal-portfolio-lc4bpoak.md",
+          "title": "产品设计师作品集",
+          "summary": "作品、服务与联系入口的组织；不作为学术图样式标准。"
+        },
+        {
+          "id": "o0W3sQmk",
+          "file": "ui/saas-developer-tools-o0w3sqmk.md",
+          "title": "开发者工具",
+          "summary": "桌面隐喻、窗口框架与工具入口。"
+        },
+        {
+          "id": "tVghVsn2",
+          "file": "ui/whiteboard-tool-tvghvsn2.md",
+          "title": "白板工具",
+          "summary": "画布、工具栏与就地引导。"
+        },
+        {
+          "id": "GzPJkoac",
+          "file": "ui/design-collective-gzpjkoac.md",
+          "title": "设计师集体",
+          "summary": "鲜明配色、项目浏览与行动入口。"
+        }
+      ]
+    },
+    {
+      "id": "graphic",
+      "name": "平面",
+      "seeds": [
+        {
+          "id": "JiAIwOJv",
+          "file": "graphic/design-studio-portfolio-jiaiwojv.md",
+          "title": "平面工作室作品集",
+          "summary": "动势排字、图像裁切与编辑构图。"
+        },
+        {
+          "id": "LjwyQI6U",
+          "file": "graphic/sustainability-manifesto-ljwyqi6u.md",
+          "title": "可持续设计宣言",
+          "summary": "强标题、块面和信息主次。"
+        },
+        {
+          "id": "Vy3KTWAC",
+          "file": "graphic/art-book-fair-event-vy3ktwac.md",
+          "title": "艺术书展",
+          "summary": "活动识别、标题尺度与象限式构图。"
+        },
+        {
+          "id": "AT5oq8hX",
+          "file": "graphic/designer-portfolio-at5oq8hx.md",
+          "title": "品牌设计师作品集",
+          "summary": "大字、橙色强调与图文张力。"
+        },
+        {
+          "id": "B3LYgTWe",
+          "file": "graphic/arts-center-b3lygtwe.md",
+          "title": "艺术中心",
+          "summary": "有机图形、主视觉与活动信息层级。"
+        },
+        {
+          "id": "mC1nkP2t",
+          "file": "graphic/editorial-print-system-mc1nkp2t.md",
+          "title": "单色／双色编辑印刷",
+          "summary": "纸与墨的关系、焦点与释放区、机械印刷质感；印刷方法按任务选用。"
+        },
+        {
+          "id": "C4aZtWoH",
+          "file": "graphic/art-school-exhibition-c4aztwoh.md",
+          "title": "摄影毕业展",
+          "summary": "视力表式字号递进与展览标题构图。"
+        },
+        {
+          "id": "pibXRzsG",
+          "file": "graphic/agency-portfolio-pibxrzsg.md",
+          "title": "活动设计机构",
+          "summary": "品牌色块、宣言与视觉钩子。"
+        },
+        {
+          "id": "tTceao0M",
+          "file": "graphic/brand-studio-portfolio-ttceao0m.md",
+          "title": "品牌工作室作品集",
+          "summary": "大幅图像、黑色衬底与编辑节奏。"
+        },
+        {
+          "id": "t2Q6D5JR",
+          "file": "graphic/font-specimen-type-foundry-t2q6d5jr.md",
+          "title": "像素字体样张",
+          "summary": "字形展示、技术标签与字符排印；不推导科学标注约定。"
+        }
+      ]
+    },
+    {
+      "id": "information",
+      "name": "信息表达",
+      "seeds": [
+        {
+          "id": "G26LBSOO",
+          "file": "information/health-research-report-g26lbsoo.md",
+          "title": "研究报告展示",
+          "summary": "章节组织、统计信息的视觉层级与解释节奏；结论和数据须回到原始资料。"
+        },
+        {
+          "id": "haYCh1wI",
+          "file": "information/fashion-archive-haych1wi.md",
+          "title": "时装档案索引",
+          "summary": "用元数据列、标题和索引组织可扫描信息。"
+        },
+        {
+          "id": "H9aLYT6s",
+          "file": "information/agency-year-in-review-h9alyt6s.md",
+          "title": "机构年度回顾",
+          "summary": "按主题或阶段串联材料与重点；借叙事方法，不借宣传结论。"
+        },
+        {
+          "id": "1JlUSoIP",
+          "file": "information/interactive-educational-article-1jlusoip.md",
+          "title": "交互式物理解释",
+          "summary": "由观察到机制的渐进解释、局部示意与交互；具体科学内容仍须核对来源。"
+        },
+        {
+          "id": "Yoiov5EL",
+          "file": "information/documentary-companion-yoiov5el.md",
+          "title": "纪录片注释档案",
+          "summary": "关系、注释和引文的多层阅读；不是论文出版格式模板。"
+        }
+      ]
+    }
+  ]
+}

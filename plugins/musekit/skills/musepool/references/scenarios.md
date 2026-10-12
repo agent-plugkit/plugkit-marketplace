@@ -1,8 +1,11 @@
+<!-- 生成文件：scripts/sync-seeds.mjs 根据 seeds/scenarios.json（muspro-seeds 1.0.0）生成，请勿手改。 -->
 # 检索分类与参考清单
 
 三类按参考的主要借鉴价值组织，用于缩小搜索范围。它们不与四个制作 Skill 一一对应；同一参考可以通过不同的 seed 简报用于不同场景。已有明确参考时不必重新检索。
 
 种子里的维度、分数和技术标签是原始描述与检索线索，不是交付配额。来源中的布局、颜色和技术栈也不是新任务的硬性要求。
+
+下面列出随 Skill 内置的 muspro-seeds 1.0.0 快照。用 `muse_local.py update` 更新本机缓存后，以 `list` 的输出为准。
 
 ## 界面 `ui`
 
@@ -48,4 +51,4 @@
 - [交互式物理解释](../seeds/information/interactive-educational-article-1jlusoip.md) · `1JlUSoIP` — 由观察到机制的渐进解释、局部示意与交互；具体科学内容仍须核对来源。
 - [纪录片注释档案](../seeds/information/documentary-companion-yoiov5el.md) · `Yoiov5EL` — 关系、注释和引文的多层阅读；不是论文出版格式模板。
 
-跨场景使用时，先写清借鉴的具体细节与不适用的部分，再由制作 Skill 决定构图。完整来源、原始细节和授权说明保留在各 seed 与[第三方说明](third-party-notices.md)中。
+跨场景使用时，先写清借鉴的具体细节与不适用的部分，再由制作 Skill 决定构图。完整来源、原始细节和授权说明保留在各 seed、[NOTICE](../seeds/NOTICE) 与[第三方说明](third-party-notices.md)中。

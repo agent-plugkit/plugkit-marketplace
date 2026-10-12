@@ -22,7 +22,7 @@ import pypdfium2 as pdfium
 WIDTH_MM, HEIGHT_MM = 160, 110
 DPI = 300
 BLUE = colors.HexColor("#2148b8")
-WARM = colors.HexColor("#b45431")
+WARM = colors.HexColor("#c65f38")
 INK = colors.HexColor("#26314b")
 MUTED = colors.HexColor("#626e82")
 

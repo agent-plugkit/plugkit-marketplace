@@ -1,5 +1,7 @@
 # Third-party notices
 
+Musepool's seeds come from [Muspro Seeds](https://github.com/agent-plugkit/muspro-seeds) (MIT). The bundled snapshot ships with its [LICENSE](../seeds/LICENSE) and [NOTICE](../seeds/NOTICE), which record where every seed comes from. Seeds other than `mC1nkP2t` were written from publicly available web material and need no additional notice.
+
 ## mono-color-skill
 
 The `graphic/editorial-print-system-mc1nkp2t.md` seed adapts system-level guidance from [yanliudesign/mono-color-skill](https://github.com/yanliudesign/mono-color-skill) at revision `de607fedfff647eaf5400e0aa43085787d7d1fca`.
