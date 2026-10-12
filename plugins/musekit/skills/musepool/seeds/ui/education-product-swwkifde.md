@@ -102,3 +102,7 @@ Standard implementation, no special design.
 # Craft
 
 Custom focus outline: `var(--border-thin) solid var(--color-mid)` with offset. Book cover image has thick outline inset using `outline-offset: calc(var(--border-thick) * -1)`. Images scaled 101% to prevent subpixel gaps. Houdini paint worklet for generative image cross pattern.
+
+# Coherence
+
+The page demonstrates what the product teaches: its layout is assembled from the same intrinsic primitives it sells—stack, sidebar, switcher, cluster, grid, reel—so the hero, testimonials, authors and pattern catalog show the method at work while describing it. The pure black-and-white palette, desaturated high-contrast photos and stroke-based SVG diagrams keep attention on layout behavior, and bold Barlow Condensed headings over a neutral Helvetica/Arial body give the pitch a confident, systematic voice, with Georgia italic quotes adding serif contrast. Motion stays functional—smooth anchor scrolling, the horizontal reel and progressive disclosure—consistent with the algorithmic, no-decoration approach.

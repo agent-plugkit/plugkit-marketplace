@@ -1,11 +1,11 @@
-<!-- 生成文件：scripts/sync-seeds.mjs 根据 seeds/scenarios.json（muspro-seeds 1.2.0）生成，请勿手改。 -->
+<!-- 生成文件：scripts/sync-seeds.mjs 根据 seeds/scenarios.json（muspro-seeds 1.2.1）生成，请勿手改。 -->
 # 检索分类与参考清单
 
 三类按参考的主要借鉴价值组织，用于缩小搜索范围。它们不与四个制作 Skill 一一对应；同一参考可以通过不同的 seed 简报用于不同场景。已有明确参考时不必重新检索。
 
 种子里的维度、分数和技术标签是原始描述与检索线索，不是交付配额。来源中的布局、颜色和技术栈也不是新任务的硬性要求。
 
-下面列出随 Skill 内置的 muspro-seeds 1.2.0 快照。用 `muse_local.py update` 更新本机缓存后，以 `list` 的输出为准。
+下面列出随 Skill 内置的 muspro-seeds 1.2.1 快照。用 `muse_local.py update` 更新本机缓存后，以 `list` 的输出为准。
 
 ## 界面 `ui`
 

@@ -83,7 +83,7 @@ Primary font: a friendly geometric sans-serif with round bowls and a chunky, pos
 
 # Color
 
-Deep navy background (#021a50) with vibrant primary red (#f34020) as accent. Secondary palette: warm yellow (#f9da73), pale blush pink (#f6ccc7), pale lavender (#e6e6fa), periwinkle blue (#88a6ea), soft violet-blue (#8888dd). Text in main blue (#002f99) on light backgrounds, blush pink on dark. Selection highlight uses Selection Red (#E22C05), a deeper value of the primary red, with white text at 4.56:1; white on the primary red itself is only 3.77:1, so #f34020 stays for borders, focus outlines, active states and accents.
+Deep navy background (#021a50) with vibrant primary red (#f34020) as accent. Secondary palette: warm yellow (#f9da73), pale blush pink (#f6ccc7), pale lavender (#e6e6fa), periwinkle blue (#88a6ea), soft violet-blue (#8888dd). Text in main blue (#002f99) on light backgrounds, blush pink on dark. Selection highlight uses Selection Red (#E22C05), a deeper value of the primary red, with white text at 4.56:1; white on the primary red itself is only 3.77:1, so #f34020 stays for borders, active states and accents. Focus outlines use Focus Red (#D82B0C), a deeper value at the primary red's hue: the primary red reaches only 2.58:1 on the blush pink and 2.74:1 on the warm yellow, while Focus Red reaches 3.36:1 and 3.58:1 there and at least 3:1 on every other surface (4.91 white, 3.99 lavender, 3.37 navy).
 
 # Imagery
 
@@ -91,11 +91,11 @@ Photography-led content showing children in workshop settings, urban interventio
 
 # Components
 
-Pill-shaped buttons with 999999rem border-radius, 3px primary-red border, white fill. Cards with 3rem border-radius, gradient fills (yellow-to-pastel combinations). Form inputs with floating labels, 0.5rem radius, violet-blue (#8888dd) borders that transition to primary red on focus. The violet-blue border reaches 3:1 only against white (3.17:1) and the navy (5.22:1); on the pale lavender, blush pink and warm yellow surfaces (2.58 / 2.17 / 2.31:1) input borders use Violet UI (#6967B9, 4.02 / 3.39 / 3.60:1). Custom radio/checkbox inputs with primary-red active states.
+Pill-shaped buttons with 999999rem border-radius, 3px primary-red border, white fill. Cards with 3rem border-radius, gradient fills (yellow-to-pastel combinations). Form inputs with floating labels, 0.5rem radius, violet-blue (#8888dd) borders that transition to Focus Red on focus. The violet-blue border reaches 3:1 only against white (3.17:1) and the navy (5.22:1); on the pale lavender, blush pink and warm yellow surfaces (2.58 / 2.17 / 2.31:1) input borders use Violet UI (#6967B9, 4.02 / 3.39 / 3.60:1). Custom radio/checkbox inputs with primary-red active states.
 
 # Motion
 
-Button hover uses inset box-shadow animation (0 to 100px over 0.3s) with cubic-bezier(0.165, 0.84, 0.44, 1) easing. Input borders transition to primary color on focus. Link underlines remove on hover. Smooth transitions on interactive elements at 0.3s duration.
+Button hover uses inset box-shadow animation (0 to 100px over 0.3s) with cubic-bezier(0.165, 0.84, 0.44, 1) easing. Input borders transition to Focus Red on focus. Link underlines remove on hover. Smooth transitions on interactive elements at 0.3s duration.
 
 # Algorithms
 
@@ -107,4 +107,8 @@ Subtle grid texture overlay on select sections. Gradient backgrounds on cards us
 
 # Craft
 
-Consistent 4px spacing system throughout. Text selection color customized to Selection Red, the deeper brand primary. Focus outlines use primary red with 2px offset. Rounded corners applied universally (sections, cards, buttons, inputs). Underline link treatment with precise offset control.
+Consistent 4px spacing system throughout. Text selection color customized to Selection Red, the deeper brand primary. Focus outlines use Focus Red (#D82B0C) with 2px offset. Rounded corners applied universally (sections, cards, buttons, inputs). Underline link treatment with precise offset control.
+
+# Coherence
+
+The collective's idea of play as a rigorous working method shows in the pairing of a friendly, round-bowled geometric sans at a chunky Black weight with an exact system underneath: 4px gaps between sections, 4px gutters and spacing, and rounded corners applied to sections, cards, buttons and inputs alike. Deep navy and the primary red anchor the warm yellow, blush pink, lavender and periwinkle accents, so the playful color stays tied to a serious base, and the deeper Selection Red and Focus Red keep the brand hue wherever text and focus states need more contrast. Pill buttons, gradient cards and the inset-shadow hover give the flat surfaces a soft, tactile character that matches the playful yet professional tone.

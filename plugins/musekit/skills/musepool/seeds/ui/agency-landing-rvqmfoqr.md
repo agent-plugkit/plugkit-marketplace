@@ -114,3 +114,7 @@ Standard implementation, no special design.
 # Craft
 
 Gradient fade masks on marquee edges using `-webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent)`. Custom scrollbar hiding for tab menu (`-ms-overflow-style: none`, `scrollbar-width: none`). Line-clamp utility for text truncation. Reduced motion media query support for all animations.
+
+# Coherence
+
+The dark graphite ground and the violet primary accent carry the page from credibility through process and services to conversion. The 3D cartoon avatars are the recurring device—in the star-rating eyebrow, the process widgets and the testimonial cards—giving a B2B pitch a friendly human face, echoed by the slightly rounded geometry of the display grotesk. Continuous marquees for the portfolio track, the logo wall and the testimonials, together with the text-slide buttons and the hide-on-scroll navbar, keep the page in steady motion, while gradient edge masks and reduced-motion support keep that motion polished and optional.

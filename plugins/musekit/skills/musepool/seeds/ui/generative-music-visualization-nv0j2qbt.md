@@ -115,3 +115,7 @@ Standard implementation, no special design.
 - `mix-blend-mode: difference` on UI text ensures readability against black notation
 - Bravura font subset loaded for efficient music glyph rendering
 - Canvas `resize="true"` attribute enables Paper.js automatic canvas sizing
+
+# Coherence
+
+The page is a single artwork with minimal chrome: one full-viewport canvas carries the endless generative score, and everything else is small text pinned to the edges. Black notation on warm off-white, with no accent colors, leaves the lemniscate staff and its continuously generated notes as the only visual event. The three typefaces split the roles cleanly—the neutral grotesk for the interface, the calligraphic italic serif for the opus-style piece title, Bravura for the notation itself—while `mix-blend-mode: difference` text and a canvas that lets pointer events through keep the UI legible and usable without interrupting the score.

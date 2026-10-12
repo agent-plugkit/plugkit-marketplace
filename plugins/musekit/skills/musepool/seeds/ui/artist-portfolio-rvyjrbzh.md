@@ -120,6 +120,10 @@ Standard implementation, no special design.
 
 **Mobile fallback**: Touch devices disable hover interactions; the collage layer remains hidden or accessible via click.
 
+# Coherence
+
+Text is the interface: the project list runs as one continuous stream of bold italic titles and regular italic descriptions, so the practice reads as an ongoing exploration rather than a grid of finished pieces. Strict black on white, with only the light-gray hover fill, leaves all variation to the type and to the hidden collage of polygon-masked images that surfaces on hover and drifts with scroll. The randomly reshuffled images, the ornament-font markers and the French typographic corrections share one attitude—an editorial, hand-tuned reading experience in which imagery adds depth behind the words instead of replacing them.
+
 ---
 
 # Dimensional References(深度实现参考)

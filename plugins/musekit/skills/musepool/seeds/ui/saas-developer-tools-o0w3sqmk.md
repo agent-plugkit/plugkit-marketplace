@@ -79,7 +79,7 @@ Light mode dominant with warm beige/cream textured background (`#f3f0e6` range f
 
 # Imagery
 
-Custom hand-drawn mascot illustration system: one recurring character drawn in a single consistent sketchy line-art style with warm, muted colors, so the mascot reads as the same character wherever it appears across the site.
+Custom hand-drawn mascot illustration system: one recurring character, a small animal, drawn in a single consistent sketchy line-art style with warm, muted colors, so the mascot reads as the same character wherever it appears across the site.
 
 # Components
 

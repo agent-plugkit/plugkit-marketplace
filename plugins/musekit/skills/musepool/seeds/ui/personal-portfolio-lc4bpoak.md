@@ -107,3 +107,7 @@ Glassmorphism on floating navigation via `backdrop-blur-xl`. Subtle ring shadow 
 # Craft
 
 Corner bracket decorations on quote box — four 8px squares with borders positioned at corners, referencing technical drawing conventions. Tooltip labels on social icons. Responsive breakpoint at `sm:` (640px) for typography scale and layout adjustments.
+
+# Coherence
+
+The designer's engineering background shapes every surface: monospace type throughout, quote-box corner squares borrowed from technical drawing, and white marker-style heading labels that read like annotations on the deep navy page. A single page-color role keeps the inverted theme consistent—heading text, the subtle quote-box borders and hover tints all follow it—while accent color comes only from the portfolio screenshots, so the work supplies the color the chrome withholds. The narrow 688px column, the floating glass navigation pill and the soft fade-in sections keep the single page calm and focused on the pitch to founders and technical teams.
