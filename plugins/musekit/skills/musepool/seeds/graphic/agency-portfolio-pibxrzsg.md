@@ -80,7 +80,7 @@ Dual-font system: **ABC Monument Grotesk** (Black, Heavy, Regular, Thin weights)
 
 # Color
 
-Three-color blocking system: **#fe99d9** (hot pink) for hero and contact backgrounds, **#ff6502** (vibrant orange) for manifesto section, **#1f9540** (bright green) for services section. Black (#000) for text on light backgrounds, white (#fff) for text on dark/color backgrounds. Yellow accent bar for client section divider. High saturation, playful palette.
+Three-color blocking system: **#fe99d9** (hot pink) for hero and contact backgrounds, **#ff6502** (vibrant orange) for manifesto section, **#1f9540** (bright green) for services section. Black (#000) for text on light backgrounds and on the pink and orange fields (10.77:1 on #fe99d9, 7.11:1 on #ff6502); white (#fff) for text on dark backgrounds such as the black button, and on the green field only for large service-row titles (3.86:1 on #1f9540, enough for large type only), with smaller copy on green in black (5.43:1). White text reaches just 1.94:1 on the pink and 2.95:1 on the orange, so it is not set on those fields. Yellow accent bar for client section divider. High saturation, playful palette.
 
 # Imagery
 
@@ -88,7 +88,7 @@ No photography — purely typographic and brand-driven. Client logos (SVG) in bl
 
 # Components
 
-**Primary button**: Pill-shaped (border-radius: 999px), black fill, white text, green border (#1f9540) on hover/focus. **Form inputs**: Transparent background, white border (1px solid), white text with white placeholder, centered text alignment, no visible label. **Service rows**: Full-width horizontal bands with centered text, expandable on interaction.
+**Primary button**: Pill-shaped (border-radius: 999px), black fill, white text, green border (#1f9540) on hover/focus. **Form inputs**: Transparent background, black (#000) border (1px solid), black text with black placeholder (10.77:1 on the pink contact field, where white would reach only 1.94:1), centered text alignment, no visible label. **Service rows**: Full-width horizontal bands with centered text, expandable on interaction.
 
 # Motion
 
@@ -104,7 +104,7 @@ Standard implementation, no special design.
 
 # Craft
 
-Sharp corner radius (0px) on inputs and containers except for pill buttons. Custom focus states with red outline (#ff0000) on form fields. SVG logo rendered with pixelated image-rendering for crisp edges. Consistent 1px borders on interactive elements.
+Sharp corner radius (0px) on inputs and containers except for pill buttons. Custom focus states with a deep red outline (Focus Red #BF0000, 3.35:1 on the pink contact field) on form fields; the original pure red #ff0000 reaches only 2.05:1 on the pink and is kept for decorative accents only. SVG logo rendered with pixelated image-rendering for crisp edges. Consistent 1px borders on interactive elements.
 
 # Coherence
 

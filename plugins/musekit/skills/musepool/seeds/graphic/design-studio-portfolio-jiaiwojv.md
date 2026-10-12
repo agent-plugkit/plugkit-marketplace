@@ -61,11 +61,11 @@ dimensions_with_reference: []
 
 # Narrative
 
-A graphic design studio portfolio showcasing print and editorial work. The experience opens with a kinetic typographic instruction sequence—"UP! UP! SCROLL SCROLL DOWN! DOWN!"—set in diamond-shaped white panels against black. This establishes the scroll-driven interaction model before revealing the studio's project archive. The narrative flow: commanding attention through motion → demonstrating craft through project imagery → minimal footer contact. Three category filters (Image/Text/Type) allow browsing different project types.
+A graphic design studio portfolio showcasing print and editorial work. The experience opens with a kinetic typographic sequence of repeated, shouted up/down scroll instructions, set in diamond-shaped white panels against black. This establishes the scroll-driven interaction model before revealing the studio's project archive. The narrative flow: commanding attention through motion → demonstrating craft through project imagery → minimal footer contact. Three one-word category filters split the archive by the kind of work.
 
 # Tech Stack
 
-Vue.js 2 SPA with custom WebGL rendering. Scroll hijacking via a 40000vh invisible scrollpane that drives canvas-based image sequencing. CSS custom properties for typography scale. No external animation libraries—custom requestAnimationFrame loop handling texture loading and geometry updates.
+Vue.js 2 SPA with custom WebGL rendering. Scroll hijacking via an extremely tall invisible scroll pane that drives canvas-based image sequencing. CSS custom properties for typography scale. No external animation libraries—custom requestAnimationFrame loop handling texture loading and geometry updates.
 
 # Layout
 
@@ -73,11 +73,11 @@ Full-bleed canvas viewport (100vw × 100vh) with floating header overlay. Absolu
 
 # Typography
 
-Primary font: **BradfordLLWeb** (Lineto, serif with common ligatures). Body: 1.3rem, line-height 1.2, letter-spacing 0.0em. Headings: h2 at 3rem, h3 at 2.2rem, both with line-height 1.1. Links and labels: uppercase, letter-spacing 0.08em. Font-variant-ligatures: common-ligatures enabled throughout. Italic style available via font-style: italic.
+Primary font: a **characterful contemporary text serif** — sharp, slightly idiosyncratic details, with common ligatures. Body: 1.3rem, line-height 1.2, letter-spacing 0.0em. Headings: h2 at 3rem, h3 at 2.2rem, both with line-height 1.1. Links and labels: uppercase, letter-spacing 0.08em. Font-variant-ligatures: common-ligatures enabled throughout. Italic style available via font-style: italic.
 
 # Color
 
-Strict monochrome system: `#000000` background, `#ffffff` text and UI. No accent colors—entire site operates in pure black and white. Images are displayed in full color or grayscale depending on project. Header has `.light` class applying white text for visibility over dark content.
+Strict monochrome system: `#000000` background, `#ffffff` text and UI. No accent colors—entire site operates in pure black and white. Images are displayed in full color or grayscale depending on project. A header modifier class applies white text for visibility over dark content.
 
 # Imagery
 
@@ -85,11 +85,11 @@ Portfolio photography of print work—books, posters, signage, exhibition graphi
 
 # Components
 
-Minimal component system. Header: inline text with slash-separated category links. No buttons, no cards, no forms. Project blocks: simple image + caption structure. Loader: fixed full-screen black overlay with centered animated GIF (7rem width), fades via `.loaded-content` class toggling opacity.
+Minimal component system. Header: inline text with slash-separated category links. No buttons, no cards, no forms. Project blocks: simple image + caption structure. Loader: fixed full-screen black overlay with centered animated GIF (7rem width), fades out by toggling a loaded-state class that controls opacity.
 
 # Motion
 
-Signature scroll-driven canvas animation. A 40000vh invisible scrollpane captures scroll events; scroll position maps to image sequence progression and 3D camera movement. Custom render loop updates geometry and textures based on scrollTop. Initial state shows kinetic typography hero; scrolling triggers `.started-scrolling` class hiding the hero and revealing project imagery. Opacity transitions: 0.001 → 1 for content fade-in. See references/motion.md for implementation details.
+Signature scroll-driven canvas animation. An extremely tall invisible scroll pane captures scroll events; scroll position maps to image sequence progression and 3D camera movement. Custom render loop updates geometry and textures based on scrollTop. Initial state shows kinetic typography hero; the first scroll sets a state class that hides the hero and reveals project imagery. Opacity transitions: 0.001 → 1 for content fade-in.
 
 # Algorithms
 
@@ -101,4 +101,8 @@ Standard implementation, no special design.
 
 # Craft
 
-Loading state management: `.loader` displays until assets ready, then `.loaded-content` fades in content and nav. Scroll initiation detection: `.started-scrolling` class applied on first scroll event, hiding `.first` hero element. Font loading: subset and complete BradfordLLWeb variants with WOFF2/WOFF fallbacks. Favicon suite: full Apple touch icon set, Android icons, MS tile.
+Loading state management: a full-screen loader displays until assets are ready, then a loaded-state class fades in content and nav. Scroll initiation detection: a state class applied on the first scroll event hides the opening hero element. Font loading: a subset of the text serif loads first, then the complete family, with WOFF2/WOFF fallbacks. Favicon suite: full touch-icon and tile set for the major mobile and desktop platforms.
+
+# Coherence
+
+Strict black-and-white restraint lets motion and the project imagery carry the whole experience. The kinetic diamond-panel typography teaches the scroll-driven interaction before any work appears, and the same scroll then drives the canvas through the archive, so the opening is the instruction for everything that follows. A single characterful text serif with uppercase tracked labels keeps the studio's voice consistent from hero to footer, while the absence of buttons, cards and accent colors leaves the print work as the only source of color.

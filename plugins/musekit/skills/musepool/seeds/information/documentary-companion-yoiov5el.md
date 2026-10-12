@@ -66,11 +66,11 @@ dimensions_with_reference: []
 
 # Narrative
 
-Interactive companion website for a 2021 documentary film about surveillance, vision, and technology. The site presents an annotated archive of articles, quotes, links, and archival materials that inspired the film. Content is organized as a constellation of interconnected entries, each tied to specific timestamps in the film. Users can scrub through a timeline to explore references, read corresponding entries, discover related ideas, and trace paths of exploration. The narrative flow moves from a hero introduction through a grid of entry points into deep-dive annotation cards with sources and related links.
+Interactive companion website for a documentary film about surveillance, vision, and technology. The site presents an annotated archive of articles, quotes, links, and archival materials that inspired the film. Content is organized as a constellation of interconnected entries, each tied to specific timestamps in the film. Users can scrub through a timeline to explore references, read corresponding entries, discover related ideas, and trace paths of exploration. The narrative flow moves from a hero introduction through a grid of entry points into deep-dive annotation cards with sources and related links.
 
 # Tech Stack
 
-Next.js static site with TypeScript. Styled-jsx for component-scoped CSS. Plyr for video/audio playback. Typekit (Adobe Fonts) for web font delivery. GSAP for timeline and scroll-driven interactions. JSON-driven content architecture with timeline data and annotation content loaded as data files.
+Next.js static site with TypeScript. Styled-jsx for component-scoped CSS. Plyr for video/audio playback. A hosted web-font service for font delivery. GSAP for timeline and scroll-driven interactions. JSON-driven content architecture with timeline data and annotation content loaded as data files.
 
 # Layout
 
@@ -78,15 +78,15 @@ Split-screen layout: left 50% is an interactive canvas visualization (the "const
 
 # Typography
 
-Dual-font system: Soleil (geometric sans-serif, weight 600) for headings, navigation, and UI elements; PT Serif for body text and long-form content. Type scale uses CSS custom properties. Heading 1: Soleil, all-caps, wide letter-spacing (0.2em). Heading 2: Soleil, sentence case. Body: PT Serif at 16px/1.6 line-height. Small caps used for source attributions. Timecodes use monospace numerals via `font-variant-numeric: tabular-nums`.
+Dual-font system: a clean, friendly geometric sans-serif with round bowls (weight 600) for headings, navigation, and UI elements; PT Serif for body text and long-form content. Type scale uses CSS custom properties. Heading 1: the geometric sans, all-caps, wide letter-spacing (0.2em). Heading 2: the geometric sans, sentence case. Body: PT Serif at 16px/1.6 line-height. Small caps used for source attributions. Timecodes use monospace numerals via `font-variant-numeric: tabular-nums`.
 
 # Color
 
-Neutral base with section-specific accents. Background: `#e5e5e5` (light warm gray). Text: `#000` (pure black). Section highlight colors assigned per thematic cluster: mustard yellow (`#CAA266`), sage green (`#AABB87`), cornflower blue (`#5D80D9`). Each section uses its highlight for borders, active states, and player chrome via CSS custom property `--section-highlight`. Cards have subtle background tints at 10% opacity (`--section-highlight-background`).
+Neutral base with section-specific accents. Background: `#e5e5e5` (light warm gray). Text: `#000` (pure black). Section highlight colors assigned per thematic cluster: mustard yellow (`#CAA266`), sage green (`#AABB87`), cornflower blue (`#5D80D9`). Each section uses its highlight for borders, active states, and player chrome via CSS custom property `--section-highlight`. Mustard and sage reach only 1.87:1 and 1.63:1 on `#e5e5e5`, so their `--section-highlight` values are Mustard UI (`#9A7438`, 3.38:1) and Sage UI (`#71814F`, 3.36:1); cornflower (3.00:1) is used as is. The original `#CAA266` and `#AABB87` only tint the cards. Cards have subtle background tints at 10% opacity (`--section-highlight-background`).
 
 # Imagery
 
-Mixed media: embedded video clips (Marey chronophotography, bodycam footage), archival photographs, book covers, diagrams, and screenshots. Images presented in gallery grids or full-width within cards. Thumbnail grid on landing shows 6 entry points with numbered circles. Video player uses custom skin matching section highlight color.
+Mixed media: embedded video clips (19th-century chronophotography archives, body-worn camera footage), archival photographs, book covers, diagrams, and screenshots. Images presented in gallery grids or full-width within cards. Thumbnail grid on landing shows 6 entry points with numbered circles. Video player uses custom skin matching section highlight color.
 
 # Components
 
@@ -116,4 +116,4 @@ Ruled lines (1px borders) separate card sections. Careful typographic detailing:
 
 # Coherence
 
-The split-screen layout embodies the site's conceptual core: the left-side constellation visualizes the "immeasurable unseen" network of ideas, while the right-side presents the readable, linear archive. The numbered annotation system creates a bridge between film viewing and deep reading. Color-coding by section helps users build mental maps of thematic territory.
+The split-screen layout embodies the site's conceptual core: the left-side constellation visualizes the hidden, hard-to-measure network of ideas behind the film, while the right-side presents the readable, linear archive. The numbered annotation system creates a bridge between film viewing and deep reading. Color-coding by section helps users build mental maps of thematic territory.

@@ -64,11 +64,11 @@ dimensions_with_reference: []
 
 # Narrative
 
-A Swiss menswear fashion label archive site presenting collections, campaigns, press coverage, research, and products. The narrative structure is a dense, scannable index — each entry displays metadata (content type, location, collaborators, year) in a tabular format alongside oversized titles and horizontal image strips. The site functions as both a portfolio and an e-commerce platform, with Shopify integration for product sales.
+An independent European menswear label's archive site presenting collections, campaigns, press coverage, research, and products. The narrative structure is a dense, scannable index — each entry displays metadata (content type, location, collaborators, year) in a tabular format alongside oversized titles and horizontal image strips. The site functions as both a portfolio and an e-commerce platform, with Shopify integration for product sales.
 
 # Tech Stack
 
-Kirby CMS (PHP) with custom frontend. Swup for page transitions. Shopify Buy SDK for e-commerce. Flickity for carousels. Plyr for video. GSAP/TweenLite for animations. Custom font "SBM" embedded as base64 WOFF data URI.
+Kirby CMS (PHP) with custom frontend. Swup for page transitions. Shopify Buy SDK for e-commerce. Flickity for carousels. Plyr for video. GSAP/TweenLite for animations. A brand-specific custom font embedded as a base64 WOFF data URI.
 
 # Layout
 
@@ -76,11 +76,11 @@ Brutalist editorial layout with extreme information density. Fixed header with f
 
 # Typography
 
-Primary font: SBM (custom sans-serif, embedded as data URI). Body size: 0.753rem with 1rem line-height. Massive display type for titles: 6.0241rem (desktop), scaling to 3.01205rem (mobile). Tight line-height (5rem for desktop titles, 2.5rem mobile). All caps used in UI elements. Bracket syntax `[content]` for metadata values. Checkbox-style navigation indicators `[✔]` with accent color.
+Primary font: a brand-specific custom sans-serif — plain, compact and slightly technical, set tight at display sizes (embedded as data URI). Body size: 0.753rem with 1rem line-height. Massive display type for titles: 6.0241rem (desktop), scaling to 3.01205rem (mobile). Tight line-height (5rem for desktop titles, 2.5rem mobile). All caps used in UI elements. Bracket syntax `[content]` for metadata values. Checkbox-style navigation indicators `[✔]` with accent color.
 
 # Color
 
-Electric blue accent: `#1100FF` (CSS variable `--accent-color`). Pure black text `#000` on white background. Header background is the accent blue; active tab inverts to white background with black text. Images load with blue mask overlay that fades on reveal. Selection background is semi-transparent accent blue.
+Electric blue accent: `#1100FF` (CSS variable `--accent-color`). Pure black text `#000` on white background. Header background is the accent blue with white (`#fff`) tab labels (8.50:1; black on the blue would reach only 2.46:1); active tab inverts to white background with black text. Images load with blue mask overlay that fades on reveal. Selection background is semi-transparent accent blue.
 
 # Imagery
 
@@ -111,3 +111,7 @@ Standard implementation, no special design.
 # Craft
 
 Custom checkbox navigation pattern using `[✔]` character that toggles opacity on active state. Bracket syntax as visual design element throughout. Rounded corner on active tabs only (top-right), creating distinctive "tab folder" aesthetic. Empty collaborators shown as `∅` symbol. External links show origin on hover via `data-origin` attribute and `\002197` (↗) arrow.
+
+# Coherence
+
+One electric blue does all the signaling: header, cart panel, metadata values, hover states and the image masks that fade on reveal, against plain black-on-white text. The dense index rows—bracketed metadata table, massive title, horizontal image strip—treat collections, campaigns, press and products as entries of equal weight, so the archive and the shop read as one system. Typographic devices such as `[value]` brackets, `[✔]` checkboxes and the `∅` placeholder, together with the single rounded tab corner, give the brutalist density a consistent, slightly technical voice.

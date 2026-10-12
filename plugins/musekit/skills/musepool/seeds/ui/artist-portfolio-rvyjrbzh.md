@@ -64,19 +64,19 @@ dimensions_with_reference:
 
 # Narrative
 
-An artist portfolio presenting conceptual art projects through a typographic-first interface. The homepage displays 11 projects as a continuous stream of text — each project title in bold italic followed by a descriptive sentence in regular italic. The narrative flow is non-hierarchical: projects appear as equal entries in a running list, suggesting a practice-based research approach where each work is part of an ongoing exploration. A hidden image layer beneath the text reveals project visuals on hover, creating a dual-layer reading experience: text as primary navigation, imagery as contextual depth.
+An artist portfolio presenting conceptual art projects through a typographic-first interface. The homepage displays the full project list as a continuous stream of text — each project title in bold italic followed by a descriptive sentence in regular italic. The narrative flow is non-hierarchical: projects appear as equal entries in a running list, suggesting a practice-based research approach where each work is part of an ongoing exploration. A hidden image layer beneath the text reveals project visuals on hover, creating a dual-layer reading experience: text as primary navigation, imagery as contextual depth.
 
 # Tech Stack
 
-Vanilla jQuery-based site with custom JavaScript for interactions. Uses flowtype.js for fluid typography, sticky-kit for column sticking, and skrollr for scroll-driven transforms. Modernizr for feature detection, WURFL for device detection. No framework — hand-coded interactions.
+Vanilla jQuery-based site with custom JavaScript for interactions. Uses flowtype.js for fluid typography, sticky-kit for column sticking, and skrollr for scroll-driven transforms. Modernizr for feature detection and server-side device detection to separate touch from pointer devices. No framework — hand-coded interactions.
 
 # Layout
 
-Single-column text stream occupying ~80% viewport width, offset by generous left margins (8rem desktop). The project list flows as continuous inline text with line-height 1.5em, creating a reading experience closer to a manifesto than a grid. Behind the text layer sits a fixed-position "research grid" — a scattered collage of polygon-masked images that respond to scroll position with translate3d transforms. The layout rejects conventional portfolio grids in favor of editorial density.
+Single-column text stream occupying ~80% viewport width, offset by generous left margins (8rem desktop). The project list flows as continuous inline text with line-height 1.5em, creating a reading experience closer to a manifesto than a grid. Behind the text layer sits a fixed-position collage layer — a scattered arrangement of polygon-masked images that respond to scroll position with translate3d transforms. The layout rejects conventional portfolio grids in favor of editorial density.
 
 # Typography
 
-Dual-font system: **PreissigText-BoldItalic** for project titles (1.06em size, 0 letter-spacing), **CelliniTF-Regular** for body text (19px base, 1.5em line-height), and **CelliniTF-Italic** for descriptions. A third display font, **PreissigOzdoby-Shape**, provides geometric icons (◆, ▲, ◆) via CSS-generated content before each project. The scale is dramatic: project list renders at 2.5em with 1.5em line-height, creating oversized, almost poster-like text. Custom underline treatment uses `box-shadow: inset 0 -8px 0 white, inset 0 -10px 0px black` — a double-line strikethrough that inverts on hover.
+Dual-font system: a **Czech-style bold italic display serif** — heavy, angular, slightly folkloric — for project titles (1.06em size, 0 letter-spacing), and a **classical book serif** (regular and italic cuts) for body text (19px base, 1.5em line-height) and descriptions. A third **geometric ornament font** (dingbat-style diamonds and triangles: ◆, ▲) provides icons via CSS-generated content before each project. The scale is dramatic: project list renders at 2.5em with 1.5em line-height, creating oversized, almost poster-like text. Custom underline treatment uses `box-shadow: inset 0 -8px 0 white, inset 0 -10px 0px black` — a double-line strikethrough that inverts on hover.
 
 # Color
 
@@ -84,25 +84,25 @@ Strict monochrome: `#000` text on `#fff` background. No accent colors, no gradie
 
 # Imagery
 
-Project images are masked into irregular geometric polygons using SVG clipPath definitions (clipPolygon1-14). Each shape has unique polygon coordinates creating asymmetric, shard-like frames. Images are randomly selected from JSON arrays on each interaction, creating a non-static experience. The shapes are positioned with varying margins (50px-490px top, 120px-240px left) in a scattered, non-grid arrangement. Image ratios (landscape/portrait/square) are preserved via CSS classes.
+Project images are masked into irregular geometric polygons using a set of SVG clipPath definitions, one per frame. Each shape has unique polygon coordinates creating asymmetric, shard-like frames. Images are randomly selected from per-project image lists on each interaction, creating a non-static experience. The shapes are positioned with varying margins (50px-490px top, 120px-240px left) in a scattered, non-grid arrangement. Image ratios (landscape/portrait/square) are preserved via CSS classes.
 
 # Components
 
-**Navigation**: Minimal header with site name left, "Textes/About" links right, language toggle (en/fr), and a refresh GIF button (20px) that triggers image reshuffle.
+**Navigation**: Minimal header with site name left, a texts/about link pair right, a bilingual language toggle, and a small animated refresh icon (20px) that triggers image reshuffle.
 
-**Project links**: Inline text blocks with transparent front layer (for hover detection) and visible underlined layer. Each project prefixed by a geometric icon from PreissigOzdoby-Shape font.
+**Project links**: Inline text blocks with transparent front layer (for hover detection) and visible underlined layer. Each project prefixed by a geometric icon from the ornament font.
 
-**Research grid**: Fixed full-screen layer (z-index: 30) containing 13 polygon-masked image containers (368px × 290px base, scaled 2x). Hidden by default, revealed on hover/scroll.
+**Collage layer**: Fixed full-screen layer (z-index: 30) containing one polygon-masked image container per project (368px × 290px base, scaled 2x). Hidden by default, revealed on hover/scroll.
 
 # Motion
 
-**Hover reveal**: Mouse over project text triggers specific shape visibility with 3D transform positioning (`translate3d(0px, posY, 0px) scale(2)`). Shapes calculate vertical offset based on viewport position.
+**Hover reveal**: Mouse over project text triggers specific shape visibility with 3D transform positioning (`translate3d(0, y, 0) scale(2)`). Shapes calculate vertical offset based on viewport position.
 
-**Scroll-driven parallax**: The research-grid-wrapper translates vertically based on scroll progress (`pageT / pageH * wrapperHeight`), creating a slow-drifting collage effect behind the text.
+**Scroll-driven parallax**: The collage wrapper translates vertically in proportion to scroll progress (scroll position ÷ scrollable height × the collage's overflow height), creating a slow-drifting collage effect behind the text.
 
-**Image rotation**: Clicking refresh or hovering projects loads random images from JSON arrays — each interaction surfaces different research material.
+**Image rotation**: Clicking refresh or hovering projects loads random images from per-project image lists — each interaction surfaces different research material.
 
-**Fluid typography**: flowtype.js adjusts font-size between 15-20px based on viewport width (fontRatio: 90).
+**Fluid typography**: flowtype.js adjusts font-size between 15-20px based on viewport width.
 
 # Algorithms
 
@@ -114,11 +114,11 @@ Standard implementation, no special design.
 
 # Craft
 
-**French typographic refinement**: JavaScript applies orthographic corrections — non-breaking spaces before punctuation (\u00A0 before ?, !, :, »), thin spaces (\u202f) for guillemets, and proper apostrophes (\u2019). CSS uses `-webkit-font-smoothing: antialiased` and `text-rendering: optimizeLegibility` throughout.
+**French typographic refinement**: JavaScript applies orthographic corrections — non-breaking spaces before high punctuation (\u00A0 before ?, !, :, »), thin spaces (\u202f) for guillemets, and proper apostrophes (\u2019). CSS uses `-webkit-font-smoothing: antialiased` and `text-rendering: optimizeLegibility` throughout.
 
-**Responsive scaling**: Research grid scales via transform (0.7-1.0) based on viewport width breakpoints (479px, 1080px, 1220px, 1350px, 1450px, 1600px).
+**Responsive scaling**: The collage layer scales via transform (roughly 0.65-1.0) across a handful of viewport-width breakpoints from small mobile to wide desktop.
 
-**Mobile fallback**: Touch devices disable hover interactions; grid remains hidden or accessible via click.
+**Mobile fallback**: Touch devices disable hover interactions; the collage layer remains hidden or accessible via click.
 
 ---
 
@@ -131,100 +131,47 @@ Standard implementation, no special design.
 
 ## Hover Reveal System
 
-Two-layer project list architecture:
+Two-layer project list architecture: the same list is rendered twice and stacked.
 
-**Front layer** (invisible, interactive):
-```css
-ul.front.projects {
-    z-index: 12;
-    color: transparent;
-    position: absolute;
-}
-```
+- **Front layer** — absolutely positioned on top, text colored `transparent`. It only receives pointer events.
+- **Visible layer** — the styled list underneath (2.5em, line-height 1.5em) that carries the underline and hover fill.
 
-**Visible layer** (underlined text):
-```css
-ul.projects {
-    font-size: 2.5em;
-    line-height: 1.5em;
-    z-index: 0;
-    position: relative;
-}
-```
-
-Hover detection happens on transparent front layer; visual feedback (underline inversion, background fill) applies to visible layer via synchronized `.hover` class.
+Hover detection happens on the transparent front layer; visual feedback (underline inversion, background fill) is mirrored onto the matching item of the visible layer by toggling a shared state class. Separating hit-testing from rendering keeps the hover target stable while the visible text restyles.
 
 ## Image Display on Hover
 
-```javascript
-displayPic = function(_this, posY) {
-    var picToDisplay = $(_this).index();
-    var offsetPos = 420 - ($(window).height() - (($(_this).offset().top + $(_this).height()) - $(window).scrollTop()));
-    
-    $('.shape').eq(picToDisplay).addClass('toped');
-    
-    if ($(_this).offset().top - $(window).scrollTop() < 390) {
-        if (offsetPos > 0) {
-            posY = posY + 100 - offsetPos;
-        } else {
-            posY = posY + 100;
-        }
-    } else {
-        posY = posY - $(_this).height() - 300;
-    }
-    
-    loadShapeImage($('.shape').eq(picToDisplay).find('img'));
-    var shapeOffset = $('.shape').eq(picToDisplay).offset().top;
-    $('.shape').css('visibility', 'hidden');
-    $('.shape').eq(picToDisplay).css('transform', 'translate3d(' + (0) + 'px,' + (posY - shapeOffset) + 'px,0px) scale(2)');
-    $('.shape').eq(picToDisplay).css('visibility', 'visible');
-};
-```
-
-## Scroll-Driven Parallax
+Each list item maps by index to one masked frame in the collage layer. On hover the frame is moved to sit near the hovered line, then shown on its own:
 
 ```javascript
-$(window).bind('scroll', function() {
-    if (!($('#research-grid').hasClass('hidden'))) {
-        var pageH = $('body').height() - $(this).height() + heightCorr;
-        var pageT = $(window).scrollTop() - $('body').position().top;
-        var scrollR = pageT / pageH * ($('#research-grid-wrapper').height() - $(this).height());
-        $('#research-grid-wrapper').css('transform', 'translate3d(0px,' + (-scrollR) + 'px,0px) scale(' + 1 + ')');
-    }
-});
-```
-
-Maps scroll progress to vertical translation of the entire image collage.
-
-## Responsive Scale
-
-```javascript
-$(window).bind('resize', function() {
-    winWidth = $(window).width();
-    if (winWidth <= 479) { gridScale = 0.7; }
-    else if (winWidth <= 1080) { gridScale = 0.65; heightCorr = 200; }
-    else if (winWidth <= 1220) { gridScale = 0.75; heightCorr = 150; }
-    else if (winWidth <= 1350) { gridScale = 0.8; heightCorr = 120; }
-    else if (winWidth <= 1450) { gridScale = 0.87; heightCorr = -10; }
-    else if (winWidth <= 1500) { gridScale = 0.95; heightCorr = -15; }
-    else if (winWidth >= 1600) { gridScale = 1; heightCorr = -30; }
-    
-    $('#research-grid').css('transform', 'translate3d(0px,0px,0px) scale(' + gridScale + ')');
-});
-```
-
-## Mobile Disable
-
-```javascript
-if (!(WURFL.is_mobile)) {
-    $('.projects.front li').each(function(i) {
-        $(this).mouseover(function() { /* ... */ });
-        $(this).mouseout(function() { /* ... */ });
-    });
+// Minimal illustration; tune the offsets to your own layout.
+function showPreview(index, anchorY) {
+  const item = items[index];
+  const frame = frames[index];
+  const rect = item.getBoundingClientRect();
+  // Below the line when it sits in the upper part of the viewport, above it otherwise.
+  const y = rect.top < window.innerHeight / 2
+    ? anchorY + GAP
+    : anchorY - rect.height - frame.offsetHeight;
+  loadImage(frame);
+  frames.forEach((f) => (f.style.visibility = 'hidden'));
+  frame.style.transform = `translate3d(0, ${y - frame.offsetTop}px, 0) scale(2)`;
+  frame.style.visibility = 'visible';
 }
 ```
 
-Hover interactions disabled on mobile devices.
+The placement keeps the enlarged frame inside the viewport and away from the line being read.
+
+## Scroll-Driven Parallax
+
+The collage wrapper is taller than the viewport. On scroll, its translation is the scroll progress (0–1) multiplied by its overflow height (wrapper height − viewport height), applied as a negative `translate3d` on Y. The collage therefore reaches its bottom edge exactly when the page does, drifting more slowly than the text above it. A small per-breakpoint correction compensates for the scaled wrapper height.
+
+## Responsive Scale
+
+A breakpoint table maps viewport width to a uniform `scale()` on the collage layer (about 0.65 at tablet widths up to 1.0 on wide screens) together with the height correction used by the parallax. Recompute both on resize.
+
+## Mobile Disable
+
+Hover listeners are attached only on pointer devices (a device-detection flag, or today `matchMedia('(hover: hover)')`). Touch devices skip the reveal entirely.
 
 <!-- ref-dim: typography -->
 
@@ -232,24 +179,13 @@ Hover interactions disabled on mobile devices.
 
 ## Font Families
 
-Three custom fonts loaded via @font-face:
+Three custom fonts loaded via @font-face, each with a restricted Unicode range:
 
-**PreissigText-BoldItalic** (project titles)
-- File: `PreissigText-BoldItalic_gdi.woff`
-- Unicode range: U+0020-2665
-- Applied via `.bluu` class: `font-family:'PreissigText-BoldItalic'; letter-spacing: 0px; font-size:1.06em;`
+- **Bold italic display serif** (project titles) — applied through a title class with `letter-spacing: 0` and `font-size: 1.06em`.
+- **Geometric ornament font** (icons) — applied only through an `::before` pseudo-element with CSS-generated content.
+- **Classical book serif, regular / bold / italic** (body text) — the regular cut is the base family on `html`; bold and italic are separate families switched by utility classes and `em`.
 
-**PreissigOzdoby-Shape** (geometric icons)
-- File: `PreissigOzdoby.woff`
-- Unicode range: U+0020-00E4
-- Applied via `.icon:before` pseudo-element with CSS-generated content
-
-**CelliniTF-Regular / CelliniTF-Bold / CelliniTF-Italic** (body text)
-- Files: `CelliniTF-Regular_gdi.woff`, `CelliniTF-Bold_gdi.woff`, `CelliniTF-Italic.woff`
-- Unicode range: U+0020-2212
-- Base: `font-family:'CelliniTF-Regular'` on html element
-- Bold: `font-family:'CelliniTF-Bold'` via `.bold` class
-- Italic: `font-family:'CelliniTF-Italic'` via `em` tag or `.italic` class
+Loading each cut as its own family (rather than relying on `font-weight`/`font-style` matching) avoids synthetic bold or italic.
 
 ## Custom Underline Technique
 
@@ -263,30 +199,16 @@ Creates a double-line effect: white inset (8px) masks the background, black inse
 
 ## Icon System
 
-Geometric markers before each project via CSS generated content:
-
-```css
-.projects li:nth-child(1) .icon:before { content: "D"; }
-.projects li:nth-child(2) .icon:before { content: "A"; }
-.projects li:nth-child(3) .icon:before { content: "F"; }
-/* etc. — maps to PreissigOzdoby-Shape font glyphs */
-```
+Each project item gets a geometric marker via `::before { content: "<letter>" }`; the ornament font maps ordinary Latin letters to diamond and triangle glyphs, so the marker sequence is controlled from CSS with an `:nth-child()` rule per item.
 
 ## Fluid Typography
 
-flowtype.js configuration:
-```javascript
-$('body').flowtype({
-    minFont: 15,
-    maxFont: 20,
-    fontRatio: 90
-});
-```
+flowtype.js scales the root font size with viewport width between a 15px minimum and a 20px maximum. A modern equivalent is `font-size: clamp(15px, <vw-based value>, 20px)` on the root element.
 
 ## French Typographic Corrections
 
-JavaScript regex replacements for proper French spacing:
-- Non-breaking space (`\u00A0`) before: aux, au, à, un, une, la, le, les, de, du, des, se, ses, sa, ce, ces, et
-- Thin space (`\u202f`) before: ?, !, :, »
+A text pass over the content applies French typographic rules:
+- Non-breaking space (`\u00A0`) after short articles, prepositions and conjunctions, so they never end a line
+- Thin space (`\u202f`) before high punctuation: ?, !, :, »
 - Thin space after: «
-- Proper apostrophe: `\u2019` replaces `\'`
+- Proper apostrophe: `\u2019` replaces the straight quote

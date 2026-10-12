@@ -94,7 +94,7 @@ Header names are text links with hover state. Eye chart letters are individual f
 
 # Motion
 
-Loading screen animates "LOADING" letters with blur filter keyframes (0px → 5px → 0px). Eye chart images fade in/out on name hover. Smooth scroll behavior for anchor links. Scroll-triggered opacity changes on the eye chart container (blur filter transitions from 0px as user scrolles). See references/motion.md for animation specifics.
+Loading screen animates "LOADING" letters with blur filter keyframes (0px → 5px → 0px). Eye chart images fade in/out on name hover. Smooth scroll behavior for anchor links. Scroll-triggered opacity changes on the eye chart container (blur filter transitions from 0px as user scrolles).
 
 # Algorithms
 

@@ -50,7 +50,7 @@ tags:
   - soft
   tech:
   - vanilla-js
-  - webflow
+  - framer
   - gsap
   typography:
   - serif

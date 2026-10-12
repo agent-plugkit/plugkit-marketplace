@@ -59,7 +59,7 @@ dimensions_with_reference: []
 
 # Narrative
 
-A programmatic design studio landing page presenting "Undulations in C, Op.1 No.1" — a never-ending generative musical composition. The narrative centers on a single canvas-based visualization: musical notation rendered along curved staff lines that form an infinity-symbol/lemniscate shape. The piece positions itself as both portfolio statement and interactive artwork, with the generative music serving as the primary content and the circular notation as its visual manifestation.
+A programmatic design studio landing page presenting a single endless generative composition in C, titled in the manner of a classical opus number. The narrative centers on a single canvas-based visualization: musical notation rendered along curved staff lines that form an infinity-symbol/lemniscate shape. The piece positions itself as both portfolio statement and interactive artwork, with the generative music serving as the primary content and the circular notation as its visual manifestation.
 
 # Tech Stack
 
@@ -67,16 +67,16 @@ Next.js (React) with Paper.js for canvas-based vector graphics rendering. Emotio
 
 # Layout
 
-Full-viewport canvas as the sole visual layer, centered and fixed. Text elements float in fixed positions: header block top-left, "Play" control bottom-left, "Information" link bottom-right, copyright centered at bottom. The canvas dominates (≈90% viewport), with text acting as minimal UI chrome. No scrolling; single-screen experience.
+Full-viewport canvas as the sole visual layer, centered and fixed. Text elements float in fixed positions: header block top-left, a play control bottom-left, an information link bottom-right, copyright centered at bottom. The canvas dominates (≈90% viewport), with text acting as minimal UI chrome. No scrolling; single-screen experience.
 
 # Typography
 
 Three-font system:
-- **Basel Grotesk** (485 weight): Primary sans-serif for UI labels, navigation, body text. Clean, neutral Swiss character.
-- **Ogg Regular Italic**: Display serif for "presents" and "Undulations in C" — elegant, high-contrast transitional italic with dramatic stroke modulation.
+- **Neutral Swiss-style grotesk** (an in-between weight, ~485): Primary sans-serif for UI labels, navigation, body text. Clean, neutral character.
+- **Calligraphic display serif, regular italic**: Display serif for the linking word and the piece title — elegant, high-contrast transitional italic with dramatic stroke modulation.
 - **Bravura**: Music notation font (SMuFL-compliant) for rendering actual note glyphs, clefs, and musical symbols on canvas.
 
-Header text uses mixed styling: sans-serif for the studio name and "generative impromptu", italic serif for the title phrase. `mix-blend-mode: difference` applied to header and footer text for contrast against the black notation on light background.
+Header text mixes studio name, subtitle and piece title: sans-serif for the studio name and the genre-style subtitle, italic serif for the title phrase. `mix-blend-mode: difference` applied to header and footer text for contrast against the black notation on light background.
 
 # Color
 
@@ -84,25 +84,25 @@ Monochrome palette: `#f4f4f4` (warm off-white) background, pure black (`#000000`
 
 # Imagery
 
-No photographic imagery. The visual content is entirely programmatic: a continuously generated musical score rendered as vector paths on HTML5 canvas. The notation forms a Möbius-like continuous loop with treble and bass clefs at the crossover points. Staff lines curve and undulate; notes appear as black glyphs positioned along the curves. The algorithm generates new musical material indefinitely, creating a "never-ending" score that visualizes the playing music.
+No photographic imagery. The visual content is entirely programmatic: a continuously generated musical score rendered as vector paths on HTML5 canvas. The notation forms a Möbius-like continuous loop with treble and bass clefs at the crossover points. Staff lines curve and undulate; notes appear as black glyphs positioned along the curves. The algorithm generates new musical material indefinitely, creating an endless score that visualizes the playing music.
 
 # Components
 
 Minimal UI components:
 - Fixed header block (top-left): studio name, tagline, piece title
-- "Play" text button (bottom-left): initiates audio playback
-- "Information" link (bottom-right): reveals modal/overlay with project details
+- Play text button (bottom-left): initiates audio playback
+- Information text link (bottom-right): reveals modal/overlay with project details
 - Centered copyright (bottom): small uppercase text
 
 All UI is text-based, no buttons with borders or backgrounds. The canvas itself is the primary interactive element.
 
 # Motion
 
-The canvas visualization animates continuously: notes appear, move along the curved staff lines, and fade. The staff itself may have subtle undulation or the notation scrolls through the curved path. Audio playback triggers visual synchronization — notes highlight or animate as they sound. Reference file covers the Paper.js animation loop and audio-visual synchronization.
+The canvas visualization animates continuously: notes appear, move along the curved staff lines, and fade. The staff itself may have subtle undulation or the notation scrolls through the curved path. Audio playback triggers visual synchronization — notes highlight or animate as they sound.
 
 # Algorithms
 
-The core visual form is algorithmically generated: a lemniscate (infinity symbol) path serves as the spine for curved staff lines. Musical notes are procedurally placed along these curves using mathematical path following. The composition itself is generative — algorithmic music generation drives the notation display. Reference file details the path mathematics and note placement algorithm.
+The core visual form is algorithmically generated: a lemniscate (infinity symbol) path serves as the spine for curved staff lines. Musical notes are procedurally placed along these curves using mathematical path following. The composition itself is generative — algorithmic music generation drives the notation display.
 
 # Material
 

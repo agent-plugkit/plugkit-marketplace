@@ -60,7 +60,7 @@ dimensions_with_reference: []
 
 # Narrative
 
-Personal portfolio of a product designer with engineering background. Single-page narrative flows from hero introduction through work showcase carousel to service description, client logos, writing links, and contact. The story emphasizes technical fluency — "engineer's brain to product design" — targeting founders and technical teams who need build-ready interfaces.
+Personal portfolio of a product designer with engineering background. Single-page narrative flows from hero introduction through work showcase carousel to service description, client logos, writing links, and contact. The story leans on the designer's engineering background as the core positioning, targeting founders and technical teams who need build-ready interfaces.
 
 # Tech Stack
 
@@ -80,11 +80,11 @@ Deep navy background (`bg-brand-dark` / `dark:bg-brand-light` — approximately 
 
 # Imagery
 
-Portfolio carousel displays UI screenshots at 640×480px with `shadow-xl` elevation. Screenshots show dev tools, design systems, and productivity apps. Small circular profile photo (128px) with `pointer-events-none`. Client logos rendered as inline SVGs (Stack Overflow, Canva, DEV.to, X-Team).
+Portfolio carousel displays UI screenshots at 640×480px with `shadow-xl` elevation. Screenshots show dev tools, design systems, and productivity apps. Small circular profile photo (128px) with `pointer-events-none`. A client logo wall of several developer-community and design-tool companies, rendered as monochrome inline SVGs.
 
 # Components
 
-**Floating nav**: Pill-shaped container (`rounded-full`) with `backdrop-blur-xl` glassmorphism, `shadow-2xl`, semi-transparent background (`bg-black/50` dark / `dark:bg-white/75` light). Two pill clusters: primary CTA "Book a call" and secondary social links.
+**Floating nav**: Pill-shaped container (`rounded-full`) with `backdrop-blur-xl` glassmorphism, `shadow-2xl`, semi-transparent background (`bg-black/50` dark / `dark:bg-white/75` light). Two pill clusters: a primary call-booking CTA and secondary social links.
 
 **Quote box**: Bordered container (`border border-brand-subtle`) with decorative 8px corner squares (`size-2 border border-brand-subtle`) positioned absolutely at four corners, creating a technical/drafting aesthetic.
 

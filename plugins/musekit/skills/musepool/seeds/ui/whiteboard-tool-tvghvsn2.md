@@ -75,15 +75,15 @@ Full-bleed canvas interface (100vw × 100vh) with floating UI islands. The tutor
 
 # Typography
 
-System font stack: `-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, PingFang SC, Noto Sans, Noto Sans CJK SC, Microsoft Yahei, Hiragino Sans GB, Arial, sans-serif`. Brand title at 72px with 2px letter-spacing, weight 400. Description at 18px italic. Tooltip text at 14px in `#888`. UI chrome uses 14px base with variable font sizing for canvas text (8px–78px range via data attributes).
+System font stack: `-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, PingFang SC, Noto Sans, Noto Sans CJK SC, Microsoft Yahei, Hiragino Sans GB, Arial, sans-serif`. Brand title at 72px with 2px letter-spacing, weight 400. Description at 18px italic. Tooltip text at 14px in `#757575` (4.60:1 on white). UI chrome uses 14px base with variable font sizing for canvas text (8px–78px range via data attributes).
 
 # Color
 
-Multi-theme system with CSS custom properties. Default theme: white canvas (`#fff`), primary accent `#6698ff` (soft blue), text `#333` for headings, `#888` for secondary text, `#666` for UI chrome. Gray scale from `#f5f5f5` (10) to `#121212` (100). Alternative themes: soft (`#f5f5f5` bg), retro (`#f9f8ed` bg), dark (`#141414` bg), starry (`#0d2537` bg). Island backgrounds are white with subtle shadow `0 0 16px #00000014`.
+Multi-theme system with CSS custom properties. Default theme: white canvas (`#fff`), primary accent `#6698ff` (soft blue), text `#333` for headings, `#757575` for secondary text (4.60:1 on the white canvas; the lighter `#888` is only 3.54:1, so it is kept for arrows and other marks), `#666` for UI chrome. Gray scale from `#f5f5f5` (10) to `#121212` (100). Alternative themes: soft (`#f5f5f5` bg), retro (`#f9f8ed` bg), dark (`#141414` bg), starry (`#0d2537` bg). Island backgrounds are white with subtle shadow `0 0 16px #00000014`.
 
 # Imagery
 
-No photographic imagery. Visual interest comes from SVG arrow annotations—curved paths with quadratic bezier curves (`Q` commands) and marker-end arrowheads. Arrows use `#aaa` stroke at 1.5px width. The canvas itself is the visual: an infinite white space framed by minimal UI chrome.
+No photographic imagery. Visual interest comes from SVG arrow annotations—curved paths with quadratic bezier curves (`Q` commands) and marker-end arrowheads. Arrows use `#888` stroke at 1.5px width on the light themes (3.54:1 on white, 3.25:1 on soft `#f5f5f5`, 3.32:1 on retro `#f9f8ed`). The softer `#aaa` pencil gray is only 2.32:1 on white, so it draws the arrows on the dark (`#141414`, 7.93:1) and starry (`#0d2537`, 6.76:1) themes. The canvas itself is the visual: an infinite white space framed by minimal UI chrome.
 
 # Components
 

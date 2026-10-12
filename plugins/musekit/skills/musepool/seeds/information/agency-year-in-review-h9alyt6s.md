@@ -64,7 +64,7 @@ dimensions_with_reference: []
 
 # Narrative
 
-A design studio's 2024 Year in Review landing page. The narrative flows from an impactful hero announcing "2024 in review" through client testimonial video, a scrolling marquee of praise words, team philosophy reveal with scroll-triggered text animation, project showcase gallery, and a bold CTA footer. The page celebrates the studio's journey while demonstrating their own design capabilities.
+A design studio's annual year-in-review landing page. The narrative flows from an impactful hero that announces the reviewed year in giant numerals through client testimonial video, a scrolling marquee of praise words, team philosophy reveal with scroll-triggered text animation, project showcase gallery, and a bold CTA footer. The page celebrates the studio's journey while demonstrating their own design capabilities.
 
 # Tech Stack
 
@@ -80,19 +80,19 @@ Large display typography dominates: hero digits appear at approximately 20vw siz
 
 # Color
 
-Dominant electric blue (#1458e4) fills the entire page background with white (#fff) text. Secondary accent is a bright cyan-blue (#0099FF) used for button borders. The blue creates immediate brand recognition and cohesive atmosphere. Video section temporarily breaks the blue with natural video colors. Project cards introduce varied colors from client work.
+Dominant electric blue (#1458e4) fills the entire page background with white (#fff) text. Secondary accent is a bright cyan-blue (#0099FF), kept for color fields, glows and other decoration only: on the blue page it reaches just 1.97:1, below the 3:1 a visible boundary needs. Button borders use Border Cyan (#91C8FE), a lighter tint of the same hue at 3.35:1 on #1458e4. The blue creates immediate brand recognition and cohesive atmosphere. Video section temporarily breaks the blue with natural video colors. Project cards introduce varied colors from client work.
 
 # Imagery
 
-Project showcase features screenshot thumbnails of client websites and digital products - a portfolio gallery demonstrating range. Video background shows client testimonial footage. Logo strip displays client brand marks (School of Motion, LaunchLabs, dbt Labs, Euri, etc.) in monochrome treatment. No decorative stock imagery - all content serves the narrative.
+Project showcase features screenshot thumbnails of client websites and digital products - a portfolio gallery demonstrating range. Video background shows client testimonial footage. A logo strip shows a handful of tech and education clients' marks in a single-color treatment. No decorative stock imagery - all content serves the narrative.
 
 # Components
 
-Primary CTA button: white text on transparent background with right arrow icon, border-color #0099FF. Video player: custom video player implementation with play button overlay and poster frame. Marquee tags: pill-shaped containers with large text scrolling horizontally. Project cards: screenshot thumbnails with hover states. Footer: social icon links (Twitter/X, LinkedIn, Dribbble, Facebook).
+Primary CTA button: white text on transparent background with right arrow icon, border-color #91C8FE (Border Cyan). Video player: custom video player implementation with play button overlay and poster frame. Marquee tags: pill-shaped containers with large text scrolling horizontally. Project cards: screenshot thumbnails with hover states. Footer: a row of common social platform icon links.
 
 # Motion
 
-Hero digits animate in with translate3d transforms on page load. Continuous snowflake falling animation (CSS keyframes: snowflakes-fall 10s linear infinite, snowflakes-shake 3s ease-in-out infinite). Testimonial marquee scrolls horizontally via translate3d animation. Scroll-triggered word-by-word text reveal in team section (opacity 0.25 → 1). Video play button scales on hover. See references/motion.md for animation parameters.
+Hero digits animate in with translate3d transforms on page load. Continuous snowflake falling animation (two stacked CSS keyframe animations: a 10s linear infinite fall and a 3s ease-in-out infinite sideways sway). Testimonial marquee scrolls horizontally via translate3d animation. Scroll-triggered word-by-word text reveal in team section (opacity 0.25 → 1). Video play button scales on hover.
 
 # Algorithms
 
@@ -104,7 +104,7 @@ Standard implementation, no special design.
 
 # Craft
 
-Custom cursor behavior on interactive elements. Focus states use 0.125rem solid #4d65ff outline with 0.125rem offset. Smooth scrolling enabled. Snowflake animation uses 12 positioned elements with randomized delays (0-3s) and positions (10%-90% left). Border-radius 1.5rem on themed containers. Anti-aliasing applied globally (-webkit-font-smoothing: antialiased).
+Custom cursor behavior on interactive elements. Focus states use 0.125rem solid Focus Periwinkle (#AEC2FE) outline with 0.125rem offset, 3.36:1 on the blue page; the original #4d65ff reaches only 1.30:1 on #1458e4 and is kept for decorative tints only. Smooth scrolling enabled. Snowflake animation uses 12 positioned elements with randomized delays (0-3s) and positions (10%-90% left). Border-radius 1.5rem on themed containers. Anti-aliasing applied globally (-webkit-font-smoothing: antialiased).
 
 # Coherence
 

@@ -1,11 +1,11 @@
-<!-- 生成文件：scripts/sync-seeds.mjs 根据 seeds/scenarios.json（muspro-seeds 1.1.0）生成，请勿手改。 -->
+<!-- 生成文件：scripts/sync-seeds.mjs 根据 seeds/scenarios.json（muspro-seeds 1.2.0）生成，请勿手改。 -->
 # 检索分类与参考清单
 
 三类按参考的主要借鉴价值组织，用于缩小搜索范围。它们不与四个制作 Skill 一一对应；同一参考可以通过不同的 seed 简报用于不同场景。已有明确参考时不必重新检索。
 
 种子里的维度、分数和技术标签是原始描述与检索线索，不是交付配额。来源中的布局、颜色和技术栈也不是新任务的硬性要求。
 
-下面列出随 Skill 内置的 muspro-seeds 1.1.0 快照。用 `muse_local.py update` 更新本机缓存后，以 `list` 的输出为准。
+下面列出随 Skill 内置的 muspro-seeds 1.2.0 快照。用 `muse_local.py update` 更新本机缓存后，以 `list` 的输出为准。
 
 ## 界面 `ui`
 
@@ -35,7 +35,7 @@
 - [艺术书展](../seeds/graphic/art-book-fair-event-vy3ktwac.md) · `Vy3KTWAC` — 活动识别、标题尺度与象限式构图。
 - [品牌设计师作品集](../seeds/graphic/designer-portfolio-at5oq8hx.md) · `AT5oq8hX` — 大字、橙色强调与图文张力。
 - [艺术中心](../seeds/graphic/arts-center-b3lygtwe.md) · `B3LYgTWe` — 有机图形、主视觉与活动信息层级。
-- [单色／双色编辑印刷](../seeds/graphic/editorial-print-system-mc1nkp2t.md) · `mC1nkP2t` — 纸与墨的关系、焦点与释放区、机械印刷质感；小字改用加深的文字色以满足 WCAG 对比度。
+- [单色／双色编辑印刷](../seeds/graphic/editorial-print-system-mc1nkp2t.md) · `mC1nkP2t` — 纸与墨的关系、焦点与释放区、机械印刷质感；印刷方法按任务选用；小字改用加深的文字色以满足 WCAG 对比度。
 - [摄影毕业展](../seeds/graphic/art-school-exhibition-c4aztwoh.md) · `C4aZtWoH` — 视力表式字号递进与展览标题构图。
 - [活动设计机构](../seeds/graphic/agency-portfolio-pibxrzsg.md) · `pibXRzsG` — 品牌色块、宣言与视觉钩子。
 - [品牌工作室作品集](../seeds/graphic/brand-studio-portfolio-ttceao0m.md) · `tTceao0M` — 大幅图像、黑色衬底与编辑节奏。

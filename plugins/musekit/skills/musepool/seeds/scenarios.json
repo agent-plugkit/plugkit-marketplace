@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "scenarios": [
     {
       "id": "ui",
@@ -130,7 +130,7 @@
           "id": "mC1nkP2t",
           "file": "graphic/editorial-print-system-mc1nkp2t.md",
           "title": "单色／双色编辑印刷",
-          "summary": "纸与墨的关系、焦点与释放区、机械印刷质感；小字改用加深的文字色以满足 WCAG 对比度。"
+          "summary": "纸与墨的关系、焦点与释放区、机械印刷质感；印刷方法按任务选用；小字改用加深的文字色以满足 WCAG 对比度。"
         },
         {
           "id": "C4aZtWoH",

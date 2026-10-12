@@ -65,11 +65,11 @@ A CSS layout education product homepage. The narrative flows from hero (book cov
 
 # Tech Stack
 
-Vanilla JS with custom web components (stack-l, sidebar-l, switcher-l, cluster-l, grid-l, center-l, reel-l, box-l). CSS Houdini paint worklet for image cross pattern. CSS custom properties for spacing scale and theming. No framework dependencies.
+Vanilla JS with a small set of custom web components, one per layout primitive (stack, sidebar, switcher, cluster, grid, center, horizontal reel, box). CSS Houdini paint worklet for image cross pattern. CSS custom properties for spacing scale and theming. No framework dependencies.
 
 # Layout
 
-Asymmetric two-column sidebar layout for hero (book cover left, content right). Content regions max-width 70rem with inline padding. Companies section features a distinctive diagonal stripe border (linear-gradient 45deg checkerboard) on the left edge. Layout pattern catalog uses auto-fit grid with min 15ch columns. Testimonials in horizontal scroll reel. Authors in switcher-l that stacks on narrow viewports. Checkout panel full-width with centered content.
+Asymmetric two-column sidebar layout for hero (book cover left, content right). Content regions max-width 70rem with inline padding. Companies section features a distinctive diagonal stripe border (linear-gradient 45deg checkerboard) on the left edge. Layout pattern catalog uses auto-fit grid with min 15ch columns. Testimonials in horizontal scroll reel. Authors in a switcher component that stacks on narrow viewports. Checkout panel full-width with centered content.
 
 # Typography
 
@@ -81,15 +81,15 @@ High-contrast monochrome palette: `#050505` (dark), `#fafafa` (light), `#404040`
 
 # Imagery
 
-SVG line-art icons for each layout pattern (The Stack, The Box, The Center, The Cluster, etc.) — minimal stroke-based diagrams showing layout behavior. Book cover SVG with bold typography and "3rd edition" starburst. Company logos in monochrome SVG. Author photos with high-contrast grayscale treatment. "Read for free" diagonal badges on specific layout cards.
+SVG line-art icons for each layout pattern (stacking, boxing, centering, clustering and so on) — minimal stroke-based diagrams showing layout behavior. Book cover SVG with bold typography and an edition starburst. Company logos in monochrome SVG. Author photos with high-contrast grayscale treatment. Diagonal free-access badges on specific layout cards.
 
 # Components
 
-Primary CTA: black background, white text, Barlow Condensed font, padding 0.5em 1.5em 0.7em. Form inputs: standard browser styling with sidebar-l layout for email+button. Testimonial cards: sidebar layout with 5rem avatar, serif italic quote. Layout pattern cards: centered stack with SVG icon, heading, optional diagonal "read for free" badge.
+Primary CTA: black background, white text, Barlow Condensed font, padding 0.5em 1.5em 0.7em. Form inputs: standard browser styling with a sidebar layout for email+button. Testimonial cards: sidebar layout with 5rem avatar, serif italic quote. Layout pattern cards: centered stack with SVG icon, heading, optional diagonal free-access badge.
 
 # Motion
 
-Smooth scroll for anchor links (prefers-reduced-motion respected). Reel-l component enables horizontal scrolling with overflow. ShrinkGrow component for progressive disclosure. No entrance animations or parallax — motion serves function, not decoration.
+Smooth scroll for anchor links (prefers-reduced-motion respected). A reel component enables horizontal scrolling with overflow. An expand/collapse component handles progressive disclosure. No entrance animations or parallax — motion serves function, not decoration.
 
 # Algorithms
 

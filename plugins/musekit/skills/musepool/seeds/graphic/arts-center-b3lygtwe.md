@@ -69,19 +69,19 @@ dimensions_with_reference:
 
 # Narrative
 
-An arts center homepage presenting upcoming events and artist programs. The narrative flows from a distinctive organic-shaped hero carousel through thematic "Wander" navigation tags to a dark, grounded footer. The site positions itself as an unconventional cultural institution through its deliberate avoidance of rectangular precision.
+An arts center homepage presenting upcoming events and artist programs. The narrative flows from a distinctive organic-shaped hero carousel through a thematic browsing tag bar to a dark, grounded footer. The site positions itself as an unconventional cultural institution through its deliberate avoidance of rectangular precision.
 
 # Tech Stack
 
-WordPress custom theme. Flickity carousel library for the hero slider and sidebar galleries. Custom JavaScript handles scroll direction detection (`scroll-direction-up/down` body classes) and navigation state. No CSS framework evident beyond minimal Bootstrap utilities.
+CMS custom theme. A carousel library for the hero slider and sidebar galleries. Custom JavaScript handles scroll direction detection (scroll-direction classes on the body) and navigation state. No CSS framework evident beyond minimal utility classes.
 
 # Layout
 
-Asymmetric two-column grid: main content (8/12 columns) sits beside a narrower sidebar (4/12). The hero carousel occupies the main column with generous vertical whitespace. Below, a horizontal "Wander" tag bar stretches full-width with organic blob-shaped buttons. Footer uses a three-column layout on dark background. All containers reject rectangular rigidity in favor of irregular, hand-drawn organic boundaries.
+Asymmetric two-column grid: main content (8/12 columns) sits beside a narrower sidebar (4/12). The hero carousel occupies the main column with generous vertical whitespace. Below, a horizontal thematic tag bar stretches full-width with organic blob-shaped buttons. Footer uses a three-column layout on dark background. All containers reject rectangular rigidity in favor of irregular, hand-drawn organic boundaries.
 
 # Typography
 
-Dual font system: **GT Alpina** (serif) for display headlines and body text, paired with **Graebenbach** (sans-serif, Medium and Bold weights) for UI elements and navigation. Feature headlines use oversized serif (`type--feature-xl`). Event titles use a mid-weight serif (`type--title-l`). Small sans-serif labels (`type--s`) categorize content.
+Dual font system: a **light contemporary serif with sharp terminals** for display headlines and body text, paired with a **warm geometric sans with humanist proportions** (Medium and Bold weights) for UI elements and navigation. Feature headlines use oversized serif. Event titles use a mid-weight serif. Small sans-serif labels categorize content.
 
 # Color
 
@@ -89,21 +89,21 @@ Warm cream background (#fcf7f1) dominates the page body, creating an earthy, arc
 
 # Imagery
 
-Photography is masked inside organic blob shapes using SVG clip-paths with inner shadow filters (`filter0_i_*`). Each event type has a distinct blob style—"public dinner" uses wide horizontal blobs, "open house" uses vertical portrait blobs. The masking creates a torn-paper, collage-like aesthetic. Photos depict candid documentation of art events, not staged stock imagery.
+Photography is masked inside organic blob shapes using SVG clip-paths with inner shadow filters. Each event type has a distinct blob style—communal events use wide horizontal blobs, open-studio style events use vertical portrait blobs. The masking creates a torn-paper, collage-like aesthetic. Photos depict candid documentation of art events, not staged stock imagery.
 
 # Components
 
-**Buttons:** Irregular organic shapes with SVG background images (`button--shaped`, `cb06c8ce5b8e68-newsletter-button-bg.svg`). No rectangular buttons exist.
+**Buttons:** Irregular organic shapes drawn as SVG background images behind the label. No rectangular buttons exist.
 
 **Cards:** Event listings use layered SVG backgrounds with inner shadow effects to create depth and texture.
 
-**Navigation:** Hamburger menu uses three-line icon morphing to close X. Top-right nav links are pill-shaped but irregular. The "Wander" tag bar features seven thematic category buttons with custom SVG icons (ghosts, site, space, time, fog, power, borders).
+**Navigation:** Hamburger menu uses three-line icon morphing to close X. Top-right nav links are pill-shaped but irregular. The thematic tag bar holds about seven abstract theme words, each with its own custom SVG icon, offered as an alternative way to browse the program.
 
-**Form inputs:** Text fields use organic outline SVG backgrounds (`b2901e4098e152-input-bg.svg`).
+**Form inputs:** Text fields use organic outline SVG backgrounds instead of borders.
 
 # Motion
 
-Scroll direction detection applies `scroll-direction-up` or `scroll-direction-down` classes to body. Logo compresses on scroll down (`logo-is-compressed`). Primary navigation slides in from left with full-screen overlay. Carousels use Flickity with fade transitions (`is-fade` class) rather than sliding. Subtle scroll-triggered state changes for navigation pinning (`subnav-is-pinned`).
+Scroll direction detection toggles up/down classes on the body. Logo compresses on scroll down. Primary navigation slides in from left with full-screen overlay. Carousels use fade transitions rather than sliding. Subtle scroll-triggered state changes pin the sub-navigation.
 
 # Algorithms
 
@@ -115,7 +115,7 @@ Inner shadow effects throughout create embossed, tactile quality. SVG filters ap
 
 # Craft
 
-Custom scrollbar styling. Form inputs use organic SVG outlines rather than standard borders. Footer newsletter form floats on its own organic SVG background (`2b8ad7329f2e00-footer-form-bg.svg`). Every interactive element rejects geometric precision for hand-drawn irregularity.
+Custom scrollbar styling. Form inputs use organic SVG outlines rather than standard borders. Footer newsletter form floats on its own organic SVG background. Every interactive element rejects geometric precision for hand-drawn irregularity.
 
 # Coherence
 
@@ -134,35 +134,19 @@ The organic blob aesthetic unifies all dimensions—from image masks to buttons 
 
 Images are masked using SVG patterns with inner shadow filters to create torn-paper, collage-like aesthetics.
 
-### SVG Structure
+### How It Works
 
-```svg
-<svg fill="none" viewBox="0 0 1066 643" xmlns="http://www.w3.org/2000/svg">
-  <g filter="url(#filter0_i_130_9226)">
-    <path d="M974.835 642.512..." fill="url(#pattern0)"/>
-  </g>
-  <defs>
-    <filter id="filter0_i_130_9226" x="0" y="0" width="1066" height="643">
-      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
-      <feBlend in="SourceGraphic" in2="BackgroundImageFix" mode="normal" result="shape"/>
-      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-      <feOffset/>
-      <feGaussianBlur stdDeviation="7.5"/>
-      <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
-      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0"/>
-      <feBlend in2="shape" mode="normal" result="effect1_innerShadow_130_9226"/>
-    </filter>
-    <pattern id="pattern0" width="1" height="1">
-      <use transform="translate(0 -0.052) scale(0.0005 0.00083)" href="#image0"/>
-    </pattern>
-    <image id="image0" width="2000" height="1333" href="[photo-url]"/>
-  </defs>
-</svg>
-```
+Each masked image is one SVG whose only visible shape is an irregular, hand-drawn closed path:
+
+1. **Shape:** the blob outline is a single `<path>`; its `fill` points to a `<pattern>` instead of a color.
+2. **Photo fill:** the `<pattern>` (`width="1" height="1"`, object-bounding-box units) contains an `<image>` scaled and offset so the photo covers the path's bounding box — the SVG equivalent of `object-fit: cover`.
+3. **Inner shadow:** the path is wrapped in a group with an inner-shadow filter. The filter isolates the shape's alpha, blurs it (`feGaussianBlur`), subtracts the blurred alpha from the original with `feComposite operator="arithmetic"` (k2 = −1, k3 = 1) to keep only the inner rim, tints that rim black at partial opacity with `feColorMatrix`, and blends it back over the shape.
+
+Give the filter a descriptive ID such as `inner-shadow` and reuse it for every mask of the same size class.
 
 ### Key Parameters
 
-- **Filter type:** Inner shadow (`filter0_i` naming convention)
+- **Filter type:** Inner shadow (no offset; the shadow is even around the rim)
 - **Blur amount:** `stdDeviation="7.5"` for large masks, `stdDeviation="4"` for smaller
 - **Shadow opacity:** 0.5 (alpha channel in color matrix)
 - **Blend mode:** `multiply` for some variants, `normal` for others
@@ -171,14 +155,14 @@ Images are masked using SVG patterns with inner shadow filters to create torn-pa
 
 | Event Type | Aspect Ratio | Blob Character |
 |------------|--------------|----------------|
-| public-dinner | 1066x643 (wide) | Horizontal, irregular edges |
-| open-house | 330x196 (portrait) | Vertical, rounded corners |
+| Wide event card | ~5:3 landscape (e.g. 1066x643 viewBox) | Horizontal, irregular edges |
+| Tall event card | smaller frame (e.g. 330x196 viewBox) | Vertical, rounded corners |
 
-### CSS Classes
+### Structure
 
-- `.event-listing--media-layers` — container
-- `.style--public-dinner` / `.style--open-house` — style variants
-- `.layer--1` — single layer (no parallax)
+- A media container per event listing holds one or more mask layers.
+- A modifier per event type selects the blob shape (wide or tall).
+- A single-layer variant skips any parallax between layers.
 
 ## Reusable Move
 
@@ -190,44 +174,40 @@ Images are masked using SVG patterns with inner shadow filters to create torn-pa
 
 ## Font Families
 
-### GT Alpina (Serif)
+### Display / Text Serif
 
-- **File:** `ce31c5ddfba1fe-GT-Alpina-Standard-Light.woff2`
 - **Usage:** Display headlines, body text, feature titles
 - **Weights:** Light (primary), Standard
 - **Characteristics:** Contemporary serif with sharp terminals, editorial feel
 
-### Graebenbach (Sans-serif)
+### UI Sans-serif
 
-- **Files:** 
-  - `501e160d13c1a3-Graebenbach-Medium.woff2`
-  - `a67f04454674ee-Graebenbach-Bold.woff2`
 - **Usage:** UI elements, navigation, buttons, labels
 - **Weights:** Medium (primary), Bold
 - **Characteristics:** Geometric sans with humanist proportions, clean but warm
 
 ## Type Scale
 
-| Class | Font | Size | Usage |
-|-------|------|------|-------|
-| `type--feature-xl` | GT Alpina | ~48-64px | Hero headlines |
-| `type--title-l` | GT Alpina | ~32px | Event titles |
-| `type` | GT Alpina | ~18px | Body text, nav links |
-| `type--s` | Graebenbach | ~14px | Labels, categories, buttons |
+| Role | Font | Size | Usage |
+|------|------|------|-------|
+| Feature XL | Serif | ~48-64px | Hero headlines |
+| Title L | Serif | ~32px | Event titles |
+| Base | Serif | ~18px | Body text, nav links |
+| Small | Sans | ~14px | Labels, categories, buttons |
 
 ## Implementation
 
 ```css
 @font-face {
-  font-family: 'GT Alpina';
-  src: url('ce31c5ddfba1fe-GT-Alpina-Standard-Light.woff2') format('woff2');
+  font-family: 'Display Serif';
+  src: url('display-serif-light.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'Graebenbach';
-  src: url('501e160d13c1a3-Graebenbach-Medium.woff2') format('woff2');
+  font-family: 'UI Sans';
+  src: url('ui-sans-medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
 }
@@ -235,4 +215,4 @@ Images are masked using SVG patterns with inner shadow filters to create torn-pa
 
 ## Reusable Move
 
-`dual_font_editorial_system` — Pair a distinctive serif (GT Alpina) for display and body with a complementary geometric sans (Graebenbach) for UI elements. Creates hierarchy through font family contrast rather than weight alone.
+`dual_font_editorial_system` — Pair a distinctive light serif for display and body with a complementary geometric sans for UI elements. Creates hierarchy through font family contrast rather than weight alone.
