@@ -67,16 +67,23 @@ SECTION_RE = re.compile(r"(?m)^# .*$")
 # 不参与匹配的正文:Muspro Seeds 按分类写入的借鉴范围说明(与 scenario 取值等价)、代码块、
 # 行内代码、HTML 注释,以及正文里的 CSS 片段(z-index: 100、display: grid;、cubic-bezier(...)、var(--x))。
 SCOPE_NOTE_RE = re.compile(r"(?m)^> 借鉴范围[:：].*$")
-# 围栏代码块按 CommonMark:结束围栏与开头同字符、不短于开头,其后只能有空白;没有结束围栏时到文末。
-# 反引号围栏的信息串里不能再有反引号(```a``` 是行内代码)。
-FENCE_OPEN_RE = re.compile(r"[ \t]*(?:(`{3,})(?!.*`)|(~{3,}))")
-# 行内代码可以跨行,但不跨空行(段落);两侧反引号串等长。
-INLINE_CODE_RE = re.compile(r"(?<!`)(`+)(?!`)(?:(?!\n[ \t]*\n).)+?(?<!`)\1(?!`)", re.S)
-HTML_COMMENT_RE = re.compile(r"(?s)<!--.*?-->")
+# 代码块与注释块按 CommonMark 逐行识别,先出现的一方说了算(注释里的 ``` 不开围栏,代码里的 <!-- 不开注释):
+# - 围栏:结束围栏与开头同字符、不短于开头,其后只能有空白;没有结束围栏时到文末。反引号围栏的信息串里
+#   不能再有反引号(```a``` 是行内代码)。
+# - 缩进代码块:比所在列表项的内容多缩进 4 列,且不接在段落行后面(段落的续行不算)。
+# - 注释块:以 <!-- 开头的行,到含 --> 的行为止;--> 之后的文字照常参与匹配。
+FENCE_OPEN_RE = re.compile(r"(?:(`{3,})(?!.*`)|(~{3,}))")
+LIST_ITEM_RE = re.compile(r"(?:[-*+]|[0-9]{1,9}[.)])(?:[ ]+|$)")
+HEADING_RE = re.compile(r"#{1,6}(?:[ ]|$)")
+# 段落内的行内代码与 HTML 注释:可以跨行,但不跨空行;行内代码两侧反引号串等长;两者谁先出现按谁处理。
+INLINE_CODE_RE = re.compile(r"(?<!`)(`+)(?!`)(?:(?!\n[ \t]*\n).)+?(?<!`)\1(?!`)|<!--(?:(?!\n[ \t]*\n).)*?-->", re.S)
 # CSS 声明只认常见的 CSS 属性名、自定义属性(--x)与浏览器前缀(-webkit-x):vector-based: geometric
 # 这类带连字符的正文标签不算。font、color、content 这类单词属性名也常作正文标签(Font: a serif …),
 # 只有紧贴冒号(display:none)或以分号结尾时才算声明,且取值是单个关键词(display: grid;)或带数字、
 # 颜色、函数(transition: opacity 0.3s ease;),Order: tier name; 仍是正文。
+# 以分号结尾的声明整条取值都删去,包括逗号、斜杠分隔的列表和字符串(font-family: 'ui sans', monospace;、
+# grid-template-columns: minmax(0, 1fr) auto;);没有分号时只删到第一个关键词及其后的数字、颜色与函数,
+# 以免吞掉 letter-spacing: 1px on input 这类正文说明。
 CSS_PROPERTIES = """
     accent-color align-content align-items align-self animation-delay animation-direction animation-duration
     animation-fill-mode animation-iteration-count animation-name animation-timing-function aspect-ratio
@@ -117,13 +124,15 @@ CSS_SHORT_PROPERTIES = """
 CSS_ARGS = r"(?:[^()\n\u3400-\u9fff]|\([^()\n\u3400-\u9fff]*\))*"
 CSS_FUNCTION = rf"-?[a-z][a-z0-9]*(?:-[a-z0-9]+)*\({CSS_ARGS}\)"
 CSS_VALUE = rf"(?:{CSS_FUNCTION}|[#a-z0-9_.%-]+)(?:[ \t]+(?:{CSS_FUNCTION}|[-#.]?[0-9][a-z0-9_.%]*))*(?:[ \t]*!important)?"
-CSS_LIST_VALUE = rf"(?=[^;\n]*[0-9#(])(?:{CSS_FUNCTION}|[#a-z0-9_.%,'\"/-]+)(?:[ \t]+(?:{CSS_FUNCTION}|[#a-z0-9_.%,'\"/-]+))*"
+CSS_TOKEN = rf"(?:{CSS_FUNCTION}|'[^'\n]*'|\"[^\"\n]*\"|[#a-z0-9_.%-]+)"
+CSS_DECLARATION = rf"{CSS_TOKEN}(?:(?:[ \t]*[,/][ \t]*|[ \t]+){CSS_TOKEN})*(?:[ \t]*!important)?[ \t]*;"
 CSS_NAMES = "|".join(sorted(CSS_PROPERTIES, key=len, reverse=True))
 CSS_SHORT_NAMES = "|".join(sorted(CSS_SHORT_PROPERTIES, key=len, reverse=True))
 CSS_RE = re.compile(rf"(?<![a-z0-9_-])(?:(?:{CSS_NAMES}|--[a-z0-9-]+|-(?:webkit|moz|ms|o)-[a-z]+(?:-[a-z]+)*)"
-                    rf"[ \t]*:[ \t]*{CSS_VALUE};?"
-                    rf"|(?:{CSS_NAMES}|{CSS_SHORT_NAMES}):(?=[#a-z0-9_.-]){CSS_VALUE};?"
-                    rf"|(?:{CSS_SHORT_NAMES})[ \t]*:[ \t]*(?:[#a-z0-9_.%-]+|{CSS_LIST_VALUE})(?:[ \t]*!important)?[ \t]*;"
+                    rf"[ \t]*:[ \t]*(?:{CSS_DECLARATION}|{CSS_VALUE};?)"
+                    rf"|(?:{CSS_NAMES}|{CSS_SHORT_NAMES}):(?=[#a-z0-9_.'\"-])(?:{CSS_DECLARATION}|{CSS_VALUE};?)"
+                    rf"|(?:{CSS_SHORT_NAMES})[ \t]*:[ \t]*(?:[#a-z0-9_.%-]+(?:[ \t]*!important)?[ \t]*;"
+                    rf"|(?=[^;\n]*[0-9#(]){CSS_DECLARATION})"
                     rf"|{CSS_FUNCTION})")
 # 连字符和点连成的是一个词:three-bar、z-index、paper.js 里的 bar、index、paper 都不算独立出现。
 JOINED_BEFORE = r"(?<![a-z0-9][-.])"
@@ -557,9 +566,11 @@ def without_frontmatter(text: str) -> str:
     return text
 
 
-def without_fences(text: str) -> str:
-    """把围栏代码块(含开头与结束围栏)换成空行。"""
-    lines, fence = [], ""
+def without_blocks(text: str) -> str:
+    """把围栏代码块(含开头与结束围栏)、缩进代码块和 HTML 注释块换成空行。"""
+    lines: list[str] = []
+    fence, comment, paragraph = "", False, False
+    items: list[int] = []  # 外层到内层各列表项的内容缩进
     for line in text.split("\n"):
         if fence:
             stripped = line.strip()
@@ -567,21 +578,54 @@ def without_fences(text: str) -> str:
                 fence = ""
             lines.append("")
             continue
-        match = FENCE_OPEN_RE.match(line)
+        if comment:
+            end = line.find("-->")
+            if end < 0:
+                lines.append("")
+                continue
+            comment, line = False, line[end + 3:]
+            lines.append(line)
+            paragraph = bool(line.strip())
+            continue
+        expanded = line.expandtabs(4)
+        content = expanded.lstrip(" ")
+        if not content:
+            lines.append(line)
+            paragraph = False
+            continue
+        indent = len(expanded) - len(content)
+        item = LIST_ITEM_RE.match(content)
+        if item or not paragraph:
+            while items and indent < items[-1]:
+                items.pop()
+        base = items[-1] if items else 0
+        if indent >= base + 4:
+            # 段落的续行照常保留;否则是缩进代码块
+            lines.append(line if paragraph else "")
+            continue
+        match = FENCE_OPEN_RE.match(content)
         if match:
             fence = match.group(1) or match.group(2)
             lines.append("")
+            paragraph = False
             continue
+        if content.startswith("<!--") and "-->" not in content[4:]:
+            comment = True
+            lines.append("")
+            continue
+        if item:
+            marker = item.group().rstrip()
+            spaces = len(item.group()) - len(marker)
+            items.append(indent + len(marker) + (spaces if 1 <= spaces <= 4 else 1))
         lines.append(line)
+        paragraph = not (HEADING_RE.match(content) or content.startswith("<!--"))
     return "\n".join(lines)
 
 
 def without_code(text: str) -> str:
     """去掉代码块、行内代码、HTML 注释与 CSS 片段;统一换行符,返回小写文本。"""
-    text = without_fences(text.replace("\r\n", "\n").replace("\r", "\n"))
-    for pattern in (INLINE_CODE_RE, HTML_COMMENT_RE):
-        text = pattern.sub(" ", text)
-    return CSS_RE.sub(" ", text.lower())
+    text = without_blocks(text.replace("\r\n", "\n").replace("\r", "\n"))
+    return CSS_RE.sub(" ", INLINE_CODE_RE.sub(" ", text).lower())
 
 
 class Doc:

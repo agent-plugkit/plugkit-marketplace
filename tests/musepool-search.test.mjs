@@ -339,6 +339,29 @@ test('code fences, code spans and CSS follow Markdown and CSS syntax; prose labe
   assert.deepEqual(star('mosaic'), ['span']);
 });
 
+test('whole CSS value lists, indented code and comment blocks are excluded; the prose around them is not', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-blocks-'), [
+    { id: 'csslist', gist: 'Reference csslist: a navigation pattern.',
+      body: '# Craft\n\nPanels use font-family: Arial, monospace; and grid-template-columns: minmax(0, 1fr) auto; '
+        + "with font:700 1rem/1.2 'UI Sans', serif; inside. A ledger closes the page. Letter-spacing: 1px on chips." },
+    { id: 'indented', gist: 'Reference indented: a navigation pattern.',
+      body: '# Craft\n\nIntro.\n\n    const secret = "parquet";\n\nA quilted illustration,\n    with a herringbone '
+        + 'border.\n\n- A list item\n\n    with a woven paragraph\n\n        and a nested "flagstone" sample\n\nDone.' },
+    { id: 'comment', gist: 'Reference comment: a navigation pattern.',
+      body: '# Craft\n\n<!-- draft\n```\n-->\nA terrazzo illustration.\n\n```\n<!-- cobble\n```\nA stucco wall.' },
+  ]);
+  const star = (query) => starred(muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', `navigation ${query}`, '-n', '10'));
+  // Declarations ending in a semicolon lose their whole value: lists, functions and strings.
+  for (const word of ['monospace', 'auto', 'serif', 'arial', 'sans']) assert.deepEqual(star(word), [], word);
+  for (const word of ['ledger', 'chips']) assert.deepEqual(star(word), ['csslist'], word);
+  // Indented code is code unless it continues a paragraph or a list item's text.
+  for (const word of ['parquet', 'flagstone']) assert.deepEqual(star(word), [], word);
+  for (const word of ['quilted', 'herringbone', 'woven']) assert.deepEqual(star(word), ['indented'], word);
+  // A fence line inside a comment block does not open a fence, and <!-- inside a fence opens no comment.
+  for (const word of ['terrazzo', 'stucco']) assert.deepEqual(star(word), ['comment'], word);
+  for (const word of ['draft', 'cobble']) assert.deepEqual(star(word), [], word);
+});
+
 test('only reliable hits get ★; without one the noise is not listed', (t) => {
   const library = customLibrary(scratch(t, 'musekit-reliable-'), [
     { id: 'topic', gist: 'A cocktail bar website with a dark reservation flow.', tags: { domain: ['hospitality'] },
