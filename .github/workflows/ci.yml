@@ -37,8 +37,8 @@ jobs:
           fi
 
   musepool-scripts:
-    # muse_local.py and sync-seeds.mjs write files from archives and manage the seed cache;
-    # run their tests where path rules, locking and file systems differ from Linux.
+    # muse_local.py and sync-seeds.mjs write files from archives, manage the seed cache and resolve
+    # MUSEPOOL_SEEDS_DIR; run their tests where path rules, locking and file systems differ from Linux.
     name: Musepool scripts (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -65,4 +65,4 @@ jobs:
       - name: Musepool script tests
         env:
           PYTHON: python
-        run: node --test tests/musepool-cache.test.mjs
+        run: node --test tests/musepool-cache.test.mjs tests/musepool-search.test.mjs

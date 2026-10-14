@@ -7,9 +7,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { contentHash, readDirectory } from '../scripts/sync-seeds.mjs';
@@ -86,16 +88,14 @@ function hashFile(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
-// A 1.3.0-shaped release: the bundled snapshot plus the three seeds 1.3.0 added, taken from
-// tests/fixtures/musepool/release-1.3.0-additions.json. Seed bodies are generated from the gist.
-function fixtureRelease(dir) {
-  const additions = JSON.parse(readFileSync(join(fixtures, 'release-1.3.0-additions.json'), 'utf8'));
-  const { version } = additions;
+// A release of the bundled snapshot relabelled as `version`, plus `additions` (index entries with
+// their Chinese title and summary under `zh`). Seed bodies of the additions are generated from the gist.
+function snapshotRelease(dir, version, additions = []) {
   const library = join(dir, `muspro-seeds-${version}`);
   cpSync(seeds, library, { recursive: true });
   const index = JSON.parse(readFileSync(join(library, 'index.json'), 'utf8'));
   const scenarios = JSON.parse(readFileSync(join(library, 'scenarios.json'), 'utf8'));
-  for (const { zh, ...entry } of additions.seeds) {
+  for (const { zh, ...entry } of additions) {
     index.seeds.push(entry);
     scenarios.scenarios.find((group) => group.id === entry.scenario).seeds
       .push({ id: entry.id, file: entry.file, ...zh });
@@ -119,6 +119,13 @@ function fixtureRelease(dir) {
   return { tar: join(release, tarball), version };
 }
 
+// A 1.3.0-shaped release: the bundled snapshot plus the three seeds 1.3.0 added, taken from
+// tests/fixtures/musepool/release-1.3.0-additions.json.
+function fixtureRelease(dir) {
+  const { version, seeds: additions } = JSON.parse(readFileSync(join(fixtures, 'release-1.3.0-additions.json'), 'utf8'));
+  return snapshotRelease(dir, version, additions);
+}
+
 // Install a release directory (manifest.json + tar.gz) into a fresh cache.
 function installRelease(dir, release) {
   const manifest = JSON.parse(readFileSync(join(release, 'manifest.json'), 'utf8'));
@@ -133,6 +140,28 @@ function fixtureCache(t) {
   const dir = scratch(t, 'musekit-zh-');
   const { tar } = fixtureRelease(dir);
   return installRelease(dir, dirname(tar));
+}
+
+// A custom library for MUSEPOOL_SEEDS_DIR; each seed is [id, tags, core_dimensions, body] and its
+// front matter follows the real seeds, including motion_intensity and the tag group names.
+function customLibrary(dir, seedList) {
+  const library = join(dir, 'library');
+  mkdirSync(join(library, 'ui'), { recursive: true });
+  const entries = seedList.map(([id, tags, dimensions, body], i) => {
+    const entry = {
+      id, file: `ui/${id}.md`, scenario: 'ui', category: 'landing page', gist: `Reference ${id}.`,
+      core_dimensions: dimensions, scores: { novelty: 0.5 + i / 100 }, tags,
+    };
+    const yamlTags = Object.entries(tags).map(([group, values]) => `  ${group}:\n${values.map((v) => `  - ${v}\n`).join('')}`);
+    writeFileSync(join(library, 'ui', `${id}.md`), `---\nid: ${id}\nscenario: ui\nscenario_name: 界面\n`
+      + `category: landing page\ncore_dimensions:\n${dimensions.map((d) => `- ${d}\n`).join('')}`
+      + `scores:\n  motion_intensity: 0.0\n  novelty: 0.5\ntags:\n${yamlTags.join('')}---\n\n`
+      + `# Typography\n\n${body.typography}\n\n# Motion\n\n${body.motion}\n`);
+    return entry;
+  });
+  writeFileSync(join(library, 'index.json'), JSON.stringify({ version: '9.9.9', schemaVersion: '1.0', seeds: entries }));
+  writeFileSync(join(library, 'scenarios.json'), JSON.stringify({ scenarios: [] }));
+  return library;
 }
 
 function assertChineseQueries({ cache, version }) {
@@ -227,7 +256,7 @@ test('English searches keep their previous results and order', (t) => {
     ['typography'], ['number density hierarchy'], ['annotation', 'information'], ['dashboard'],
     ['dark monochrome typography'], ['palette', 'graphic'], ['grid'], ['diagram'], ['poster'], ['portfolio', 'ui'],
     ['minimal serif'], ['scroll'], ['restaurant website'], ['pricing comparison'], ['product launch card'],
-    ['menu reservation'], ['no-such-reference-847261'],
+    ['menu reservation'], ['motion'], ['serif'], ['sans-serif'], ['no-motion'], ['no-such-reference-847261'],
   ];
   for (const [library, env] of [[seeds, {}], [fixture.library, { MUSEKIT_CACHE_DIR: fixture.cache }]]) {
     const data = readLibrary(library);
@@ -240,12 +269,71 @@ test('English searches keep their previous results and order', (t) => {
   }
 });
 
+test('Chinese style words skip field names, section headings and negated tags', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-zh-negated-'), [
+    // motion_intensity, the motion: tag group and the # Motion heading are in every seed.
+    ['template', { motion: [], typography: ['sans-serif'] }, ['layout'],
+      { typography: 'One sans-serif family.', motion: 'Nothing notable.' }],
+    // Tagged no-motion: an incidental mention in the text does not make it a motion reference.
+    ['static', { motion: ['no-motion'], typography: ['sans-serif'] }, ['layout'],
+      { typography: 'A sans serif grotesk.', motion: 'No entrance animations; the page stays static.' }],
+    ['moving', { motion: ['scroll-triggered'], typography: ['display-serif'] }, ['motion'],
+      { typography: 'A display serif headline.', motion: 'Scroll-triggered animations reveal each section.' }],
+    // no-motion next to a positive motion tag still counts as motion.
+    ['mixed', { motion: ['no-motion', 'hover-animation'], typography: ['monospace'] }, ['layout'],
+      { typography: 'Monospace labels.', motion: 'Hover animation on cards.' }],
+  ]);
+  const search = (query) => ranked(muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', query, '-n', '10'));
+  assert.deepEqual(search('动效').sort(), ['mixed', 'moving']);
+  assert.deepEqual(search('衬线'), ['moving']);
+  assert.deepEqual(search('无衬线').sort(), ['static', 'template']);
+  // English terms keep their substring matching, field names and all.
+  const data = readLibrary(library);
+  for (const query of ['motion', 'serif', 'no-motion', 'animation']) {
+    assert.deepEqual(search(query), legacyOrder(data, query), query);
+  }
+});
+
+test('Chinese motion and serif queries follow the bundled seeds\' tags', () => {
+  const index = JSON.parse(readFileSync(join(seeds, 'index.json'), 'utf8')).seeds;
+  const tagsOf = (e) => Object.values(e.tags).flat();
+  const byId = Object.fromEntries(index.map((e) => [e.id, e]));
+  const motion = ranked(muse({}, 'search', '动效', '-n', '40'));
+  assert.ok(motion.length < index.length, 'motion matched every seed');
+  for (const e of index) {
+    if (tagsOf(e).includes('no-motion')) assert.ok(!motion.includes(e.id), `${e.id} is tagged no-motion`);
+    if (e.core_dimensions.includes('motion')) assert.ok(motion.includes(e.id), `${e.id} has a motion dimension`);
+  }
+  assert.ok(byId[motion[0]].core_dimensions.includes('motion'), motion[0]);
+  const serif = ranked(muse({}, 'search', '衬线', '-n', '40'));
+  const serifTagged = (e) => tagsOf(e).some((tag) => /(^|-)serif$/.test(tag) && tag !== 'sans-serif');
+  for (const e of index.filter(serifTagged)) assert.ok(serif.includes(e.id), e.id);
+  assert.ok(serifTagged(byId[serif[0]]), serif[0]);
+  // Seeds that mention serif only as sans-serif are not serif references.
+  const { texts } = readLibrary(seeds);
+  const sansOnly = index.filter((e) => !/serif/.test(
+    [e.category, e.gist, tagsOf(e).join(' '), texts[e.file]].join(' ').toLowerCase().replace(/sans[\s-]serif/g, '')));
+  assert.ok(sansOnly.length > 0);
+  for (const e of sansOnly) assert.ok(!serif.includes(e.id), `${e.id} only mentions sans-serif`);
+});
+
 test('MUSEPOOL_SEEDS_DIR pointing at the bundled snapshot warns when the cache is newer', (t) => {
   const { cache, version } = fixtureCache(t);
   const warning = new RegExp(`警告:MUSEPOOL_SEEDS_DIR 指向 Skill 内置快照,正在使用内置快照 muspro-seeds ${
     lock.version.replaceAll('.', '\\.')};本机缓存有更新的 ${version.replaceAll('.', '\\.')} 未被使用.*取消这个变量`);
-  // Relative, trailing-slash and dot-segment spellings all resolve to the bundled directory.
-  for (const spelling of [seeds, `${seeds}/`, relative(root, seeds), join(seeds, '..', 'seeds')]) {
+  // Relative, trailing-slash and dot-segment spellings all resolve to the bundled directory; the
+  // dot segment is built by hand because path.join would normalise it away before Python sees it.
+  // A symlink (a junction on Windows) to the snapshot is the same directory too.
+  const linkDir = mkdtempSync(join(tmpdir(), 'musekit-zh-link-'));
+  const link = join(linkDir, 'seeds');
+  symlinkSync(seeds, link, process.platform === 'win32' ? 'junction' : 'dir');
+  // Remove the link itself first so cleanup can never reach the bundled snapshot through it.
+  t.after(() => {
+    unlinkSync(link);
+    rmSync(linkDir, { recursive: true, force: true });
+  });
+  const spellings = [seeds, `${seeds}/`, relative(root, seeds), `${seeds}${sep}..${sep}seeds`, link];
+  for (const spelling of spellings) {
     const env = { MUSEKIT_CACHE_DIR: cache, MUSEPOOL_SEEDS_DIR: spelling };
     const search = muse(env, 'search', 'dashboard');
     // The variable is still honoured: results come from the bundled snapshot.
@@ -280,6 +368,53 @@ test('MUSEPOOL_SEEDS_DIR pointing at the bundled snapshot warns when the cache i
 
   // Without the variable the newer cache is used, as the lookup order says.
   assert.equal(ranked(muse({ MUSEKIT_CACHE_DIR: cache }, 'search', '餐厅官网'))[0], 'E3ISF3qW');
+});
+
+test('no warning when the cache is not newer than the bundled snapshot or cannot be used', (t) => {
+  const env = (cache) => ({ MUSEKIT_CACHE_DIR: cache, MUSEPOOL_SEEDS_DIR: seeds });
+  const assertQuiet = (cache, label) => {
+    const search = muse(env(cache), 'search', 'dashboard');
+    assert.equal(search.status, 0, search.stderr);
+    assert.equal(search.stderr, '', label);
+    assert.doesNotMatch(muse(env(cache), 'status').stdout, /警告/, label);
+  };
+  const [major, minor, patch] = lock.version.split('.').map(Number);
+  const older = patch ? `${major}.${minor}.${patch - 1}` : minor ? `${major}.${minor - 1}.0` : `${major - 1}.0.0`;
+  for (const version of [lock.version, older]) {
+    const dir = scratch(t, 'musekit-zh-same-');
+    const { cache } = installRelease(dir, dirname(snapshotRelease(dir, version).tar));
+    assertQuiet(cache, version);
+  }
+  // A newer cache whose files no longer match the recorded contentHash is not offered either.
+  const broken = fixtureCache(t);
+  const brokenIndex = join(broken.library, 'index.json');
+  writeFileSync(brokenIndex, `${readFileSync(brokenIndex, 'utf8')}\n`);
+  assertQuiet(broken.cache, 'damaged cache');
+});
+
+test('an unresolvable MUSEPOOL_SEEDS_DIR fails search cleanly and does not block update', (t) => {
+  const dir = scratch(t, 'musekit-zh-unresolvable-');
+  // Symlink loops need privileges on Windows; ~user lookups fail on POSIX and are guessed on Windows.
+  const spellings = [`~musekit-no-such-user-${process.pid}${sep}seeds`];
+  if (process.platform !== 'win32') {
+    symlinkSync(join(dir, 'loop-b'), join(dir, 'loop-a'));
+    symlinkSync(join(dir, 'loop-a'), join(dir, 'loop-b'));
+    spellings.push(join(dir, 'loop-a'));
+  }
+  const { tar } = fixtureRelease(dir);
+  for (const spelling of spellings) {
+    const cache = join(dir, `cache-${spellings.indexOf(spelling)}`);
+    const env = { MUSEKIT_CACHE_DIR: cache, MUSEPOOL_SEEDS_DIR: spelling };
+    const search = muse(env, 'search', 'dashboard');
+    assert.equal(search.status, 2, spelling);
+    assert.match(search.stderr, /MUSEPOOL_SEEDS_DIR 不可用/, spelling);
+    assert.doesNotMatch(search.stderr, /Traceback/, spelling);
+    const update = muse(env, 'update', '--from', tar);
+    assert.equal(update.status, 0, `${spelling}: ${update.stderr}`);
+    assert.doesNotMatch(update.stderr, /Traceback/, spelling);
+    assert.match(update.stdout, /MUSEPOOL_SEEDS_DIR 已设置,检索会继续使用该目录/, spelling);
+    assert.match(update.stdout, /已安装 muspro-seeds 1\.3\.0/, spelling);
+  }
 });
 
 test('zh_terms.json is a well-formed Chinese to English term table', () => {

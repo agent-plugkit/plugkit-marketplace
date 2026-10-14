@@ -24,7 +24,8 @@ seed 库按以下顺序查找,用到哪一份会在输出中注明来源与版�
 
 search 在 gist / category / tags / core_dimensions 及 seed 正文上做大小写不敏感的
 关键词打分,所有词命中者排前,其次按命中词数与 novelty 排序。查询中的中文按 zh_terms.json
-做最长匹配切词并展开为英文同义词(按整词匹配),原文也匹配正文与库内中文标题和摘要
+做最长匹配切词并展开为英文同义词(按整词匹配;不计字段名、章节标题这类每个 seed 都有的
+模板文字,也不计 no-motion、sans-serif 这类否定写法),原文也匹配正文与库内中文标题和摘要
 (scenarios.json);中文词命中中文标题摘要或 category/tags 的条目在同分时排前。
 纯英文查询的匹配与排序不受影响。
 """
@@ -60,6 +61,11 @@ HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 TARBALL_RE = re.compile(r"^[A-Za-z0-9._-]+\.tar\.gz$")
 SOURCE_LABELS = {"env": "MUSEPOOL_SEEDS_DIR", "cache": "本机缓存", "bundled": "内置快照"}
 CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+")
+FIELD_NAME_RE = re.compile(r"(?m)^([ \t]*)[A-Za-z_][A-Za-z0-9_]*:")
+SECTION_RE = re.compile(r"(?m)^# .*$")
+# 紧跟在这些否定词之后的英文同义词不算命中:no-motion、non-grid、zero radius、without animation;
+# sans 只在 sans-serif / sans serif 里表示否定(sans typeface 仍是字体)。
+NEGATED = r"(?<!\bno[\s-])(?<!\bnon[\s-])(?<!\bzero[\s-])(?<!\bwithout[\s-])(?<!\bsans[\s-](?=serif))"
 STATE_FILE = "state.json"
 STAGING_PREFIX = ".staging-"
 # 发布包体积与条目上限,防止异常包耗尽内存或磁盘。
@@ -398,9 +404,23 @@ def same_dir(path: Path, other: Path) -> bool:
         return False
 
 
+def override_dir(override: str) -> Path:
+    """MUSEPOOL_SEEDS_DIR 展开 ~ 后的绝对路径;~ 指向不存在的用户、符号链接成环等无法解析时抛 LibraryError。"""
+    try:
+        return Path(override).expanduser().resolve()
+    except (OSError, RuntimeError, ValueError) as error:
+        raise LibraryError(f"路径无法解析:{override}({error})") from None
+
+
 def override_points_to_bundled() -> bool:
+    """只给 update 的提示用;路径无法解析时按普通自定义目录提示,不妨碍更新缓存。"""
     override = os.environ.get("MUSEPOOL_SEEDS_DIR")
-    return bool(override) and same_dir(Path(override).expanduser().resolve(), BUNDLED_DIR)
+    if not override:
+        return False
+    try:
+        return same_dir(override_dir(override), BUNDLED_DIR)
+    except LibraryError:
+        return False
 
 
 def resolve_library() -> tuple[Library, list[str]]:
@@ -408,7 +428,7 @@ def resolve_library() -> tuple[Library, list[str]]:
     override = os.environ.get("MUSEPOOL_SEEDS_DIR")
     if override:
         try:
-            library = load_library(Path(override).expanduser().resolve(), "env")
+            library = load_library(override_dir(override), "env")
         except LibraryError as error:
             fail(f"MUSEPOOL_SEEDS_DIR 不可用:{error}。修正该目录或取消这个环境变量")
         # 显式设置的变量照常生效;但它指向内置快照时多半是误用,本机缓存里有更新版本就明确提醒。
@@ -446,14 +466,25 @@ def descriptors(entry: dict) -> str:
                      " ".join(entry.get("core_dimensions") or [])]).lower()
 
 
-def haystack(library: Library, entry: dict) -> str:
+def without_template(text: str) -> str:
+    """去掉每个 seed 都有的模板文字:前置元数据的字段名(motion:、motion_intensity: 等,取值保留)
+    与正文的一级章节标题(# Motion、# Typography 等)。"""
+    end = text.find("\n---", 3) if text.startswith("---") else -1
+    if end > 0:
+        text = FIELD_NAME_RE.sub(r"\1", text[:end]) + text[end:]
+    return SECTION_RE.sub("", text)
+
+
+def haystack(library: Library, entry: dict, template: bool = True) -> str:
+    """template=False 用于中文词展开出的英文同义词:模板文字每个 seed 都有,不能算命中。"""
+    text = library.text(entry)
     parts = [
         entry.get("gist", ""),
         entry.get("category", ""),
         flat_tags(entry.get("tags")),
         " ".join(entry.get("core_dimensions") or []),
         # 连同 seed 正文一起搜(布局/色彩/动效/工艺细节都在正文里)
-        library.text(entry),
+        text if template else without_template(text),
     ]
     return " ".join(parts).lower()
 
@@ -499,10 +530,20 @@ def segment(run: str, terms: dict[str, list[str]], ignore: set[str]) -> list[tup
     return pieces
 
 
+def term_body(term: str) -> str:
+    # 词内空格也匹配连字符。
+    return r"[\s-]+".join(re.escape(part) for part in term.split())
+
+
 def word_pattern(term: str) -> re.Pattern:
-    # 展开出的英文词按整词匹配(可带复数),避免 plan 命中 explanation 这类子串误配;词内空格也匹配连字符。
-    body = r"[\s-]+".join(re.escape(part) for part in term.split())
-    return re.compile(rf"(?<![a-z0-9]){body}(?:s|es)?(?![a-z0-9])")
+    # 展开出的英文词按整词匹配(可带复数),避免 plan 命中 explanation 这类子串误配。
+    # 下划线连成的是字段名(motion_intensity),不算整词;否定写法(no-motion、sans-serif)见 NEGATED。
+    return re.compile(rf"(?<![a-z0-9_]){NEGATED}{term_body(term)}(?:s|es)?(?![a-z0-9_])")
+
+
+def denial_pattern(term: str) -> re.Pattern:
+    # category/tags 里的 no-motion、non-grid:整理者明确标注没有这一项。
+    return re.compile(rf"(?<![a-z0-9_])(?:no|non|without)[\s-]{term_body(term)}(?:s|es)?(?![a-z0-9_])")
 
 
 class Unit:
@@ -513,14 +554,21 @@ class Unit:
         self.zh = synonyms is not None
         self.synonyms = synonyms or []
         self.patterns = [word_pattern(term) for term in self.synonyms]
+        self.denials = [denial_pattern(term) for term in self.synonyms]
 
     def describes(self, fields: str) -> bool:
         return self.text in fields or any(p.search(fields) for p in self.patterns)
 
-    def hit(self, hay: str, labels: str) -> bool:
-        if self.text in hay:
+    def denied(self, fields: str) -> bool:
+        """fields(descriptors)标明没有这一项(no-motion),也没有别的字段正面描述它。"""
+        return any(p.search(fields) for p in self.denials) and not self.describes(fields)
+
+    def hit(self, hay: str, terms_hay: str, labels: str, fields: str) -> bool:
+        """hay 为完整检索文本;英文同义词只在去掉模板文字的 terms_hay 里找,被 fields 否定时
+        正文里的零星提及(No entrance animations)不算命中。"""
+        if self.text in hay or (self.zh and self.text in labels):
             return True
-        return self.zh and (self.text in labels or any(p.search(hay) for p in self.patterns))
+        return any(p.search(terms_hay) for p in self.patterns) and not self.denied(fields)
 
 
 def parse_query(query: str, library: Library) -> tuple[list[Unit], list[str]]:
@@ -587,13 +635,14 @@ def cmd_search(args) -> int:
     scored = []
     for e in entries:
         hay = haystack(library, e)
+        terms_hay = haystack(library, e, template=False) if zh_units else hay
+        fields = descriptors(e) if zh_units else ""
         text = labels.get(e["id"].lower(), "")
-        hits = sum(1 for u in units if u.hit(hay, text))
+        hits = sum(1 for u in units if u.hit(hay, terms_hay, text, fields))
         if hits:
             # 同分时,中文词直接命中中文标题摘要、或其英文同义词命中 category/tags 的条目更贴题。
             # 纯英文查询这两项恒为 0,排序与原来相同。
             label_hits = sum(1 for u in zh_units if u.text in text)
-            fields = descriptors(e) if zh_units else ""
             topic_hits = sum(1 for u in zh_units if u.describes(fields))
             scored.append((hits == len(units), hits, label_hits, topic_hits,
                            (e.get("scores") or {}).get("novelty", 0), e))
