@@ -69,7 +69,7 @@ SECTION_RE = re.compile(r"(?m)^# .*$")
 SCOPE_NOTE_RE = re.compile(r"(?m)^> 借鉴范围[:：].*$")
 # 代码块与注释块按 CommonMark 逐行识别,先出现的一方说了算(注释里的 ``` 不开围栏,代码里的 <!-- 不开注释):
 # - 围栏:结束围栏与开头同字符、不短于开头,其后只能有空白;没有结束围栏时到文末。反引号围栏的信息串里
-#   不能再有反引号(```a``` 是行内代码)。
+#   不能再有反引号(```a``` 是行内代码)。列表标记后面紧跟的围栏(- ```js)同样开启代码块。
 # - 缩进代码块:比所在列表项的内容多缩进 4 列,且不接在段落行后面(段落的续行不算)。
 # - 注释块:以 <!-- 开头的行,到含 --> 的行为止;--> 之后的文字照常参与匹配。
 FENCE_OPEN_RE = re.compile(r"(?:(`{3,})(?!.*`)|(~{3,}))")
@@ -79,11 +79,13 @@ HEADING_RE = re.compile(r"#{1,6}(?:[ ]|$)")
 INLINE_CODE_RE = re.compile(r"(?<!`)(`+)(?!`)(?:(?!\n[ \t]*\n).)+?(?<!`)\1(?!`)|<!--(?:(?!\n[ \t]*\n).)*?-->", re.S)
 # CSS 声明只认常见的 CSS 属性名、自定义属性(--x)与浏览器前缀(-webkit-x):vector-based: geometric
 # 这类带连字符的正文标签不算。font、color、content 这类单词属性名也常作正文标签(Font: a serif …),
-# 只有紧贴冒号(display:none)或以分号结尾时才算声明,且取值是单个关键词(display: grid;)或带数字、
-# 颜色、函数(transition: opacity 0.3s ease;),Order: tier name; 仍是正文。
+# 只有紧贴冒号(display:none)或以分号结尾时才算声明,且取值是单个关键词(display: grid;)、带数字、
+# 颜色、函数(transition: opacity 0.3s ease;),或是可取多个关键词的简写属性(border: solid red;、
+# background: center center;);order 这类只取单值的属性 Order: tier name; 仍是正文。
 # 以分号结尾的声明整条取值都删去,包括逗号、斜杠分隔的列表和字符串(font-family: 'ui sans', monospace;、
 # grid-template-columns: minmax(0, 1fr) auto;);没有分号时只删到第一个关键词及其后的数字、颜色与函数,
 # 以免吞掉 letter-spacing: 1px on input 这类正文说明。
+# 声明以外只认常见 CSS 函数(cubic-bezier(...)、var(--x)、rgba(...)),正文里的 image(s) 不算。
 CSS_PROPERTIES = """
     accent-color align-content align-items align-self animation-delay animation-direction animation-duration
     animation-fill-mode animation-iteration-count animation-name animation-timing-function aspect-ratio
@@ -121,6 +123,16 @@ CSS_SHORT_PROPERTIES = """
     gap height hyphens inset isolation left margin opacity order outline overflow padding perspective position
     quotes resize right rotate scale stroke top transform transition translate visibility width zoom
 """.split()
+# 取值可以是多个关键词的简写属性(border: solid red;、overflow: hidden auto;)。
+CSS_MULTI_KEYWORD_PROPERTIES = """
+    animation background border display flex font inset margin outline overflow padding transition
+""".split()
+CSS_FUNCTIONS = """
+    attr calc clamp color-mix conic-gradient cubic-bezier drop-shadow env fit-content hsl hsla hue-rotate hwb
+    lch linear-gradient matrix matrix3d max min minmax oklab oklch radial-gradient repeating-conic-gradient
+    repeating-linear-gradient repeating-radial-gradient rgb rgba rotate rotate3d rotatex rotatey rotatez scale
+    scale3d scalex scaley skew skewx skewy translate translate3d translatex translatey translatez url var
+""".split()
 CSS_ARGS = r"(?:[^()\n\u3400-\u9fff]|\([^()\n\u3400-\u9fff]*\))*"
 CSS_FUNCTION = rf"-?[a-z][a-z0-9]*(?:-[a-z0-9]+)*\({CSS_ARGS}\)"
 CSS_VALUE = rf"(?:{CSS_FUNCTION}|[#a-z0-9_.%-]+)(?:[ \t]+(?:{CSS_FUNCTION}|[-#.]?[0-9][a-z0-9_.%]*))*(?:[ \t]*!important)?"
@@ -128,12 +140,16 @@ CSS_TOKEN = rf"(?:{CSS_FUNCTION}|'[^'\n]*'|\"[^\"\n]*\"|[#a-z0-9_.%-]+)"
 CSS_DECLARATION = rf"{CSS_TOKEN}(?:(?:[ \t]*[,/][ \t]*|[ \t]+){CSS_TOKEN})*(?:[ \t]*!important)?[ \t]*;"
 CSS_NAMES = "|".join(sorted(CSS_PROPERTIES, key=len, reverse=True))
 CSS_SHORT_NAMES = "|".join(sorted(CSS_SHORT_PROPERTIES, key=len, reverse=True))
+CSS_MULTI_NAMES = "|".join(sorted(CSS_MULTI_KEYWORD_PROPERTIES, key=len, reverse=True))
+CSS_KNOWN_FUNCTION = (rf"(?:-(?:webkit|moz|ms|o)-)?(?:{'|'.join(sorted(CSS_FUNCTIONS, key=len, reverse=True))})"
+                      rf"\({CSS_ARGS}\)")
 CSS_RE = re.compile(rf"(?<![a-z0-9_-])(?:(?:{CSS_NAMES}|--[a-z0-9-]+|-(?:webkit|moz|ms|o)-[a-z]+(?:-[a-z]+)*)"
                     rf"[ \t]*:[ \t]*(?:{CSS_DECLARATION}|{CSS_VALUE};?)"
                     rf"|(?:{CSS_NAMES}|{CSS_SHORT_NAMES}):(?=[#a-z0-9_.'\"-])(?:{CSS_DECLARATION}|{CSS_VALUE};?)"
                     rf"|(?:{CSS_SHORT_NAMES})[ \t]*:[ \t]*(?:[#a-z0-9_.%-]+(?:[ \t]*!important)?[ \t]*;"
                     rf"|(?=[^;\n]*[0-9#(]){CSS_DECLARATION})"
-                    rf"|{CSS_FUNCTION})")
+                    rf"|(?:{CSS_MULTI_NAMES})[ \t]*:[ \t]*{CSS_DECLARATION}"
+                    rf"|{CSS_KNOWN_FUNCTION})")
 # 连字符和点连成的是一个词:three-bar、z-index、paper.js 里的 bar、index、paper 都不算独立出现。
 JOINED_BEFORE = r"(?<![a-z0-9][-.])"
 JOINED_AFTER = r"(?![-.][a-z0-9])"
@@ -617,6 +633,12 @@ def without_blocks(text: str) -> str:
             marker = item.group().rstrip()
             spaces = len(item.group()) - len(marker)
             items.append(indent + len(marker) + (spaces if 1 <= spaces <= 4 else 1))
+            match = FENCE_OPEN_RE.match(content[len(item.group()):]) if 1 <= spaces <= 4 else None
+            if match:
+                fence = match.group(1) or match.group(2)
+                lines.append("")
+                paragraph = False
+                continue
         lines.append(line)
         paragraph = not (HEADING_RE.match(content) or content.startswith("<!--"))
     return "\n".join(lines)

@@ -362,6 +362,31 @@ test('whole CSS value lists, indented code and comment blocks are excluded; the 
   for (const word of ['draft', 'cobble']) assert.deepEqual(star(word), [], word);
 });
 
+test('fences in list items, keyword-only CSS values and CSS functions are excluded; ordinary prose is not', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-round3-'), [
+    { id: 'listfence', gist: 'A navigation pattern.',
+      body: '# Craft\n\n- ```js\n  const secret = "lattice";\n  ```\n\nA quilted illustration.\n\n'
+        + '1. ~~~\n   wireframe\n   ~~~\n   A tufted cushion.' },
+    { id: 'cssword', gist: 'A navigation pattern.',
+      body: '# Craft\n\nCards use border: solid red; with background: center center; and overflow: hidden auto; '
+        + 'on a slate page. Note: something amber.' },
+    { id: 'function', gist: 'A navigation pattern.',
+      body: '# Craft\n\nAn image(s) with a quilted border and a shelf (archive) of zines. Easing cubic-bezier(0.2, 0, 0, 1), '
+        + 'fill var(--marigold), a -webkit-linear-gradient(to right, coral, teal) wash and translateX(4px) motion.' },
+  ]);
+  const star = (query) => starred(muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', `navigation ${query}`, '-n', '10'));
+  // A fence right after a list marker opens a code block that ends at the indented closing fence.
+  for (const word of ['lattice', 'secret', 'js', 'wireframe']) assert.deepEqual(star(word), [], word);
+  assert.deepEqual(star('quilted').sort(), ['function', 'listfence']);
+  assert.deepEqual(star('tufted'), ['listfence']);
+  // Keyword-only values of shorthand properties are CSS; a label such as "Note:" is prose.
+  for (const word of ['red', 'solid', 'center', 'hidden']) assert.deepEqual(star(word), [], word);
+  for (const word of ['slate', 'something', 'amber']) assert.deepEqual(star(word), ['cssword'], word);
+  // Only known CSS functions are stripped outside a declaration.
+  for (const word of ['image', 'shelf', 'archive', 'zines', 'wash', 'motion']) assert.deepEqual(star(word), ['function'], word);
+  for (const word of ['marigold', 'coral', 'teal']) assert.deepEqual(star(word), [], word);
+});
+
 test('only reliable hits get ★; without one the noise is not listed', (t) => {
   const library = customLibrary(scratch(t, 'musekit-reliable-'), [
     { id: 'topic', gist: 'A cocktail bar website with a dark reservation flow.', tags: { domain: ['hospitality'] },
@@ -396,7 +421,7 @@ test('only reliable hits get ★; without one the noise is not listed', (t) => {
 test('polysemous Chinese words removed from zh_terms.json are no longer expanded', () => {
   const { terms } = JSON.parse(readFileSync(zhTermsPath, 'utf8'));
   const removed = ['酒吧', '论文', '菜单', '目录', '杂志', '索引', '地图', '活动', '表单', '封面', '横幅', '标志', '网页',
-    '应用', '筛选', '公告', '新闻', '免费', '上线', '对比', '比较', '方案', '编辑', '实验', '焦点'];
+    '应用', '筛选', '公告', '新闻', '免费', '上线', '对比', '比较', '方案', '编辑', '实验', '焦点', '看板', '控制台'];
   for (const word of removed) {
     assert.ok(!(word in terms), word);
     const result = muse({}, 'search', word);
@@ -409,6 +434,12 @@ test('polysemous Chinese words removed from zh_terms.json are no longer expanded
   assert.deepEqual(ranked(bar), []);
   // A word made only of single-character fillers (地 + 图) is reported instead of silently dropped.
   assert.match(muse({}, 'search', '地图').stderr, /词表未收录「地图」/);
+  // Words whose bare expansion had another sense keep only unambiguous phrases.
+  assert.deepEqual(terms['书展'], ['book fair']);
+  assert.deepEqual(terms['字重'], ['font weight']);
+  assert.deepEqual(terms['字距'], ['letter spacing', 'kerning']);
+  assert.deepEqual(ranked(muse({}, 'search', '书展')), ['Vy3KTWAC']);
+  for (const word of ['看板', '控制台']) assert.match(muse({}, 'search', word).stderr, new RegExp(`词表未收录「${word}」`));
 });
 
 test('Chinese style words skip field names, section headings and negated tags', (t) => {
