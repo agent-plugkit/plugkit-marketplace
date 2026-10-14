@@ -136,7 +136,7 @@ test('search finds references across categories and respects a category filter',
   assert.ok(filtered.includes('[graphic]'));
   assert.ok(!filtered.includes('[ui]'));
   assert.ok(!filtered.includes('[information]'));
-  assert.ok(cli('search', 'no-such-reference-847261').includes('无命中'));
+  assert.ok(cli('search', 'no-such-reference-847261').includes('没有找到可靠参考'));
 });
 
 test('show returns full seed text by stable ID or filename fragment', () => {
