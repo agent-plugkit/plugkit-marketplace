@@ -23,8 +23,9 @@ seed 库按以下顺序查找,用到哪一份会在输出中注明来源与版�
 失败时不改动当前使用的 seed 库。update 与 rollback 持有缓存锁,同一时间只允许一个。
 
 search 在 gist / category / tags / core_dimensions 及 seed 正文上做大小写不敏感的
-关键词打分。连字符和点连成的是一个词:bar 不命中 three-bar,index 不命中 z-index,paper 不命中
-paper.js(slug 形式的 tags 例外,其中的连字符就是词间空格)。正文不计前置元数据(category、
+关键词打分。英文查询词从词首匹配:bar 不命中 sidebar,animat 命中 animation。连字符和点连成的是
+一个词:bar 不命中 three-bar,index 不命中 z-index,paper 不命中 paper.js(category、tags 与
+core_dimensions 例外,其中的连字符当词间空格,tags 本是 slug)。正文不计前置元数据(category、
 tags 与 core_dimensions 另由索引提供)、代码块、行内代码、HTML 注释与 CSS 片段。查询中的中文按
 zh_terms.json 做最长匹配切词并展开为英文同义词(按整词匹配;不计章节标题这类每个 seed 都有的
 模板文字,也不计 no-motion、sans-serif 这类否定写法),原文也匹配库内中文标题和摘要(scenarios.json)。
@@ -562,18 +563,18 @@ def open_library() -> Library:
     return library
 
 
-def flat_tags(tags) -> str:
+def flat_tags(tags, sep: str = " ") -> str:
     if isinstance(tags, dict):
-        return " ".join(str(v) for vs in tags.values() for v in (vs if isinstance(vs, list) else [vs]))
+        return sep.join(str(v) for vs in tags.values() for v in (vs if isinstance(vs, list) else [vs]))
     if isinstance(tags, list):
-        return " ".join(map(str, tags))
+        return sep.join(map(str, tags))
     return str(tags or "")
 
 
-def descriptors(entry: dict) -> str:
+def descriptors(entry: dict, sep: str = " ") -> str:
     """category、tags 与 core_dimensions:标明 seed 主题的结构化字段。"""
-    return " ".join([entry.get("category", ""), flat_tags(entry.get("tags")),
-                     " ".join(entry.get("core_dimensions") or [])]).lower()
+    return sep.join([entry.get("category", ""), flat_tags(entry.get("tags"), sep),
+                     sep.join(entry.get("core_dimensions") or [])]).lower()
 
 
 def without_frontmatter(text: str) -> str:
@@ -651,7 +652,7 @@ def without_code(text: str) -> str:
 
 class Doc:
     """一个 seed 的检索文本。prose 为 gist 与正文,连字符和点连成的词不拆开;fields 为 category、
-    tags 与 core_dimensions,其中 tags 是 slug,连字符即词间空格。"""
+    tags 与 core_dimensions,其中 tags 是 slug,连字符即词间空格(words 为把连字符换成空格的 fields)。"""
 
     def __init__(self, library: "Library", entry: dict, labels: str):
         self.gist = without_code(entry.get("gist", ""))
@@ -660,6 +661,8 @@ class Doc:
         # 中文词展开出的英文同义词不计章节标题(# Motion 等),这类模板文字每个 seed 都有。
         self.plain = f"{self.gist}\n{SECTION_RE.sub('', body)}"
         self.fields = descriptors(entry)
+        # 每个取值占一行,查询词里的连字符换成空格后不会跨两个标签(multi-accent blue-dominant 里没有 accent-blue)。
+        self.words = descriptors(entry, "\n").replace("-", " ")
         self.labels = labels
 
 
@@ -721,10 +724,18 @@ def word_pattern(term: str, joined: bool = False) -> re.Pattern:
 
 
 def english_pattern(token: str) -> re.Pattern:
-    # 英文查询词在正文里仍按子串匹配(toolbar 含 bar),只是不拆开连字符和点连成的词。
-    before = JOINED_BEFORE if token[:1].isalnum() else ""
+    # 英文查询词在正文里从词首匹配(bar 不命中 sidebar、scrollbar),词尾不限(animat 命中 animation);
+    # 连字符和点连成的词不拆开。
+    before = rf"(?<![a-z0-9_]){JOINED_BEFORE}" if token[:1].isalnum() else ""
     after = JOINED_AFTER if token[-1:].isalnum() else ""
     return re.compile(before + re.escape(token) + after)
+
+
+def field_pattern(token: str) -> re.Pattern:
+    # fields 里的连字符是词间空格(tags 是 slug),查询词里的连字符同样按空格匹配;同样从词首匹配。
+    text = token.replace("-", " ")
+    before = r"(?<![a-z0-9_])" if text[:1].isalnum() else ""
+    return re.compile(before + re.escape(text))
 
 
 def denial_pattern(term: str) -> re.Pattern:
@@ -733,7 +744,7 @@ def denial_pattern(term: str) -> re.Pattern:
 
 
 class Unit:
-    """查询里的一个检索单元:英文词在 fields 里按子串、在正文里按不拆连字符和点的子串匹配;
+    """查询里的一个检索单元:英文词从词首匹配,fields 里连字符当空格,正文里不拆连字符和点连成的词;
     中文词另加英文同义词(整词)与中文标题摘要。"""
 
     def __init__(self, text: str, synonyms: list[str] | None = None):
@@ -741,6 +752,7 @@ class Unit:
         self.zh = synonyms is not None
         self.synonyms = synonyms or []
         self.english = None if self.zh else english_pattern(text)
+        self.field = None if self.zh else field_pattern(text)
         self.patterns = [word_pattern(term) for term in self.synonyms]
         self.prose_patterns = [word_pattern(term, joined=True) for term in self.synonyms]
         self.denials = [denial_pattern(term) for term in self.synonyms]
@@ -755,7 +767,7 @@ class Unit:
     def hit(self, doc: Doc) -> bool:
         """被 fields 否定时,正文里的零星提及(No entrance animations)不算命中。"""
         if not self.zh:
-            return self.text in doc.fields or bool(self.english.search(doc.prose))
+            return bool(self.field.search(doc.words) or self.english.search(doc.prose))
         if self.text in doc.prose or self.text in doc.labels:
             return True
         return ((any(p.search(doc.fields) for p in self.patterns) or any(p.search(doc.plain) for p in self.prose_patterns))
@@ -764,7 +776,7 @@ class Unit:
     def key_hit(self, doc: Doc) -> bool:
         """命中在 gist、category、tags、core_dimensions 或中文标题摘要:正文里的偶然提及不够可靠。"""
         if not self.zh:
-            return self.text in doc.fields or bool(self.english.search(doc.gist))
+            return bool(self.field.search(doc.words) or self.english.search(doc.gist))
         if self.text in doc.labels:
             return True
         return ((any(p.search(doc.fields) for p in self.patterns) or any(p.search(doc.gist) for p in self.prose_patterns))

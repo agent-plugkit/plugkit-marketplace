@@ -434,6 +434,27 @@ test('only reliable hits get ★; without one the noise is not listed', (t) => {
   assert.match(bundled.stdout, /没有找到可靠参考/);
 });
 
+test('English words match from the start of a word; hyphens in fields separate words', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-left-boundary-'), [
+    { id: 'side', gist: 'A sidebar layout with a scrollbar and animated panels.', tags: { layout: ['sidebar-nav'] },
+      body: '# Layout\n\nAn e-commerce toolbar.' },
+    { id: 'chart', gist: 'A chart.', tags: { chart: ['stacked-bar'], domain: ['e-commerce'] },
+      body: '# Layout\n\nA single page.' },
+  ]);
+  const star = (query) => starred(muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', query, '-n', '10'));
+  // bar no longer matches inside sidebar, scrollbar or toolbar; the stacked-bar tag is "stacked bar".
+  assert.deepEqual(star('bar'), ['chart']);
+  assert.deepEqual(star('stacked-bar'), ['chart']);
+  assert.deepEqual(star('stacked bar'), ['chart']);
+  // A word start still matches a longer word, so prefixes keep working.
+  assert.deepEqual(star('side'), ['side']);
+  assert.deepEqual(star('animat'), ['side']);
+  assert.deepEqual(star('sidebar-nav'), ['side']);
+  // In fields commerce is a word of e-commerce; in prose the hyphenated word stays whole.
+  assert.deepEqual(star('commerce'), ['chart']);
+  assert.deepEqual(star('e-commerce').sort(), ['chart']);
+});
+
 test('polysemous Chinese words removed from zh_terms.json are no longer expanded', () => {
   const { terms } = JSON.parse(readFileSync(zhTermsPath, 'utf8'));
   const removed = ['酒吧', '论文', '菜单', '目录', '杂志', '索引', '地图', '活动', '表单', '封面', '横幅', '标志', '网页',
