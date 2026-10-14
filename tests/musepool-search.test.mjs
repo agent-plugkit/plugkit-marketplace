@@ -387,6 +387,22 @@ test('fences in list items, keyword-only CSS values and CSS functions are exclud
   for (const word of ['marigold', 'coral', 'teal']) assert.deepEqual(star(word), [], word);
 });
 
+test('a fence behind quote or list markers is excluded up to its closing fence or the end of the seed', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-fence-containers-'), [
+    { id: 'quote', gist: 'A navigation pattern.',
+      body: '# Craft\n\n> ~~~js\n> const secret = "lattice";\n> ~~~\n\nA quilted illustration.' },
+    { id: 'unclosed', gist: 'A navigation pattern.',
+      body: '# Craft\n\nA woven intro.\n\n- ```js\n  const secret = "parquet";\n\nA tufted illustration.' },
+  ]);
+  const star = (query) => starred(muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', `navigation ${query}`, '-n', '10'));
+  // The quoted fence closes at "> ~~~"; the prose after it counts again.
+  for (const word of ['lattice', 'secret']) assert.deepEqual(star(word), [], word);
+  assert.deepEqual(star('quilted'), ['quote']);
+  // The simple rule does not track where the list item ends: an unclosed fence runs to the end.
+  for (const word of ['parquet', 'tufted']) assert.deepEqual(star(word), [], word);
+  assert.deepEqual(star('woven'), ['unclosed']);
+});
+
 test('only reliable hits get ★; without one the noise is not listed', (t) => {
   const library = customLibrary(scratch(t, 'musekit-reliable-'), [
     { id: 'topic', gist: 'A cocktail bar website with a dark reservation flow.', tags: { domain: ['hospitality'] },

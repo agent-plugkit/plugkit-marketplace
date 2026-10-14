@@ -67,12 +67,17 @@ SECTION_RE = re.compile(r"(?m)^# .*$")
 # 不参与匹配的正文:Muspro Seeds 按分类写入的借鉴范围说明(与 scenario 取值等价)、代码块、
 # 行内代码、HTML 注释,以及正文里的 CSS 片段(z-index: 100、display: grid;、cubic-bezier(...)、var(--x))。
 SCOPE_NOTE_RE = re.compile(r"(?m)^> 借鉴范围[:：].*$")
-# 代码块与注释块按 CommonMark 逐行识别,先出现的一方说了算(注释里的 ``` 不开围栏,代码里的 <!-- 不开注释):
-# - 围栏:结束围栏与开头同字符、不短于开头,其后只能有空白;没有结束围栏时到文末。反引号围栏的信息串里
-#   不能再有反引号(```a``` 是行内代码)。列表标记后面紧跟的围栏(- ```js)同样开启代码块。
+# 代码块与注释块逐行识别,先出现的一方说了算(注释里的 ``` 不开围栏,代码里的 <!-- 不开注释):
+# - 围栏用简单规则:一行去掉任意缩进、引用标记(>)和列表标记(- 、* 、+ 、1. 、1) )后以 ``` 或 ~~~ 开头,
+#   就从这一行起排除,直到同样去掉这些前缀后只剩同字符、不短于开头的结束围栏的行,没有结束围栏时到文末。
+#   反引号围栏的信息串里不能再有反引号(```a``` 是行内代码)。
+#   已知限制:不跟踪引用块和列表项何时结束,也不按 CommonMark 把缩进 4 列以上的围栏行当缩进代码;
+#   列表里没闭合的围栏会一直排除到文末。这些都是少见的 Markdown 写法,真实 seed 中出现 0 次。
 # - 缩进代码块:比所在列表项的内容多缩进 4 列,且不接在段落行后面(段落的续行不算)。
 # - 注释块:以 <!-- 开头的行,到含 --> 的行为止;--> 之后的文字照常参与匹配。
-FENCE_OPEN_RE = re.compile(r"(?:(`{3,})(?!.*`)|(~{3,}))")
+FENCE_PREFIX = r"(?:[ \t]*(?:>|(?:[-*+]|[0-9]{1,9}[.)])[ \t]))*[ \t]*"
+FENCE_OPEN_RE = re.compile(rf"{FENCE_PREFIX}(?:(`{{3,}})(?!.*`)|(~{{3,}}))")
+FENCE_LINE_RE = re.compile(rf"{FENCE_PREFIX}([`~]+)[ \t]*$")
 LIST_ITEM_RE = re.compile(r"(?:[-*+]|[0-9]{1,9}[.)])(?:[ ]+|$)")
 HEADING_RE = re.compile(r"#{1,6}(?:[ ]|$)")
 # 段落内的行内代码与 HTML 注释:可以跨行,但不跨空行;行内代码两侧反引号串等长;两者谁先出现按谁处理。
@@ -589,8 +594,8 @@ def without_blocks(text: str) -> str:
     items: list[int] = []  # 外层到内层各列表项的内容缩进
     for line in text.split("\n"):
         if fence:
-            stripped = line.strip()
-            if stripped.startswith(fence) and not stripped.strip(fence[0]):
+            close = FENCE_LINE_RE.match(line)
+            if close and close.group(1).startswith(fence) and not close.group(1).strip(fence[0]):
                 fence = ""
             lines.append("")
             continue
@@ -615,11 +620,15 @@ def without_blocks(text: str) -> str:
             while items and indent < items[-1]:
                 items.pop()
         base = items[-1] if items else 0
-        if indent >= base + 4:
+        match = FENCE_OPEN_RE.match(expanded)
+        if indent >= base + 4 and not match:
             # 段落的续行照常保留;否则是缩进代码块
             lines.append(line if paragraph else "")
             continue
-        match = FENCE_OPEN_RE.match(content)
+        if item and indent < base + 4:
+            marker = item.group().rstrip()
+            spaces = len(item.group()) - len(marker)
+            items.append(indent + len(marker) + (spaces if 1 <= spaces <= 4 else 1))
         if match:
             fence = match.group(1) or match.group(2)
             lines.append("")
@@ -629,16 +638,6 @@ def without_blocks(text: str) -> str:
             comment = True
             lines.append("")
             continue
-        if item:
-            marker = item.group().rstrip()
-            spaces = len(item.group()) - len(marker)
-            items.append(indent + len(marker) + (spaces if 1 <= spaces <= 4 else 1))
-            match = FENCE_OPEN_RE.match(content[len(item.group()):]) if 1 <= spaces <= 4 else None
-            if match:
-                fence = match.group(1) or match.group(2)
-                lines.append("")
-                paragraph = False
-                continue
         lines.append(line)
         paragraph = not (HEADING_RE.match(content) or content.startswith("<!--"))
     return "\n".join(lines)
