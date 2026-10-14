@@ -173,6 +173,11 @@ function assertChineseQueries({ cache, version }) {
   assert.equal(top('SaaS定价'), 'YqkjvOqz');
   const expanded = muse(env, 'search', '餐厅官网');
   assert.match(expanded.stdout.split('\n')[1], /^中文词展开:餐厅 → restaurant.* · 官网 → website/);
+  // No seed is about a cocktail bar: the restaurant site is listed as a partial hit, without ★.
+  const cocktail = muse(env, 'search', 'cocktail bar website');
+  assert.deepEqual(starred(cocktail), []);
+  assert.ok(ranked(cocktail).includes('E3ISF3qW'), cocktail.stdout);
+  assert.match(cocktail.stdout, /E3ISF3qW .*\n {4}命中:[^\n]*website[^\n]* {2}未命中:cocktail/);
 }
 
 test('Chinese queries reach the seeds added in 1.3.0 (fixture release)', (t) => {
@@ -227,13 +232,25 @@ test('Chinese terms expand to English even when the library has no Chinese title
 test('unknown Chinese words get a friendly hint instead of silent misses', () => {
   const unknown = muse({}, 'search', '魑魅魍魉');
   assert.equal(unknown.status, 0, unknown.stderr);
-  assert.match(unknown.stderr, /词表未收录「魑魅魍魉」.*英文关键词/);
+  assert.match(unknown.stderr, /词表未收录「魑魅魍魉」.*不标 ★.*带上下文的英文短语/);
   assert.match(unknown.stdout, /没有找到可靠参考:查询里的中文词都未能识别/);
 
-  // Known words still search; the unknown part is reported and ignored.
+  // Known words still search, but the unknown part may be the point of the query: no ★, the
+  // results are listed as partial hits with the unknown word missing.
   const partial = muse({}, 'search', '魑魅魍魉仪表盘');
   assert.match(partial.stderr, /词表未收录「魑魅魍魉」/);
+  assert.deepEqual(starred(partial), []);
   assert.equal(ranked(partial)[0], 'pu9ToBED');
+  assert.match(partial.stdout, /查询里的「魑魅魍魉」未能识别,结果不标 ★/);
+  assert.match(partial.stdout, /pu9ToBED .*\n {4}命中:仪表盘 {2}未命中:魑魅魍魉/);
+  assert.match(partial.stdout, /把未识别的中文词连同场景翻译成英文短语再搜/);
+  // 酒吧 is not in the table: 官网 alone no longer stars every website.
+  const bar = muse({}, 'search', '酒吧 官网');
+  assert.deepEqual(starred(bar), []);
+  assert.ok(ranked(bar).length > 0);
+  for (const line of bar.stdout.match(/^ {4}命中:.*$/gm)) assert.equal(line, '    命中:官网  未命中:酒吧');
+  // Recognised words keep their ★ (the 1.3.0 seeds are checked by assertChineseQueries).
+  assert.deepEqual(starred(muse({}, 'search', '仪表盘')).slice(0, 1), ['pu9ToBED']);
 
   const generic = muse({}, 'search', '设计风格参考');
   assert.equal(generic.status, 0);
@@ -420,18 +437,47 @@ test('only reliable hits get ★; without one the noise is not listed', (t) => {
   assert.deepEqual(starred(mixed), ['topic']);
   assert.match(mixed.stdout, /以下未标 ★ 的只命中部分查询词或只出现在正文里,不是可靠参考/);
   assert.deepEqual(ranked(mixed).slice(1).sort(), ['mention', 'partial']);
-  // All words only in the body, or not all words anywhere: nothing listed, a clear notice instead.
-  for (const query of ['footer cafe', 'bakery cocktail']) {
-    const result = search(query);
-    assert.deepEqual(ranked(result), [], query);
-    assert.doesNotMatch(result.stdout, /★/, query);
-    assert.match(result.stdout, /没有找到可靠参考:\d+ 个 seed/, query);
-    assert.match(result.stdout, /换成带场景的具体英文短语再试.*仍然没有就如实说明没有可靠参考/, query);
-  }
-  // The same on the bundled snapshot.
+  // All words only in the body: nothing listed, a clear notice instead.
+  const body = search('footer cafe');
+  assert.deepEqual(ranked(body), []);
+  assert.doesNotMatch(body.stdout, /★/);
+  assert.match(body.stdout, /没有找到可靠参考:1 个 seed 只在正文里/);
+  assert.match(body.stdout, /换成带场景的具体英文短语再试.*仍然没有就如实说明没有可靠参考/);
+  // Not all words anywhere: the partial hits in the gist are listed without ★.
+  const partial = search('bakery cocktail');
+  assert.deepEqual(ranked(partial), ['partial', 'topic']);
+  assert.deepEqual(starred(partial), []);
+  // The same on the bundled snapshot, which has no restaurant seed.
   const bundled = muse({}, 'search', 'cocktail bar website');
-  assert.deepEqual(ranked(bundled), []);
-  assert.match(bundled.stdout, /没有找到可靠参考/);
+  assert.deepEqual(starred(bundled), []);
+  assert.match(bundled.stdout, /没有 seed 同时命中全部查询词,结果不标 ★/);
+});
+
+test('without ★, partial hits in key fields are listed by matched words, key-field hits and novelty', (t) => {
+  // customLibrary gives later seeds a higher novelty.
+  const library = customLibrary(scratch(t, 'musekit-partial-'), [
+    { id: 'both-key', gist: 'A bakery website.', body: '# Layout\n\nA single page.' },
+    { id: 'one-body', gist: 'A website for a shop.', body: '# Layout\n\nA bakery in town.' },
+    { id: 'one-low', gist: 'A website for a gallery.', body: '# Layout\n\nA single page.' },
+    { id: 'one-high', gist: 'A museum.', tags: { domain: ['bakery'] }, body: '# Layout\n\nA single page.' },
+    { id: 'body-only', gist: 'A guide.', body: '# Layout\n\nA cocktail list, a bakery corner and a website.' },
+  ]);
+  const search = (query, n = '10') => muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', query, '-n', n);
+  const result = search('cocktail bakery website');
+  assert.deepEqual(starred(result), []);
+  // Two matched words beat one; then hits in key fields; then novelty. Body-only hits stay hidden.
+  assert.deepEqual(ranked(result), ['both-key', 'one-body', 'one-high', 'one-low']);
+  assert.match(result.stdout, /没有 seed 同时命中全部查询词,结果不标 ★/);
+  assert.match(result.stdout, /both-key .*\n {4}命中:bakery、website {2}未命中:cocktail\n/);
+  assert.match(result.stdout, /one-high .*\n {4}命中:bakery {2}未命中:cocktail、website\n/);
+  assert.match(result.stdout, /另有 1 个 seed 只在正文里提到查询词,不列出/);
+  assert.match(result.stdout, /没命中的词可换上位词再搜.*部分命中只有分类或摘要确实贴题时才作为相邻参考/);
+  // -n limits the list.
+  assert.deepEqual(ranked(search('cocktail bakery website', '2')), ['both-key', 'one-body']);
+  // With a ★ the output keeps its form: ★ first, then the weak matches without annotations.
+  const reliable = search('bakery website');
+  assert.deepEqual(starred(reliable), ['one-body', 'both-key']);
+  assert.doesNotMatch(reliable.stdout, /命中:|另有/);
 });
 
 test('English words match from the start of a word; hyphens in fields separate words', (t) => {

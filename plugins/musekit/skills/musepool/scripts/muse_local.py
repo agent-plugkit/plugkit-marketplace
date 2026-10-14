@@ -30,7 +30,9 @@ tags 与 core_dimensions 另由索引提供)、代码块、行内代码、HTML �
 zh_terms.json 做最长匹配切词并展开为英文同义词(按整词匹配;不计章节标题这类每个 seed 都有的
 模板文字,也不计 no-motion、sans-serif 这类否定写法),原文也匹配库内中文标题和摘要(scenarios.json)。
 所有检索单元都命中、且至少一个命中在 gist、category、tags、core_dimensions 或中文标题摘要的结果是
-可靠命中,标 ★ 排在最前;没有可靠命中时不列出弱匹配,只提示换更具体的英文短语。
+可靠命中,标 ★ 排在最前。查询里有词表未识别的中文词时不标 ★。没有 ★ 时列出关键字段命中部分查询词的
+条目(按命中词数、关键字段命中数、novelty 排序,注明命中与未命中的词),只在正文里提到的不列,
+并提示换更具体的英文短语。
 """
 from __future__ import annotations
 
@@ -849,42 +851,64 @@ def cmd_search(args) -> int:
         doc = library.doc(e, labels.get(e["id"].lower(), ""))
         matched = [u for u in units if u.hit(doc)]
         if matched:
-            # 可靠命中:全部单元都命中,且至少一个命中在 gist、category、tags、core_dimensions 或中文标题摘要。
-            reliable = len(matched) == len(units) and any(u.key_hit(doc) for u in matched)
+            key_hits = sum(1 for u in matched if u.key_hit(doc))
+            # 可靠命中:全部单元都命中,且至少一个命中在 gist、category、tags、core_dimensions 或中文标题摘要;
+            # 查询里有词表未识别的中文词时,没有检索到的部分可能正是要点,不标 ★。
+            reliable = not unknown and len(matched) == len(units) and key_hits > 0
             # 同分时,中文词直接命中中文标题摘要、或其英文同义词命中 category/tags 的条目更贴题。
             label_hits = sum(1 for u in zh_units if u.text in doc.labels)
             topic_hits = sum(1 for u in zh_units if u.describes(doc.fields))
             scored.append((reliable, len(matched) == len(units), len(matched), label_hits, topic_hits,
-                           (e.get("scores") or {}).get("novelty", 0), e))
+                           (e.get("scores") or {}).get("novelty", 0), e, matched, key_hits))
     scored.sort(key=lambda t: t[:6], reverse=True)
     print(library.describe())
     expanded = [f"{u.text} → {' / '.join(u.synonyms)}" for u in zh_units if u.synonyms]
     if expanded:
         print(f"中文词展开:{' · '.join(expanded)}")
     if unknown:
-        sys.stderr.write(f"muse_local: 词表未收录「{'」「'.join(unknown)}」,库内也没有这些原文,已忽略;"
-                         "可换个常见说法或直接用英文关键词\n")
+        sys.stderr.write(f"muse_local: 词表未收录「{'」「'.join(unknown)}」,库内也没有这些原文;结果不标 ★,"
+                         "把查询翻译成带上下文的英文短语再搜\n")
     if scored and scored[0][0]:
         weak = False
-        for reliable, _, _, _, _, nov, e in scored[: args.n]:
+        for reliable, _, _, _, _, nov, e, _, _ in scored[: args.n]:
             if not reliable and not weak:
                 weak = True
                 print("以下未标 ★ 的只命中部分查询词或只出现在正文里,不是可靠参考:")
             print(f"{'★' if reliable else ' '} [{e['scenario']}] {e['id']}  {label(e)}  (novelty {nov})")
             print(f"    {e.get('gist', '')[:150]}")
             print(f"    file: {library.display_path(e)}")
-    else:
-        if scored:
-            print(f"没有找到可靠参考:{len(scored)} 个 seed 只在正文里零星提到查询词,或没有同时命中全部查询词,"
-                  "不列为结果。")
-        elif not units and unknown:
-            print("没有找到可靠参考:查询里的中文词都未能识别(也可换个常见说法,如 仪表盘 / 海报 / 配色)。")
-        elif not units:
-            print("没有找到可靠参考:查询只有“设计”“风格”“参考”这类泛称,先写出具体的场景、媒介或风格。")
+        return 0
+    # 没有 ★ 时列出关键字段命中部分查询词的条目,按命中词数、关键字段命中数、novelty 排序;
+    # 只在正文里提到查询词的照旧不列。
+    partial = sorted((t for t in scored if t[8]), key=lambda t: (t[2], t[8], t[5]), reverse=True)
+    if partial:
+        if unknown:
+            print(f"查询里的「{'」「'.join(unknown)}」未能识别,结果不标 ★。以下是在分类、标签、维度或摘要上"
+                  "命中部分查询词的条目,看分类和摘要判断是否贴题:")
         else:
-            print("没有找到可靠参考:没有 seed 提到这些查询词。")
-        print("换成带场景的具体英文短语再试(如 \"cocktail bar website\" 而不是 \"bar\"),可多试几组说法;"
-              "仍然没有就如实说明没有可靠参考。")
+            print("没有 seed 同时命中全部查询词,结果不标 ★。以下是在分类、标签、维度或摘要上命中部分查询词的条目,"
+                  "看分类和摘要判断是否贴题:")
+        for _, _, _, _, _, nov, e, matched, _ in partial[: args.n]:
+            missing = [u.text for u in units if u not in matched] + unknown
+            print(f"  [{e['scenario']}] {e['id']}  {label(e)}  (novelty {nov})")
+            print(f"    命中:{'、'.join(u.text for u in matched)}  未命中:{'、'.join(missing)}")
+            print(f"    {e.get('gist', '')[:150]}")
+            print(f"    file: {library.display_path(e)}")
+        if len(scored) > len(partial):
+            print(f"另有 {len(scored) - len(partial)} 个 seed 只在正文里提到查询词,不列出。")
+    elif scored:
+        print(f"没有找到可靠参考:{len(scored)} 个 seed 只在正文里零星提到查询词,不列为结果。")
+    elif not units and unknown:
+        print("没有找到可靠参考:查询里的中文词都未能识别(也可换个常见说法,如 仪表盘 / 海报 / 配色)。")
+    elif not units:
+        print("没有找到可靠参考:查询只有“设计”“风格”“参考”这类泛称,先写出具体的场景、媒介或风格。")
+    else:
+        print("没有找到可靠参考:没有 seed 提到这些查询词。")
+    if unknown:
+        print("把未识别的中文词连同场景翻译成英文短语再搜(如 酒吧官网 → \"cocktail bar website\")。")
+    print("换成带场景的具体英文短语再试(如 \"cocktail bar website\" 而不是 \"bar\"),可多试几组说法;"
+          "没命中的词可换上位词再搜(如 hospitality、restaurant)。部分命中只有分类或摘要确实贴题时才作为相邻参考,"
+          "并向用户说明;仍然没有就如实说明没有可靠参考。")
     return 0
 
 
