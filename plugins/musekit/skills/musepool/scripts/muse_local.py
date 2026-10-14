@@ -23,11 +23,13 @@ seed 库按以下顺序查找,用到哪一份会在输出中注明来源与版�
 失败时不改动当前使用的 seed 库。update 与 rollback 持有缓存锁,同一时间只允许一个。
 
 search 在 gist / category / tags / core_dimensions 及 seed 正文上做大小写不敏感的
-关键词打分,所有词命中者排前,其次按命中词数与 novelty 排序。查询中的中文按 zh_terms.json
-做最长匹配切词并展开为英文同义词(按整词匹配;不计字段名、章节标题这类每个 seed 都有的
-模板文字,也不计 no-motion、sans-serif 这类否定写法),原文也匹配正文与库内中文标题和摘要
-(scenarios.json);中文词命中中文标题摘要或 category/tags 的条目在同分时排前。
-纯英文查询的匹配与排序不受影响。
+关键词打分。连字符和点连成的是一个词:bar 不命中 three-bar,index 不命中 z-index,paper 不命中
+paper.js(slug 形式的 tags 例外,其中的连字符就是词间空格)。正文不计前置元数据(category、
+tags 与 core_dimensions 另由索引提供)、代码块、行内代码、HTML 注释与 CSS 片段。查询中的中文按
+zh_terms.json 做最长匹配切词并展开为英文同义词(按整词匹配;不计章节标题这类每个 seed 都有的
+模板文字,也不计 no-motion、sans-serif 这类否定写法),原文也匹配库内中文标题和摘要(scenarios.json)。
+所有检索单元都命中、且至少一个命中在 gist、category、tags、core_dimensions 或中文标题摘要的结果是
+可靠命中,标 ★ 排在最前;没有可靠命中时不列出弱匹配,只提示换更具体的英文短语。
 """
 from __future__ import annotations
 
@@ -61,9 +63,24 @@ HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 TARBALL_RE = re.compile(r"^[A-Za-z0-9._-]+\.tar\.gz$")
 SOURCE_LABELS = {"env": "MUSEPOOL_SEEDS_DIR", "cache": "本机缓存", "bundled": "内置快照"}
 CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+")
-FIELD_NAME_RE = re.compile(r"(?m)^([ \t]*)[A-Za-z_][A-Za-z0-9_]*:")
 SECTION_RE = re.compile(r"(?m)^# .*$")
-# 紧跟在这些否定词之后的英文同义词不算命中:no-motion、non-grid、zero radius、without animation;
+# 不参与匹配的正文:Muspro Seeds 按分类写入的借鉴范围说明(与 scenario 取值等价)、代码块、
+# 行内代码、HTML 注释,以及正文里的 CSS 片段(z-index: 100、cubic-bezier(...)、var(--x))。
+SCOPE_NOTE_RE = re.compile(r"(?m)^> 借鉴范围[:：].*$")
+FENCE_RE = re.compile(r"(?ms)^[ \t]*(`{3,}|~{3,}).*?(?:^[ \t]*\1[ \t]*$|\Z)")
+INLINE_CODE_RE = re.compile(r"(`+)[^\n]*?\1")
+HTML_COMMENT_RE = re.compile(r"(?s)<!--.*?-->")
+CSS_ARGS = r"(?:[^()\n\u3400-\u9fff]|\([^()\n\u3400-\u9fff]*\))*"
+CSS_FUNCTION = rf"-?[a-z][a-z0-9]*(?:-[a-z0-9]+)*\({CSS_ARGS}\)"
+CSS_VALUE = rf"(?:{CSS_FUNCTION}|[#a-z0-9_.%-]+)(?:[ \t]+(?:{CSS_FUNCTION}|[-#.]?[0-9][a-z0-9_.%]*))*(?:[ \t]*!important)?;?"
+# 声明只认带连字符的属性名(z-index: 100)与紧贴冒号的写法(display:none),不误删 "Primary font: a ..."
+# 这类正文标签。
+CSS_RE = re.compile(rf"(?<![a-z0-9_-])(?:-?[a-z]+(?:-[a-z]+)+[ \t]*:[ \t]*{CSS_VALUE}|[a-z]+:(?=[#a-z0-9_.-]){CSS_VALUE}"
+                    rf"|{CSS_FUNCTION})")
+# 连字符和点连成的是一个词:three-bar、z-index、paper.js 里的 bar、index、paper 都不算独立出现。
+JOINED_BEFORE = r"(?<![a-z0-9][-.])"
+JOINED_AFTER = r"(?![-.][a-z0-9])"
+# 紧跟在这些否定词之后的英文同义词不算命中:no motion、zero radius、without animation;
 # sans 只在 sans-serif / sans serif 里表示否定(sans typeface 仍是字体)。
 NEGATED = r"(?<!\bno[\s-])(?<!\bnon[\s-])(?<!\bzero[\s-])(?<!\bwithout[\s-])(?<!\bsans[\s-](?=serif))"
 STATE_FILE = "state.json"
@@ -97,6 +114,8 @@ class Library:
         self.schema = schema
         self.is_bundled_dir = kind == "bundled"
         self._labels: dict[str, str] | None = None
+        self._bodies: dict[str, str] = {}
+        self._docs: dict[tuple[str, str], Doc] = {}
 
     def describe(self) -> str:
         version = f"{PACKAGE} {self.version}" if self.version else "未标版本"
@@ -109,6 +128,19 @@ class Library:
 
     def text(self, entry: dict) -> str:
         return self.texts[entry["file"]]
+
+    def body(self, entry: dict) -> str:
+        """参与检索的正文:去掉前置元数据、借鉴范围说明、代码与 CSS 片段后的小写文本。"""
+        if entry["file"] not in self._bodies:
+            text = SCOPE_NOTE_RE.sub(" ", without_frontmatter(self.text(entry)))
+            self._bodies[entry["file"]] = without_code(text)
+        return self._bodies[entry["file"]]
+
+    def doc(self, entry: dict, labels: str = "") -> "Doc":
+        key = (entry["file"], labels)
+        if key not in self._docs:
+            self._docs[key] = Doc(self, entry, labels)
+        return self._docs[key]
 
     def zh_labels(self) -> dict[str, str]:
         """各 seed 的中文标题与摘要(scenarios.json,及索引条目里可选的 labels.zh-CN),按小写 id 索引。
@@ -466,27 +498,36 @@ def descriptors(entry: dict) -> str:
                      " ".join(entry.get("core_dimensions") or [])]).lower()
 
 
-def without_template(text: str) -> str:
-    """去掉每个 seed 都有的模板文字:前置元数据的字段名(motion:、motion_intensity: 等,取值保留)
-    与正文的一级章节标题(# Motion、# Typography 等)。"""
-    end = text.find("\n---", 3) if text.startswith("---") else -1
-    if end > 0:
-        text = FIELD_NAME_RE.sub(r"\1", text[:end]) + text[end:]
-    return SECTION_RE.sub("", text)
+def without_frontmatter(text: str) -> str:
+    """去掉前置元数据:id、scenario、modality、view_type、scores 等取值不描述设计内容,
+    category 与 tags 由索引字段提供。"""
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end > 0:
+            newline = text.find("\n", end + 1)
+            return "" if newline < 0 else text[newline:]
+    return text
 
 
-def haystack(library: Library, entry: dict, template: bool = True) -> str:
-    """template=False 用于中文词展开出的英文同义词:模板文字每个 seed 都有,不能算命中。"""
-    text = library.text(entry)
-    parts = [
-        entry.get("gist", ""),
-        entry.get("category", ""),
-        flat_tags(entry.get("tags")),
-        " ".join(entry.get("core_dimensions") or []),
-        # 连同 seed 正文一起搜(布局/色彩/动效/工艺细节都在正文里)
-        text if template else without_template(text),
-    ]
-    return " ".join(parts).lower()
+def without_code(text: str) -> str:
+    """去掉代码块、行内代码、HTML 注释与 CSS 片段;返回小写文本。"""
+    for pattern in (FENCE_RE, INLINE_CODE_RE, HTML_COMMENT_RE):
+        text = pattern.sub(" ", text)
+    return CSS_RE.sub(" ", text.lower())
+
+
+class Doc:
+    """一个 seed 的检索文本。prose 为 gist 与正文,连字符和点连成的词不拆开;fields 为 category、
+    tags 与 core_dimensions,其中 tags 是 slug,连字符即词间空格。"""
+
+    def __init__(self, library: "Library", entry: dict, labels: str):
+        self.gist = without_code(entry.get("gist", ""))
+        body = library.body(entry)
+        self.prose = f"{self.gist}\n{body}"
+        # 中文词展开出的英文同义词不计章节标题(# Motion 等),这类模板文字每个 seed 都有。
+        self.plain = f"{self.gist}\n{SECTION_RE.sub('', body)}"
+        self.fields = descriptors(entry)
+        self.labels = labels
 
 
 # ---------------------------------------------------------------------------
@@ -527,6 +568,9 @@ def segment(run: str, terms: dict[str, list[str]], ignore: set[str]) -> list[tup
         i += size
     if pending:
         pieces.append((pending, "unknown"))
+    # 整段都由单字虚词拼成(地图 = 地 + 图)时多半是词表没有收录的词,不当虚词跳过。
+    if len(run) > 1 and all(kind == "ignore" and len(piece) == 1 for piece, kind in pieces):
+        return [(run, "unknown")]
     return pieces
 
 
@@ -535,10 +579,19 @@ def term_body(term: str) -> str:
     return r"[\s-]+".join(re.escape(part) for part in term.split())
 
 
-def word_pattern(term: str) -> re.Pattern:
+def word_pattern(term: str, joined: bool = False) -> re.Pattern:
     # 展开出的英文词按整词匹配(可带复数),避免 plan 命中 explanation 这类子串误配。
     # 下划线连成的是字段名(motion_intensity),不算整词;否定写法(no-motion、sans-serif)见 NEGATED。
-    return re.compile(rf"(?<![a-z0-9_]){NEGATED}{term_body(term)}(?:s|es)?(?![a-z0-9_])")
+    # joined=True 用于正文:连字符和点也连成一个词(three-bar 里没有 bar)。
+    before, after = (JOINED_BEFORE, JOINED_AFTER) if joined else ("", "")
+    return re.compile(rf"(?<![a-z0-9_]){before}{NEGATED}{term_body(term)}(?:s|es)?(?![a-z0-9_]){after}")
+
+
+def english_pattern(token: str) -> re.Pattern:
+    # 英文查询词在正文里仍按子串匹配(toolbar 含 bar),只是不拆开连字符和点连成的词。
+    before = JOINED_BEFORE if token[:1].isalnum() else ""
+    after = JOINED_AFTER if token[-1:].isalnum() else ""
+    return re.compile(before + re.escape(token) + after)
 
 
 def denial_pattern(term: str) -> re.Pattern:
@@ -547,13 +600,16 @@ def denial_pattern(term: str) -> re.Pattern:
 
 
 class Unit:
-    """查询里的一个检索单元:英文词按子串匹配(与原有行为一致);中文词另加英文同义词与中文标签。"""
+    """查询里的一个检索单元:英文词在 fields 里按子串、在正文里按不拆连字符和点的子串匹配;
+    中文词另加英文同义词(整词)与中文标题摘要。"""
 
     def __init__(self, text: str, synonyms: list[str] | None = None):
         self.text = text
         self.zh = synonyms is not None
         self.synonyms = synonyms or []
+        self.english = None if self.zh else english_pattern(text)
         self.patterns = [word_pattern(term) for term in self.synonyms]
+        self.prose_patterns = [word_pattern(term, joined=True) for term in self.synonyms]
         self.denials = [denial_pattern(term) for term in self.synonyms]
 
     def describes(self, fields: str) -> bool:
@@ -563,12 +619,23 @@ class Unit:
         """fields(descriptors)标明没有这一项(no-motion),也没有别的字段正面描述它。"""
         return any(p.search(fields) for p in self.denials) and not self.describes(fields)
 
-    def hit(self, hay: str, terms_hay: str, labels: str, fields: str) -> bool:
-        """hay 为完整检索文本;英文同义词只在去掉模板文字的 terms_hay 里找,被 fields 否定时
-        正文里的零星提及(No entrance animations)不算命中。"""
-        if self.text in hay or (self.zh and self.text in labels):
+    def hit(self, doc: Doc) -> bool:
+        """被 fields 否定时,正文里的零星提及(No entrance animations)不算命中。"""
+        if not self.zh:
+            return self.text in doc.fields or bool(self.english.search(doc.prose))
+        if self.text in doc.prose or self.text in doc.labels:
             return True
-        return any(p.search(terms_hay) for p in self.patterns) and not self.denied(fields)
+        return ((any(p.search(doc.fields) for p in self.patterns) or any(p.search(doc.plain) for p in self.prose_patterns))
+                and not self.denied(doc.fields))
+
+    def key_hit(self, doc: Doc) -> bool:
+        """命中在 gist、category、tags、core_dimensions 或中文标题摘要:正文里的偶然提及不够可靠。"""
+        if not self.zh:
+            return self.text in doc.fields or bool(self.english.search(doc.gist))
+        if self.text in doc.labels:
+            return True
+        return ((any(p.search(doc.fields) for p in self.patterns) or any(p.search(doc.gist) for p in self.prose_patterns))
+                and not self.denied(doc.fields))
 
 
 def parse_query(query: str, library: Library) -> tuple[list[Unit], list[str]]:
@@ -595,9 +662,9 @@ def parse_query(query: str, library: Library) -> tuple[list[Unit], list[str]]:
                 if kind == "term":
                     units.append(Unit(piece, terms[piece]))
                 elif kind == "unknown":
-                    # 词表没有收录但库内原文或中文标签里出现过的词仍按原文匹配。
+                    # 词表没有收录但库内正文或中文标签里出现过的词仍按原文匹配。
                     labels = library.zh_labels()
-                    if any(piece in library.text(e) or piece in labels.get(e["id"].lower(), "") for e in library.entries):
+                    if any(piece in library.body(e) or piece in labels.get(e["id"].lower(), "") for e in library.entries):
                         units.append(Unit(piece, []))
                     else:
                         unknown.append(piece)
@@ -634,19 +701,17 @@ def cmd_search(args) -> int:
     labels = library.zh_labels() if zh_units else {}
     scored = []
     for e in entries:
-        hay = haystack(library, e)
-        terms_hay = haystack(library, e, template=False) if zh_units else hay
-        fields = descriptors(e) if zh_units else ""
-        text = labels.get(e["id"].lower(), "")
-        hits = sum(1 for u in units if u.hit(hay, terms_hay, text, fields))
-        if hits:
+        doc = library.doc(e, labels.get(e["id"].lower(), ""))
+        matched = [u for u in units if u.hit(doc)]
+        if matched:
+            # 可靠命中:全部单元都命中,且至少一个命中在 gist、category、tags、core_dimensions 或中文标题摘要。
+            reliable = len(matched) == len(units) and any(u.key_hit(doc) for u in matched)
             # 同分时,中文词直接命中中文标题摘要、或其英文同义词命中 category/tags 的条目更贴题。
-            # 纯英文查询这两项恒为 0,排序与原来相同。
-            label_hits = sum(1 for u in zh_units if u.text in text)
-            topic_hits = sum(1 for u in zh_units if u.describes(fields))
-            scored.append((hits == len(units), hits, label_hits, topic_hits,
+            label_hits = sum(1 for u in zh_units if u.text in doc.labels)
+            topic_hits = sum(1 for u in zh_units if u.describes(doc.fields))
+            scored.append((reliable, len(matched) == len(units), len(matched), label_hits, topic_hits,
                            (e.get("scores") or {}).get("novelty", 0), e))
-    scored.sort(key=lambda t: t[:5], reverse=True)
+    scored.sort(key=lambda t: t[:6], reverse=True)
     print(library.describe())
     expanded = [f"{u.text} → {' / '.join(u.synonyms)}" for u in zh_units if u.synonyms]
     if expanded:
@@ -654,20 +719,28 @@ def cmd_search(args) -> int:
     if unknown:
         sys.stderr.write(f"muse_local: 词表未收录「{'」「'.join(unknown)}」,库内也没有这些原文,已忽略;"
                          "可换个常见说法或直接用英文关键词\n")
-    for full, hits, _, _, nov, e in scored[: args.n]:
-        mark = "★" if full else " "
-        print(f"{mark} [{e['scenario']}] {e['id']}  {label(e)}  (novelty {nov})")
-        print(f"    {e.get('gist', '')[:150]}")
-        print(f"    file: {library.display_path(e)}")
-    if not scored:
-        if not units and unknown:
-            print("无命中。查询里的中文词都未能识别;换个常见说法(如 仪表盘 / 海报 / 配色)"
-                  "或用英文关键词(如 palette / grid / dashboard / diagram)再试。")
-        elif not units:
-            print("无命中。查询只有“设计”“风格”“参考”这类泛称;写出具体的场景、媒介或风格"
-                  "(如 餐厅官网 / 海报 / 深色仪表盘)再试。")
-        else:
-            print("无命中。换英文关键词(如 palette / grid / dashboard / diagram)再试。")
+    if scored and scored[0][0]:
+        weak = False
+        for reliable, _, _, _, _, nov, e in scored[: args.n]:
+            if not reliable and not weak:
+                weak = True
+                print("以下未标 ★ 的只命中部分查询词或只出现在正文里,不是可靠参考:")
+            print(f"{'★' if reliable else ' '} [{e['scenario']}] {e['id']}  {label(e)}  (novelty {nov})")
+            print(f"    {e.get('gist', '')[:150]}")
+            print(f"    file: {library.display_path(e)}")
+    elif scored:
+        print(f"没有找到可靠参考:{len(scored)} 个 seed 只在正文里零星提到查询词,或没有同时命中全部查询词,"
+              "不列为结果。")
+        print("换成带场景的具体英文短语再试(如 \"cocktail bar website\" 而不是 \"bar\"),可多试几组说法;"
+              "仍然没有就如实说明没有可靠参考。")
+    elif not units and unknown:
+        print("无命中。查询里的中文词都未能识别;换个常见说法(如 仪表盘 / 海报 / 配色)"
+              "或用英文关键词(如 palette / grid / dashboard / diagram)再试。")
+    elif not units:
+        print("无命中。查询只有“设计”“风格”“参考”这类泛称;写出具体的场景、媒介或风格"
+              "(如 餐厅官网 / 海报 / 深色仪表盘)再试。")
+    else:
+        print("无命中。换英文关键词(如 palette / grid / dashboard / diagram)再试。")
     return 0
 
 

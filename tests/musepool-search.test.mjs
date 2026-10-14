@@ -1,5 +1,6 @@
-// muse_local.py search: Chinese queries, English ranking stability, and the warning for a
-// MUSEPOOL_SEEDS_DIR that points at the bundled snapshot while the cache holds a newer release.
+// muse_local.py search: Chinese queries, word boundaries, excluded text, reliable (★) hits, the
+// English result snapshot, and the warning for a MUSEPOOL_SEEDS_DIR that points at the bundled
+// snapshot while the cache holds a newer release.
 // Uses only Node.js built-ins and Python 3 so it also runs on Windows CI.
 //
 // Set MUSEKIT_TEST_RELEASE_DIR to a directory holding a real Muspro Seeds >= 1.3.0 release
@@ -15,6 +16,8 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { contentHash, readDirectory } from '../scripts/sync-seeds.mjs';
+import { libraryHash, snapshot } from './fixtures/musepool/english-snapshot.mjs';
+import { release130 } from './fixtures/musepool/library.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const musepool = join(root, 'plugins/musekit/skills/musepool');
@@ -65,23 +68,9 @@ function readLibrary(dir) {
   };
 }
 
-// The search order before Chinese support: substring hits over gist, category, tags,
-// core_dimensions and the seed text; full matches first, then hit count, then novelty.
-function legacyOrder({ entries, texts }, query, scenario) {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const tags = (value) => (Array.isArray(value) ? value.join(' ')
-    : value && typeof value === 'object' ? Object.values(value).flat().join(' ') : String(value ?? ''));
-  return entries
-    .filter((e) => !scenario || e.scenario === scenario)
-    .map((e) => {
-      const hay = [e.gist ?? '', e.category, tags(e.tags), (e.core_dimensions ?? []).join(' '), texts[e.file]]
-        .join(' ').toLowerCase();
-      const hits = words.filter((w) => hay.includes(w)).length;
-      return { id: e.id, full: hits === words.length ? 1 : 0, hits, novelty: e.scores?.novelty ?? 0 };
-    })
-    .filter((s) => s.hits)
-    .sort((a, b) => b.full - a.full || b.hits - a.hits || b.novelty - a.novelty)
-    .map((s) => s.id);
+// Seed IDs marked ★ (reliable hits).
+function starred(result) {
+  return [...result.stdout.matchAll(/^★ \[[a-z]+\] (\S+) /gm)].map((match) => match[1]);
 }
 
 function hashFile(path) {
@@ -142,21 +131,21 @@ function fixtureCache(t) {
   return installRelease(dir, dirname(tar));
 }
 
-// A custom library for MUSEPOOL_SEEDS_DIR; each seed is [id, tags, core_dimensions, body] and its
-// front matter follows the real seeds, including motion_intensity and the tag group names.
+// A custom library for MUSEPOOL_SEEDS_DIR. Each seed is { id, gist, tags, dimensions, body }; the
+// front matter follows the real seeds (scenario_name, modality, view_type, scores, tag groups).
 function customLibrary(dir, seedList) {
   const library = join(dir, 'library');
   mkdirSync(join(library, 'ui'), { recursive: true });
-  const entries = seedList.map(([id, tags, dimensions, body], i) => {
+  const entries = seedList.map(({ id, gist = `Reference ${id}.`, tags = {}, dimensions = ['layout'], body }, i) => {
     const entry = {
-      id, file: `ui/${id}.md`, scenario: 'ui', category: 'landing page', gist: `Reference ${id}.`,
+      id, file: `ui/${id}.md`, scenario: 'ui', category: 'sample reference', gist,
       core_dimensions: dimensions, scores: { novelty: 0.5 + i / 100 }, tags,
     };
     const yamlTags = Object.entries(tags).map(([group, values]) => `  ${group}:\n${values.map((v) => `  - ${v}\n`).join('')}`);
     writeFileSync(join(library, 'ui', `${id}.md`), `---\nid: ${id}\nscenario: ui\nscenario_name: 界面\n`
-      + `category: landing page\ncore_dimensions:\n${dimensions.map((d) => `- ${d}\n`).join('')}`
-      + `scores:\n  motion_intensity: 0.0\n  novelty: 0.5\ntags:\n${yamlTags.join('')}---\n\n`
-      + `# Typography\n\n${body.typography}\n\n# Motion\n\n${body.motion}\n`);
+      + `category: sample reference\nmodality: web\nview_type: landing\ncore_dimensions:\n`
+      + `${dimensions.map((d) => `- ${d}\n`).join('')}scores:\n  motion_intensity: 0.0\n  novelty: 0.5\n`
+      + `tags:\n${yamlTags.join('')}---\n\n> 借鉴范围:可借鉴交互、导航、组件组织或界面层级。\n\n${body}\n`);
     return entry;
   });
   writeFileSync(join(library, 'index.json'), JSON.stringify({ version: '9.9.9', schemaVersion: '1.0', seeds: entries }));
@@ -169,6 +158,7 @@ function assertChineseQueries({ cache, version }) {
   const top = (query) => {
     const result = muse(env, 'search', query);
     assert.match(firstLine(result), new RegExp(`本机缓存 · muspro-seeds ${version.replaceAll('.', '\\.')}`));
+    assert.equal(ranked(result)[0], starred(result)[0], query);
     return ranked(result)[0];
   };
   assert.equal(top('餐厅官网'), 'E3ISF3qW');
@@ -204,9 +194,11 @@ test('without a cache the bundled snapshot answers Chinese queries', () => {
   const portfolios = ranked(muse({}, 'search', '作品集', '-n', '40'));
   const index = JSON.parse(readFileSync(join(seeds, 'index.json'), 'utf8')).seeds;
   for (const entry of index.filter((e) => e.category.includes('portfolio'))) assert.ok(portfolios.includes(entry.id), entry.id);
-  // Scenario names appear verbatim in every seed and keep matching only their own category.
-  const information = ranked(muse({}, 'search', '信息表达', '-n', '40'));
-  assert.deepEqual(information.sort(), index.filter((e) => e.scenario === 'information').map((e) => e.id).sort());
+  // Scenario names only appear in front matter and the per-category scope note, which are not searched;
+  // the category filter is the way to narrow by scenario.
+  const information = muse({}, 'search', '信息表达');
+  assert.deepEqual(ranked(information), []);
+  assert.match(information.stderr, /词表未收录「信息表达」/);
   // The category filter applies to Chinese queries too.
   assert.ok(!muse({}, 'search', '海报', '--scenario', 'ui').stdout.includes('[graphic]'));
 });
@@ -250,48 +242,140 @@ test('unknown Chinese words get a friendly hint instead of silent misses', () =>
   assert.equal(muse({}, 'search', '   ').status, 2);
 });
 
-test('English searches keep their previous results and order', (t) => {
-  const fixture = fixtureCache(t);
-  const queries = [
-    ['typography'], ['number density hierarchy'], ['annotation', 'information'], ['dashboard'],
-    ['dark monochrome typography'], ['palette', 'graphic'], ['grid'], ['diagram'], ['poster'], ['portfolio', 'ui'],
-    ['minimal serif'], ['scroll'], ['restaurant website'], ['pricing comparison'], ['product launch card'],
-    ['menu reservation'], ['motion'], ['serif'], ['sans-serif'], ['no-motion'], ['no-such-reference-847261'],
-  ];
-  for (const [library, env] of [[seeds, {}], [fixture.library, { MUSEKIT_CACHE_DIR: fixture.cache }]]) {
-    const data = readLibrary(library);
-    for (const [query, scenario] of queries) {
-      const result = muse(env, 'search', query, '-n', '100', ...(scenario ? ['--scenario', scenario] : []));
-      assert.deepEqual(ranked(result), legacyOrder(data, query, scenario), `${query} in ${relative(root, library)}`);
-      assert.ok(!result.stdout.includes('中文词展开'));
-      assert.equal(result.stderr, '');
-    }
+test('English searches return the results recorded in english-ranking.json', (t) => {
+  // Regenerate with `node tests/fixtures/musepool/english-snapshot.mjs` after an intended change.
+  const recorded = JSON.parse(readFileSync(join(fixtures, 'english-ranking.json'), 'utf8'));
+  const dir = scratch(t, 'musekit-english-');
+  const libraries = { bundled: seeds, 'release-1.3.0': release130(dir).library };
+  for (const [name, library] of Object.entries(libraries)) {
+    assert.equal(libraryHash(library), recorded.libraries[name].contentHash, `${name} differs from the recorded library`);
+  }
+  const current = snapshot(script, libraries, recorded.queries, dir);
+  for (const [name, { ids, results }] of Object.entries(recorded.libraries)) {
+    assert.deepEqual(current[name].ids, ids);
+    const changed = recorded.queries.flatMap((query, q) => recorded.scenarios
+      .map((scenario, s) => [query, scenario, results[q][s], current[name].results[q][s]])
+      .filter(([, , before, after]) => before !== after));
+    assert.deepEqual(changed.slice(0, 20), [], `${changed.length} English results changed in ${name}`);
   }
 });
 
+test('hyphens and dots join words: three-bar, z-index and paper.js are single words', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-boundary-'), [
+    { id: 'joined', gist: 'Reference joined: icons, layering and canvas.',
+      body: '# Components\n\nA three-bar icon morphs on tap. The header sits at z-index 30. Drawn with paper.js '
+        + 'on a data-grid layout.' },
+    { id: 'plain', gist: 'Reference plain: a bar, an index and paper on a grid.',
+      body: '# Components\n\nA cocktail bar menu printed on paper, with an index of drinks on a 12-column grid.' },
+  ]);
+  const run = (query) => muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', query, '-n', '10');
+  for (const word of ['bar', 'index', 'paper']) assert.deepEqual(ranked(run(word)), ['plain'], word);
+  for (const word of ['js', 'three']) assert.match(run(word).stdout, /^无命中/m, word);
+  // The whole compound still matches (in the body only, so it is not a reliable hit).
+  assert.match(run('three-bar').stdout, /没有找到可靠参考:1 /);
+  assert.match(run('z-index').stdout, /没有找到可靠参考:1 /);
+  // The rule applies to expanded Chinese terms as well: data-grid is not a grid.
+  assert.deepEqual(ranked(run('网格')), ['plain']);
+});
+
+test('code, CSS, front matter values and the scope note are not searched', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-excluded-'), [
+    { id: 'code', gist: 'Reference code: a navigation pattern.', tags: { style: ['minimal'] },
+      body: '# Craft\n\n```css\n.nav { backdrop-filter: blur(8px); transition: opacity 200ms; }\n```\n\n'
+        + 'Uses `glassmorphism-panel` helpers, easing cubic-bezier(0.2, 0, 0, 1), border-radius: 999px and '
+        + 'var(--accent). <!-- ref-dim: marquee -->' },
+    { id: 'prose', gist: 'Reference prose: a navigation pattern.', tags: { style: ['minimal'] },
+      body: '# Craft\n\nA frosted blur behind the nav, a slow opacity transition, glassmorphism panels, '
+        + 'a gentle bezier easing, a marquee and a large border radius.' },
+  ]);
+  const run = (query) => muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', query, '-n', '10');
+  const search = (query) => ranked(run(query));
+  // "navigation" is in both gists; the second word only counts in prose, so code stays a weak match.
+  for (const query of ['blur', 'opacity', 'glassmorphism', 'bezier', 'radius', 'marquee', 'accent']) {
+    assert.deepEqual(starred(run(`navigation ${query}`)), query === 'accent' ? [] : ['prose'], query);
+  }
+  assert.deepEqual(search('blur'), []);
+  assert.match(run('blur').stdout, /没有找到可靠参考:1 /);
+  // modality, view_type, scenario, scenario_name, scores and field names are front matter only.
+  for (const query of ['web', 'landing', 'scenario', 'novelty', 'motion_intensity', 'view_type', '界面']) {
+    assert.deepEqual(search(query), [], query);
+  }
+  // category and tags still match through the index.
+  assert.deepEqual(search('sample').sort(), ['code', 'prose']);
+  assert.deepEqual(search('minimal').sort(), ['code', 'prose']);
+  // The per-category scope note (借鉴范围) is the same in every ui seed; its words are not hits.
+  assert.deepEqual(search('组件组织'), []);
+});
+
+test('only reliable hits get ★; without one the noise is not listed', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-reliable-'), [
+    { id: 'topic', gist: 'A cocktail bar website with a dark reservation flow.', tags: { domain: ['hospitality'] },
+      body: '# Layout\n\nA single page.' },
+    { id: 'mention', gist: 'A museum guide.', tags: { domain: ['culture'] },
+      body: '# Layout\n\nThe cafe and bar of the museum appear in the footer of the website.' },
+    { id: 'partial', gist: 'A website for a bakery.', body: '# Layout\n\nLong product pages.' },
+  ]);
+  const search = (...query) => muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', ...query, '-n', '10');
+  const reliable = search('cocktail bar website');
+  assert.deepEqual(starred(reliable), ['topic']);
+  assert.deepEqual(ranked(reliable)[0], 'topic');
+  // Weaker results come after an explicit note, without ★.
+  const mixed = search('bar website');
+  assert.deepEqual(starred(mixed), ['topic']);
+  assert.match(mixed.stdout, /以下未标 ★ 的只命中部分查询词或只出现在正文里,不是可靠参考/);
+  assert.deepEqual(ranked(mixed).slice(1).sort(), ['mention', 'partial']);
+  // All words only in the body, or not all words anywhere: nothing listed, a clear notice instead.
+  for (const query of ['footer cafe', 'bakery cocktail']) {
+    const result = search(query);
+    assert.deepEqual(ranked(result), [], query);
+    assert.doesNotMatch(result.stdout, /★/, query);
+    assert.match(result.stdout, /没有找到可靠参考:\d+ 个 seed/, query);
+    assert.match(result.stdout, /换成带场景的具体英文短语再试.*仍然没有就如实说明没有可靠参考/, query);
+  }
+  // The same on the bundled snapshot.
+  const bundled = muse({}, 'search', 'cocktail bar website');
+  assert.deepEqual(ranked(bundled), []);
+  assert.match(bundled.stdout, /没有找到可靠参考/);
+});
+
+test('polysemous Chinese words removed from zh_terms.json are no longer expanded', () => {
+  const { terms } = JSON.parse(readFileSync(zhTermsPath, 'utf8'));
+  const removed = ['酒吧', '论文', '菜单', '目录', '杂志', '索引', '地图', '活动', '表单', '封面', '横幅', '标志', '网页',
+    '应用', '筛选', '公告', '新闻', '免费', '上线', '对比', '比较', '方案', '编辑', '实验', '焦点'];
+  for (const word of removed) {
+    assert.ok(!(word in terms), word);
+    const result = muse({}, 'search', word);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, new RegExp(`中文词展开:.*${word} →`), word);
+  }
+  // 酒吧 no longer becomes "bar": the restaurant site is found through 官网 alone, and no navigation bar.
+  const bar = muse({}, 'search', '酒吧');
+  assert.match(bar.stderr, /词表未收录「酒吧」/);
+  assert.deepEqual(ranked(bar), []);
+  // A word made only of single-character fillers (地 + 图) is reported instead of silently dropped.
+  assert.match(muse({}, 'search', '地图').stderr, /词表未收录「地图」/);
+});
+
 test('Chinese style words skip field names, section headings and negated tags', (t) => {
+  const seed = (id, tags, dimensions, typography, motion) => ({
+    id, tags, dimensions, body: `# Typography\n\n${typography}\n\n# Motion\n\n${motion}`,
+  });
   const library = customLibrary(scratch(t, 'musekit-zh-negated-'), [
     // motion_intensity, the motion: tag group and the # Motion heading are in every seed.
-    ['template', { motion: [], typography: ['sans-serif'] }, ['layout'],
-      { typography: 'One sans-serif family.', motion: 'Nothing notable.' }],
+    seed('template', { motion: [], typography: ['sans-serif'] }, ['layout'], 'One sans-serif family.', 'Nothing notable.'),
     // Tagged no-motion: an incidental mention in the text does not make it a motion reference.
-    ['static', { motion: ['no-motion'], typography: ['sans-serif'] }, ['layout'],
-      { typography: 'A sans serif grotesk.', motion: 'No entrance animations; the page stays static.' }],
-    ['moving', { motion: ['scroll-triggered'], typography: ['display-serif'] }, ['motion'],
-      { typography: 'A display serif headline.', motion: 'Scroll-triggered animations reveal each section.' }],
+    seed('static', { motion: ['no-motion'], typography: ['sans-serif'] }, ['layout'], 'A sans serif grotesk.',
+      'No entrance animations; the page stays static.'),
+    seed('moving', { motion: ['scroll-triggered'], typography: ['display-serif'] }, ['motion'],
+      'A display serif headline.', 'Scroll-triggered animations reveal each section.'),
     // no-motion next to a positive motion tag still counts as motion.
-    ['mixed', { motion: ['no-motion', 'hover-animation'], typography: ['monospace'] }, ['layout'],
-      { typography: 'Monospace labels.', motion: 'Hover animation on cards.' }],
+    seed('mixed', { motion: ['no-motion', 'hover-animation'], typography: ['monospace'] }, ['layout'],
+      'Monospace labels.', 'Hover animation on cards.'),
   ]);
   const search = (query) => ranked(muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', query, '-n', '10'));
   assert.deepEqual(search('动效').sort(), ['mixed', 'moving']);
   assert.deepEqual(search('衬线'), ['moving']);
   assert.deepEqual(search('无衬线').sort(), ['static', 'template']);
-  // English terms keep their substring matching, field names and all.
-  const data = readLibrary(library);
-  for (const query of ['motion', 'serif', 'no-motion', 'animation']) {
-    assert.deepEqual(search(query), legacyOrder(data, query), query);
-  }
 });
 
 test('Chinese motion and serif queries follow the bundled seeds\' tags', () => {
@@ -430,7 +514,7 @@ test('zh_terms.json is a well-formed Chinese to English term table', () => {
     assert.ok(!ignore.includes(term), `${term} is both a term and ignored`);
   }
   for (const word of ignore) assert.match(word, /^[㐀-鿿]+$/, word);
-  const required = ['餐厅', '咖啡馆', '菜单', '订位', '官网', '落地页', '定价', '套餐', '对比', '会员', '发布', '更新',
-    '公告', '社媒', '配图', '卡片', '海报', '作品集', '仪表盘', '报告', '图解', '配色', '排版', '字体', '深色', '极简'];
+  const required = ['餐厅', '咖啡馆', '订位', '官网', '落地页', '定价', '套餐', '对比表', '会员', '发布', '更新',
+    '社媒', '配图', '卡片', '海报', '作品集', '仪表盘', '报告', '图解', '配色', '排版', '字体', '深色', '极简'];
   for (const term of required) assert.ok(term in terms, term);
 });
