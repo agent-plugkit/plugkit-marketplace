@@ -14,16 +14,18 @@ description: 搜索、比较本地设计参考并提炼 Markdown seed 简报。�
 ```bash
 python3 scripts/muse_local.py list --scenario ui
 python3 scripts/muse_local.py list --scenario graphic
-python3 scripts/muse_local.py search "number density hierarchy"
-python3 scripts/muse_local.py search "annotation" --scenario information
-python3 scripts/muse_local.py search "餐厅官网"
+python3 scripts/muse_local.py search "dense dashboard"
+python3 scripts/muse_local.py search "data visualization" --scenario information
+python3 scripts/muse_local.py search "深色仪表盘"
 python3 scripts/muse_local.py show mC1nkP2t
 python3 scripts/muse_local.py status
 ```
 
 Skill 内置一份锁定版本的 seed 快照，离线即可检索；`list`、`search` 首行注明当前来源与版本，`show` 把它写到 stderr。查找顺序为环境变量 `MUSEPOOL_SEEDS_DIR` 指向的目录、本机缓存、内置快照；正常直接运行脚本，由它按这个顺序选库。`MUSEPOOL_SEEDS_DIR` 只用于指向自定义 seed 库，不要把它设成本 Skill 的 `seeds/` 来“只用本地库”：本机缓存本来就在本地，这样设反而会跳过缓存里更新的版本，脚本会就此警告。用户想获取新 seed 时运行 `update`：它从 Muspro Seeds 的 GitHub Release 下载并校验，失败时不改动当前库。禁网环境把 Release 中的 tar.gz 与 `manifest.json` 一起下载到同一目录，再用 `update --from <tar.gz>` 安装；缺少对应 manifest 时拒绝安装。`update --rollback` 切回上一版缓存。普通检索不需要先更新。
 
-seed 正文是英文。中文查询会按 `scripts/zh_terms.json` 把常见的场景、媒介、风格和维度词展开为英文检索词，并同时匹配库内的中文标题与摘要；有词表展开时，输出第二行列出展开结果。提示词表未收录时，换个常见说法或改用英文关键词。
+seed 正文是英文，检索以英文为主。搜索前先把用户场景改写成带上下文的英文短语，例如酒吧官网写 "cocktail bar website" 而不是 "bar"；可以换几组说法分别搜索。所有词都命中、且至少一个命中在摘要、分类、标签或维度上的结果标 ★；只在正文里零星出现的不列出，脚本会提示“没有找到可靠参考”。
+
+中文查询会按 `scripts/zh_terms.json` 把常见的场景、媒介、风格和维度词展开为英文检索词，并同时匹配库内的中文标题与摘要；有词表展开时，输出第二行列出展开结果。词表只是方便，只收含义单一的词，不保证消歧；多义词（酒吧、菜单、目录等）不展开，提示未收录时改用英文短语。
 
 | 分类 | 主要借鉴问题 |
 | --- | --- |
@@ -36,11 +38,11 @@ seed 正文是英文。中文查询会按 `scripts/zh_terms.json` 把常见的�
 ## 广搜 → 取深 → 提炼
 
 1. 从目标、受众、内容和已有约束判断最需要解决的设计问题。已有品牌或用户指定的方向是前提，不为使用种子而推翻它。
-2. 先看候选摘要，再深读通常 1–3 个最有价值的参考。可按问题、风格或用户指定线索搜索；命中少时换词或跨分类搜索。
+2. 先看前几个候选的摘要，自行判断是否真的对题，再深读通常 1–3 个最有价值的参考。★ 只说明检索词命中可靠，不保证词义相符；可按问题、风格或用户指定线索搜索，命中少时换词或跨分类搜索。
 3. 用 `show` 阅读正文和相关的 `Dimensional References`。保留真正有价值的工艺细节，例如字重关系、颜色职责、阅读节奏或交互反馈，解释它为何适合任务。
 4. 按[seed 简报示例](../../references/seed-brief.md)输出自包含的 Markdown：来源、借什么、如何适配，以及哪些部分需要下游重新设计。交接方不必读取库内文件才能理解。
 
-没有匹配参考时说明缺口，不拼凑弱匹配，也不把自己新想出的做法写成检索结果。用户已有参考时可直接交给制作 Skill；不要求把它先收录进本地库。
+换过几组说法仍没有可靠参考时如实说明缺口，不拼凑弱匹配，也不把自己新想出的做法写成检索结果。用户已有参考时可直接交给制作 Skill；不要求把它先收录进本地库。
 
 ## 参考的分寸
 
