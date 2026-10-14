@@ -76,7 +76,7 @@
     "品牌": ["brand", "branding", "identity"],
 
     "作品集": ["portfolio", "portfolios"],
-    "作品": ["work", "project", "projects", "portfolio"],
+    "作品": ["project", "projects", "portfolio"],
     "个人网站": ["personal", "portfolio", "personal-brand"],
     "简历": ["resume", "cv"],
     "工作室": ["studio", "studios"],

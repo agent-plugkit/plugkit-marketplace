@@ -65,17 +65,65 @@ SOURCE_LABELS = {"env": "MUSEPOOL_SEEDS_DIR", "cache": "本机缓存", "bundled"
 CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+")
 SECTION_RE = re.compile(r"(?m)^# .*$")
 # 不参与匹配的正文:Muspro Seeds 按分类写入的借鉴范围说明(与 scenario 取值等价)、代码块、
-# 行内代码、HTML 注释,以及正文里的 CSS 片段(z-index: 100、cubic-bezier(...)、var(--x))。
+# 行内代码、HTML 注释,以及正文里的 CSS 片段(z-index: 100、display: grid;、cubic-bezier(...)、var(--x))。
 SCOPE_NOTE_RE = re.compile(r"(?m)^> 借鉴范围[:：].*$")
-FENCE_RE = re.compile(r"(?ms)^[ \t]*(`{3,}|~{3,}).*?(?:^[ \t]*\1[ \t]*$|\Z)")
-INLINE_CODE_RE = re.compile(r"(`+)[^\n]*?\1")
+# 围栏代码块按 CommonMark:结束围栏与开头同字符、不短于开头,其后只能有空白;没有结束围栏时到文末。
+# 反引号围栏的信息串里不能再有反引号(```a``` 是行内代码)。
+FENCE_OPEN_RE = re.compile(r"[ \t]*(?:(`{3,})(?!.*`)|(~{3,}))")
+# 行内代码可以跨行,但不跨空行(段落);两侧反引号串等长。
+INLINE_CODE_RE = re.compile(r"(?<!`)(`+)(?!`)(?:(?!\n[ \t]*\n).)+?(?<!`)\1(?!`)", re.S)
 HTML_COMMENT_RE = re.compile(r"(?s)<!--.*?-->")
+# CSS 声明只认常见的 CSS 属性名、自定义属性(--x)与浏览器前缀(-webkit-x):vector-based: geometric
+# 这类带连字符的正文标签不算。font、color、content 这类单词属性名也常作正文标签(Font: a serif …),
+# 只有紧贴冒号(display:none)或以分号结尾时才算声明,且取值是单个关键词(display: grid;)或带数字、
+# 颜色、函数(transition: opacity 0.3s ease;),Order: tier name; 仍是正文。
+CSS_PROPERTIES = """
+    accent-color align-content align-items align-self animation-delay animation-direction animation-duration
+    animation-fill-mode animation-iteration-count animation-name animation-timing-function aspect-ratio
+    backdrop-filter backface-visibility background-attachment background-blend-mode background-clip
+    background-color background-image background-origin background-position background-repeat background-size
+    block-size border-block border-bottom border-bottom-left-radius border-bottom-right-radius border-collapse
+    border-color border-image border-inline border-left border-radius border-right border-spacing border-style
+    border-top border-top-left-radius border-top-right-radius border-width box-decoration-break box-shadow
+    box-sizing caret-color clip-path color-scheme column-count column-gap column-rule column-width
+    container-type counter-increment counter-reset flex-basis flex-direction flex-flow flex-grow flex-shrink
+    flex-wrap font-display font-family font-feature-settings font-kerning font-optical-sizing font-size
+    font-smoothing font-stretch font-style font-synthesis font-variant font-variant-caps font-variant-ligatures
+    font-variant-numeric font-variation-settings font-weight grid-area grid-auto-columns grid-auto-flow
+    grid-auto-rows grid-column grid-column-end grid-column-start grid-gap grid-row grid-row-end grid-row-start
+    grid-template grid-template-areas grid-template-columns grid-template-rows hanging-punctuation
+    image-rendering inline-size inset-block inset-inline justify-content justify-items justify-self
+    letter-spacing line-break line-clamp line-height list-style list-style-type margin-block margin-bottom
+    margin-inline margin-left margin-right margin-top mask-image max-block-size max-height max-inline-size
+    max-width min-block-size min-height min-inline-size min-width mix-blend-mode object-fit object-position
+    offset-path outline-color outline-offset outline-style outline-width overflow-anchor overflow-wrap
+    overflow-x overflow-y overscroll-behavior padding-block padding-bottom padding-inline padding-left
+    padding-right padding-top page-break-after page-break-before paint-order perspective-origin place-content
+    place-items place-self pointer-events row-gap scroll-behavior scroll-margin scroll-margin-top scroll-padding
+    scroll-padding-top scroll-snap-align scroll-snap-stop scroll-snap-type scrollbar-color scrollbar-gutter
+    scrollbar-width shape-outside stroke-dasharray stroke-dashoffset stroke-linecap stroke-linejoin stroke-width
+    tab-size table-layout text-align text-align-last text-decoration text-decoration-color text-decoration-line
+    text-decoration-style text-decoration-thickness text-emphasis text-indent text-justify text-orientation
+    text-overflow text-rendering text-shadow text-size-adjust text-transform text-underline-offset
+    text-underline-position text-wrap touch-action transform-origin transform-style transition-delay
+    transition-duration transition-property transition-timing-function unicode-bidi user-select vertical-align
+    view-transition-name white-space will-change word-break word-spacing word-wrap writing-mode z-index
+""".split()
+CSS_SHORT_PROPERTIES = """
+    animation background border bottom clear color contain content cursor display fill filter flex float font
+    gap height hyphens inset isolation left margin opacity order outline overflow padding perspective position
+    quotes resize right rotate scale stroke top transform transition translate visibility width zoom
+""".split()
 CSS_ARGS = r"(?:[^()\n\u3400-\u9fff]|\([^()\n\u3400-\u9fff]*\))*"
 CSS_FUNCTION = rf"-?[a-z][a-z0-9]*(?:-[a-z0-9]+)*\({CSS_ARGS}\)"
-CSS_VALUE = rf"(?:{CSS_FUNCTION}|[#a-z0-9_.%-]+)(?:[ \t]+(?:{CSS_FUNCTION}|[-#.]?[0-9][a-z0-9_.%]*))*(?:[ \t]*!important)?;?"
-# 声明只认带连字符的属性名(z-index: 100)与紧贴冒号的写法(display:none),不误删 "Primary font: a ..."
-# 这类正文标签。
-CSS_RE = re.compile(rf"(?<![a-z0-9_-])(?:-?[a-z]+(?:-[a-z]+)+[ \t]*:[ \t]*{CSS_VALUE}|[a-z]+:(?=[#a-z0-9_.-]){CSS_VALUE}"
+CSS_VALUE = rf"(?:{CSS_FUNCTION}|[#a-z0-9_.%-]+)(?:[ \t]+(?:{CSS_FUNCTION}|[-#.]?[0-9][a-z0-9_.%]*))*(?:[ \t]*!important)?"
+CSS_LIST_VALUE = rf"(?=[^;\n]*[0-9#(])(?:{CSS_FUNCTION}|[#a-z0-9_.%,'\"/-]+)(?:[ \t]+(?:{CSS_FUNCTION}|[#a-z0-9_.%,'\"/-]+))*"
+CSS_NAMES = "|".join(sorted(CSS_PROPERTIES, key=len, reverse=True))
+CSS_SHORT_NAMES = "|".join(sorted(CSS_SHORT_PROPERTIES, key=len, reverse=True))
+CSS_RE = re.compile(rf"(?<![a-z0-9_-])(?:(?:{CSS_NAMES}|--[a-z0-9-]+|-(?:webkit|moz|ms|o)-[a-z]+(?:-[a-z]+)*)"
+                    rf"[ \t]*:[ \t]*{CSS_VALUE};?"
+                    rf"|(?:{CSS_NAMES}|{CSS_SHORT_NAMES}):(?=[#a-z0-9_.-]){CSS_VALUE};?"
+                    rf"|(?:{CSS_SHORT_NAMES})[ \t]*:[ \t]*(?:[#a-z0-9_.%-]+|{CSS_LIST_VALUE})(?:[ \t]*!important)?[ \t]*;"
                     rf"|{CSS_FUNCTION})")
 # 连字符和点连成的是一个词:three-bar、z-index、paper.js 里的 bar、index、paper 都不算独立出现。
 JOINED_BEFORE = r"(?<![a-z0-9][-.])"
@@ -509,9 +557,29 @@ def without_frontmatter(text: str) -> str:
     return text
 
 
+def without_fences(text: str) -> str:
+    """把围栏代码块(含开头与结束围栏)换成空行。"""
+    lines, fence = [], ""
+    for line in text.split("\n"):
+        if fence:
+            stripped = line.strip()
+            if stripped.startswith(fence) and not stripped.strip(fence[0]):
+                fence = ""
+            lines.append("")
+            continue
+        match = FENCE_OPEN_RE.match(line)
+        if match:
+            fence = match.group(1) or match.group(2)
+            lines.append("")
+            continue
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def without_code(text: str) -> str:
-    """去掉代码块、行内代码、HTML 注释与 CSS 片段;返回小写文本。"""
-    for pattern in (FENCE_RE, INLINE_CODE_RE, HTML_COMMENT_RE):
+    """去掉代码块、行内代码、HTML 注释与 CSS 片段;统一换行符,返回小写文本。"""
+    text = without_fences(text.replace("\r\n", "\n").replace("\r", "\n"))
+    for pattern in (INLINE_CODE_RE, HTML_COMMENT_RE):
         text = pattern.sub(" ", text)
     return CSS_RE.sub(" ", text.lower())
 
@@ -728,19 +796,18 @@ def cmd_search(args) -> int:
             print(f"{'★' if reliable else ' '} [{e['scenario']}] {e['id']}  {label(e)}  (novelty {nov})")
             print(f"    {e.get('gist', '')[:150]}")
             print(f"    file: {library.display_path(e)}")
-    elif scored:
-        print(f"没有找到可靠参考:{len(scored)} 个 seed 只在正文里零星提到查询词,或没有同时命中全部查询词,"
-              "不列为结果。")
+    else:
+        if scored:
+            print(f"没有找到可靠参考:{len(scored)} 个 seed 只在正文里零星提到查询词,或没有同时命中全部查询词,"
+                  "不列为结果。")
+        elif not units and unknown:
+            print("没有找到可靠参考:查询里的中文词都未能识别(也可换个常见说法,如 仪表盘 / 海报 / 配色)。")
+        elif not units:
+            print("没有找到可靠参考:查询只有“设计”“风格”“参考”这类泛称,先写出具体的场景、媒介或风格。")
+        else:
+            print("没有找到可靠参考:没有 seed 提到这些查询词。")
         print("换成带场景的具体英文短语再试(如 \"cocktail bar website\" 而不是 \"bar\"),可多试几组说法;"
               "仍然没有就如实说明没有可靠参考。")
-    elif not units and unknown:
-        print("无命中。查询里的中文词都未能识别;换个常见说法(如 仪表盘 / 海报 / 配色)"
-              "或用英文关键词(如 palette / grid / dashboard / diagram)再试。")
-    elif not units:
-        print("无命中。查询只有“设计”“风格”“参考”这类泛称;写出具体的场景、媒介或风格"
-              "(如 餐厅官网 / 海报 / 深色仪表盘)再试。")
-    else:
-        print("无命中。换英文关键词(如 palette / grid / dashboard / diagram)再试。")
     return 0
 
 

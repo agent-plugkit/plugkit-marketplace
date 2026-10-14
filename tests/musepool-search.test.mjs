@@ -228,7 +228,7 @@ test('unknown Chinese words get a friendly hint instead of silent misses', () =>
   const unknown = muse({}, 'search', '魑魅魍魉');
   assert.equal(unknown.status, 0, unknown.stderr);
   assert.match(unknown.stderr, /词表未收录「魑魅魍魉」.*英文关键词/);
-  assert.match(unknown.stdout, /无命中。查询里的中文词都未能识别/);
+  assert.match(unknown.stdout, /没有找到可靠参考:查询里的中文词都未能识别/);
 
   // Known words still search; the unknown part is reported and ignored.
   const partial = muse({}, 'search', '魑魅魍魉仪表盘');
@@ -238,7 +238,7 @@ test('unknown Chinese words get a friendly hint instead of silent misses', () =>
   const generic = muse({}, 'search', '设计风格参考');
   assert.equal(generic.status, 0);
   assert.equal(generic.stderr, '');
-  assert.match(generic.stdout, /无命中。查询只有.*泛称/);
+  assert.match(generic.stdout, /没有找到可靠参考:查询只有.*泛称/);
   assert.equal(muse({}, 'search', '   ').status, 2);
 });
 
@@ -270,7 +270,7 @@ test('hyphens and dots join words: three-bar, z-index and paper.js are single wo
   ]);
   const run = (query) => muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', query, '-n', '10');
   for (const word of ['bar', 'index', 'paper']) assert.deepEqual(ranked(run(word)), ['plain'], word);
-  for (const word of ['js', 'three']) assert.match(run(word).stdout, /^无命中/m, word);
+  for (const word of ['js', 'three']) assert.match(run(word).stdout, /^没有找到可靠参考:没有 seed 提到这些查询词/m, word);
   // The whole compound still matches (in the body only, so it is not a reliable hit).
   assert.match(run('three-bar').stdout, /没有找到可靠参考:1 /);
   assert.match(run('z-index').stdout, /没有找到可靠参考:1 /);
@@ -305,6 +305,38 @@ test('code, CSS, front matter values and the scope note are not searched', (t) =
   assert.deepEqual(search('minimal').sort(), ['code', 'prose']);
   // The per-category scope note (借鉴范围) is the same in every ui seed; its words are not hits.
   assert.deepEqual(search('组件组织'), []);
+});
+
+test('code fences, code spans and CSS follow Markdown and CSS syntax; prose labels stay searchable', (t) => {
+  const library = customLibrary(scratch(t, 'musekit-syntax-'), [
+    { id: 'labels', gist: 'Reference labels: a navigation pattern.',
+      body: '# Craft\n\nIcons are vector-based: geometric shapes. The archive is non-hierarchical: projects float. '
+        + 'Order: tier name; then price. Font: a contemporary serif.' },
+    { id: 'css', gist: 'Reference css: a navigation pattern.',
+      body: '# Craft\n\nCards use display: grid; and display:flex, transition: transform 0.3s linear; '
+        + 'and color: crimson; on hover.' },
+    { id: 'longfence', gist: 'Reference longfence: a navigation pattern.',
+      body: '# Craft\n\n```css\n.a { color: teal; }\n````\nA lattice illustration.\n\n~~~\nwireframe\n```\n~~~~~\n\nDone.' },
+    { id: 'crlf', gist: 'Reference crlf: a navigation pattern.',
+      body: '# Craft\r\n\r\n```css\r\n.a { color: teal; }\r\n```\r\nA trellis illustration.\r\n' },
+    { id: 'span', gist: 'Reference span: a navigation pattern.',
+      body: '# Craft\n\nUses `frosted\nglassmorphism` helpers and a ``double `tick`\nspan`` too; a stray ` stays.\n\n'
+        + 'A `broken\n\nmosaic` panel.' },
+  ]);
+  const star = (query) => starred(muse({ MUSEPOOL_SEEDS_DIR: library }, 'search', `navigation ${query}`, '-n', '10'));
+  // Hyphenated or single-word labels before a colon are prose, not CSS declarations.
+  for (const word of ['geometric', 'non-hierarchical', 'projects', 'tier', 'serif']) {
+    assert.deepEqual(star(word), ['labels'], word);
+  }
+  // Declarations with a space after the colon, a semicolon or a value list are CSS.
+  for (const word of ['grid', 'flex', 'linear', 'crimson']) assert.deepEqual(star(word), [], word);
+  // A closing fence may be longer than the opening one; CRLF fences close; prose after them counts.
+  assert.deepEqual(star('lattice'), ['longfence']);
+  assert.deepEqual(star('trellis'), ['crlf']);
+  for (const word of ['teal', 'wireframe']) assert.deepEqual(star(word), [], word);
+  // Code spans may continue on the next line but do not cross a blank line.
+  for (const word of ['frosted', 'glassmorphism', 'tick']) assert.deepEqual(star(word), [], word);
+  assert.deepEqual(star('mosaic'), ['span']);
 });
 
 test('only reliable hits get ★; without one the noise is not listed', (t) => {
