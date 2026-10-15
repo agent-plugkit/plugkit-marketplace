@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Regenerate english-ranking.json: the complete result list of English (non-CJK) searches as the
-// current muse_local.py returns them, on the bundled snapshot and on the 1.3.0-shaped fixture
-// library. musepool-search.test.mjs checks that the script still returns exactly these results.
+// current muse_local.py returns them, on the bundled snapshot. musepool-search.test.mjs checks that
+// the script still returns exactly these results.
 // Run from the repository root (needs git history and Python 3):
 //
 //   node tests/fixtures/musepool/english-snapshot.mjs [--rev <commit>] [--out <file>]
@@ -9,14 +9,14 @@
 // --rev ranks with muse_local.py and zh_terms.json from that commit instead of the working tree,
 // e.g. to compare with the results before a change. The query corpus is every English synonym of
 // the Chinese term table at 0fd44ef (before the table was trimmed), every tag value, category,
-// category word and core dimension of both libraries, plus the edge cases below.
+// category word and core dimension of the library, plus the edge cases below.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contentHash, readDirectory } from '../../../scripts/sync-seeds.mjs';
-import { bundledSeeds, release130 } from './library.mjs';
+import { bundledSeeds } from './library.mjs';
 
 const fixtures = dirname(fileURLToPath(import.meta.url));
 const root = join(fixtures, '../../..');
@@ -132,7 +132,7 @@ function main() {
       if (rev) writeFileSync(join(scriptDir, file), git('show', `${rev}:plugins/musekit/skills/musepool/scripts/${file}`));
       else copyFileSync(join(scripts, file), join(scriptDir, file));
     }
-    const libraries = { bundled: bundledSeeds, 'release-1.3.0': release130(dir).library };
+    const libraries = { bundled: bundledSeeds };
     const oldTerms = JSON.parse(git('show', `${CORPUS_REV}:plugins/musekit/skills/musepool/scripts/zh_terms.json`));
     const queries = corpus(oldTerms, Object.values(libraries));
     const data = {

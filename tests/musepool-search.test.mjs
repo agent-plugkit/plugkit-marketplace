@@ -1,6 +1,7 @@
 // muse_local.py search: Chinese queries, word boundaries, excluded text, reliable (★) hits, the
 // English result snapshot, and the warning for a MUSEPOOL_SEEDS_DIR that points at the bundled
-// snapshot while the cache holds a newer release.
+// snapshot while the cache holds a newer release (the bundled snapshot relabelled as the next minor
+// version).
 // Uses only Node.js built-ins and Python 3 so it also runs on Windows CI.
 //
 // Set MUSEKIT_TEST_RELEASE_DIR to a directory holding a real Muspro Seeds >= 1.3.0 release
@@ -17,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { contentHash, readDirectory } from '../scripts/sync-seeds.mjs';
 import { libraryHash, snapshot } from './fixtures/musepool/english-snapshot.mjs';
-import { release130 } from './fixtures/musepool/library.mjs';
+import { buildLibrary } from './fixtures/musepool/library.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const musepool = join(root, 'plugins/musekit/skills/musepool');
@@ -27,6 +28,8 @@ const zhTermsPath = join(musepool, 'scripts/zh_terms.json');
 const fixtures = join(root, 'tests/fixtures/musepool');
 const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
 const lock = JSON.parse(readFileSync(join(root, 'seeds.lock'), 'utf8'));
+// A version newer than the bundled snapshot, for a cache that should win over it.
+const newer = lock.version.replace(/^(\d+)\.(\d+)\.\d+$/, (_, major, minor) => `${major}.${Number(minor) + 1}.0`);
 const realRelease = process.env.MUSEKIT_TEST_RELEASE_DIR;
 const isolated = mkdtempSync(join(tmpdir(), 'musekit-search-'));
 process.on('exit', () => rmSync(isolated, { recursive: true, force: true }));
@@ -77,24 +80,10 @@ function hashFile(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
-// A release of the bundled snapshot relabelled as `version`, plus `additions` (index entries with
-// their Chinese title and summary under `zh`). Seed bodies of the additions are generated from the gist.
-function snapshotRelease(dir, version, additions = []) {
-  const library = join(dir, `muspro-seeds-${version}`);
-  cpSync(seeds, library, { recursive: true });
-  const index = JSON.parse(readFileSync(join(library, 'index.json'), 'utf8'));
-  const scenarios = JSON.parse(readFileSync(join(library, 'scenarios.json'), 'utf8'));
-  for (const { zh, ...entry } of additions) {
-    index.seeds.push(entry);
-    scenarios.scenarios.find((group) => group.id === entry.scenario).seeds
-      .push({ id: entry.id, file: entry.file, ...zh });
-    writeFileSync(join(library, ...entry.file.split('/')),
-      `---\nid: ${entry.id}\nscenario: ${entry.scenario}\ncategory: ${entry.category}\n---\n\n${entry.gist}\n`);
-  }
-  index.version = version;
-  scenarios.version = version;
-  writeFileSync(join(library, 'index.json'), `${JSON.stringify(index, null, 2)}\n`);
-  writeFileSync(join(library, 'scenarios.json'), `${JSON.stringify(scenarios, null, 2)}\n`);
+// A release of the bundled snapshot relabelled as `version`.
+function snapshotRelease(dir, version) {
+  const library = buildLibrary(dir, version);
+  const { schemaVersion } = JSON.parse(readFileSync(join(library, 'index.json'), 'utf8'));
   const release = join(dir, 'release');
   mkdirSync(release);
   const tarball = `muspro-seeds-${version}.tar.gz`;
@@ -102,17 +91,15 @@ function snapshotRelease(dir, version, additions = []) {
     'import sys, tarfile\nwith tarfile.open(sys.argv[1], "w:gz", format=tarfile.USTAR_FORMAT) as t: t.add(sys.argv[2], arcname=sys.argv[3])',
     join(release, tarball), library, `muspro-seeds-${version}`]);
   writeFileSync(join(release, 'manifest.json'), JSON.stringify({
-    name: 'muspro-seeds', version, schemaVersion: index.schemaVersion, tarball,
+    name: 'muspro-seeds', version, schemaVersion, tarball,
     sha256: hashFile(join(release, tarball)), contentHash: contentHash(readDirectory(library)),
   }));
   return { tar: join(release, tarball), version };
 }
 
-// A 1.3.0-shaped release: the bundled snapshot plus the three seeds 1.3.0 added, taken from
-// tests/fixtures/musepool/release-1.3.0-additions.json.
+// A release newer than the bundled snapshot.
 function fixtureRelease(dir) {
-  const { version, seeds: additions } = JSON.parse(readFileSync(join(fixtures, 'release-1.3.0-additions.json'), 'utf8'));
-  return snapshotRelease(dir, version, additions);
+  return snapshotRelease(dir, newer);
 }
 
 // Install a release directory (manifest.json + tar.gz) into a fresh cache.
@@ -153,11 +140,11 @@ function customLibrary(dir, seedList) {
   return library;
 }
 
-function assertChineseQueries({ cache, version }) {
-  const env = { MUSEKIT_CACHE_DIR: cache };
+// `source` is the expected library label in the first line, e.g. 本机缓存 or 内置快照.
+function assertChineseQueries(env, source, version) {
   const top = (query) => {
     const result = muse(env, 'search', query);
-    assert.match(firstLine(result), new RegExp(`本机缓存 · muspro-seeds ${version.replaceAll('.', '\\.')}`));
+    assert.match(firstLine(result), new RegExp(`${source} · muspro-seeds ${version.replaceAll('.', '\\.')}`));
     assert.equal(ranked(result)[0], starred(result)[0], query);
     return ranked(result)[0];
   };
@@ -180,15 +167,21 @@ function assertChineseQueries({ cache, version }) {
   assert.match(cocktail.stdout, /E3ISF3qW .*\n {4}命中:[^\n]*website[^\n]* {2}未命中:cocktail/);
 }
 
-test('Chinese queries reach the seeds added in 1.3.0 (fixture release)', (t) => {
-  assertChineseQueries(fixtureCache(t));
+test('Chinese queries reach the seeds added in 1.3.0 (bundled snapshot)', () => {
+  assertChineseQueries({}, '内置快照', lock.version);
+});
+
+test('Chinese queries reach the seeds added in 1.3.0 (newer cached release)', (t) => {
+  const { cache, version } = fixtureCache(t);
+  assertChineseQueries({ MUSEKIT_CACHE_DIR: cache }, '本机缓存', version);
 });
 
 test('Chinese queries reach the seeds added in 1.3.0 (real release)', {
   skip: !realRelease ? 'set MUSEKIT_TEST_RELEASE_DIR to a Muspro Seeds >= 1.3.0 release directory'
     : !existsSync(join(realRelease, 'manifest.json')) && `no manifest.json in ${realRelease}`,
 }, (t) => {
-  assertChineseQueries(installRelease(scratch(t, 'musekit-zh-real-'), realRelease));
+  const { cache, version } = installRelease(scratch(t, 'musekit-zh-real-'), realRelease);
+  assertChineseQueries({ MUSEKIT_CACHE_DIR: cache }, '本机缓存', version);
 });
 
 test('without a cache the bundled snapshot answers Chinese queries', () => {
@@ -218,9 +211,8 @@ test('each seed is the top result for its own Chinese title', (t) => {
 });
 
 test('Chinese terms expand to English even when the library has no Chinese titles', (t) => {
-  const { library } = fixtureCache(t);
   const plain = join(scratch(t, 'musekit-zh-plain-'), 'library');
-  cpSync(library, plain, { recursive: true });
+  cpSync(seeds, plain, { recursive: true });
   rmSync(join(plain, 'scenarios.json'));
   const top = (query) => ranked(muse({ MUSEPOOL_SEEDS_DIR: plain }, 'search', query))[0];
   assert.equal(top('餐厅官网'), 'E3ISF3qW');
@@ -263,7 +255,7 @@ test('English searches return the results recorded in english-ranking.json', (t)
   // Regenerate with `node tests/fixtures/musepool/english-snapshot.mjs` after an intended change.
   const recorded = JSON.parse(readFileSync(join(fixtures, 'english-ranking.json'), 'utf8'));
   const dir = scratch(t, 'musekit-english-');
-  const libraries = { bundled: seeds, 'release-1.3.0': release130(dir).library };
+  const libraries = { bundled: seeds };
   for (const [name, library] of Object.entries(libraries)) {
     assert.equal(libraryHash(library), recorded.libraries[name].contentHash, `${name} differs from the recorded library`);
   }
@@ -590,7 +582,8 @@ test('MUSEPOOL_SEEDS_DIR pointing at the bundled snapshot warns when the cache i
     const env = { MUSEKIT_CACHE_DIR: cache, MUSEPOOL_SEEDS_DIR: spelling };
     const search = muse(env, 'search', 'dashboard');
     // The variable is still honoured: results come from the bundled snapshot.
-    assert.match(firstLine(search), /来源:MUSEPOOL_SEEDS_DIR\(指向内置快照\) · muspro-seeds/);
+    assert.match(firstLine(search), new RegExp(
+      `来源:MUSEPOOL_SEEDS_DIR\\(指向内置快照\\) · muspro-seeds ${lock.version.replaceAll('.', '\\.')}`));
     assert.match(search.stderr, warning, spelling);
     assert.match(muse(env, 'list').stderr, warning);
     assert.match(muse(env, 'show', 'pu9ToBED').stderr, warning);
@@ -599,7 +592,6 @@ test('MUSEPOOL_SEEDS_DIR pointing at the bundled snapshot warns when the cache i
     assert.match(status.stdout, warning);
     assert.match(status.stdout, new RegExp(`current:${version.replaceAll('.', '\\.')}`));
   }
-  assert.ok(!ranked(muse({ MUSEKIT_CACHE_DIR: cache, MUSEPOOL_SEEDS_DIR: seeds }, 'search', '餐厅官网')).includes('E3ISF3qW'));
 
   // update explains that the new cache will not be used while the variable is set.
   const { tar } = fixtureRelease(scratch(t, 'musekit-zh-again-'));
@@ -620,7 +612,9 @@ test('MUSEPOOL_SEEDS_DIR pointing at the bundled snapshot warns when the cache i
   assert.equal(own.stderr, '');
 
   // Without the variable the newer cache is used, as the lookup order says.
-  assert.equal(ranked(muse({ MUSEKIT_CACHE_DIR: cache }, 'search', '餐厅官网'))[0], 'E3ISF3qW');
+  const cached = muse({ MUSEKIT_CACHE_DIR: cache }, 'search', '餐厅官网');
+  assert.match(firstLine(cached), new RegExp(`本机缓存 · muspro-seeds ${version.replaceAll('.', '\\.')}`));
+  assert.equal(ranked(cached)[0], 'E3ISF3qW');
 });
 
 test('no warning when the cache is not newer than the bundled snapshot or cannot be used', (t) => {
@@ -666,7 +660,7 @@ test('an unresolvable MUSEPOOL_SEEDS_DIR fails search cleanly and does not block
     assert.equal(update.status, 0, `${spelling}: ${update.stderr}`);
     assert.doesNotMatch(update.stderr, /Traceback/, spelling);
     assert.match(update.stdout, /MUSEPOOL_SEEDS_DIR 已设置,检索会继续使用该目录/, spelling);
-    assert.match(update.stdout, /已安装 muspro-seeds 1\.3\.0/, spelling);
+    assert.match(update.stdout, new RegExp(`已安装 muspro-seeds ${newer.replaceAll('.', '\\.')}`), spelling);
   }
 });
 

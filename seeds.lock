@@ -1,13 +1,13 @@
 {
   "package": "muspro-seeds",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "schemaVersion": "1.0.0",
-  "tarball": "muspro-seeds-1.2.1.tar.gz",
-  "sha256": "0b91741a4ac928307a535624ee51b7f4490a4319137d667c3dc68797864eb413",
-  "contentHash": "sha256:f21fba77d6b478a1be6ce468377d91678c1e28cb44d13663ff11d66624769961",
+  "tarball": "muspro-seeds-1.3.0.tar.gz",
+  "sha256": "32486c989466d4a879e35090aa124a6febfb75a96e6f9a09965b571e7e958b98",
+  "contentHash": "sha256:b7f7b6f9a8f7dd00efc22eb6c56e79697e8a9f7a02a386497b79ec2cd314a42f",
   "source": {
     "repository": "https://github.com/agent-plugkit/muspro-seeds",
-    "release": "https://github.com/agent-plugkit/muspro-seeds/releases/download/v1.2.1/muspro-seeds-1.2.1.tar.gz",
+    "release": "https://github.com/agent-plugkit/muspro-seeds/releases/download/v1.3.0/muspro-seeds-1.3.0.tar.gz",
     "local": "../../muspro-seeds/dist"
   },
   "target": "plugins/musekit/skills/musepool/seeds"

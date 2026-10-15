@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "seeds": [
     {
       "id": "vEj9F5om",
@@ -2039,6 +2039,213 @@
           "oversized-type",
           "tight-tracking",
           "custom-font"
+        ]
+      }
+    },
+    {
+      "id": "E3ISF3qW",
+      "file": "ui/restaurant-cafe-website-e3isf3qw.md",
+      "scenario": "ui",
+      "category": "restaurant / cafe website",
+      "gist": "A generalized method for a local restaurant or cafe website, distilled from usability research on restaurant and table reservation sites and from award-recognized restaurant sites. The page serves three visitor jobs in order: read the menu, make a booking, and plan the visit (hours, address, phone).",
+      "core_dimensions": [
+        "layout",
+        "components",
+        "typography",
+        "color"
+      ],
+      "scores": {
+        "anti_slop_value": 0.85,
+        "code_value": 0.55,
+        "density": 0.6,
+        "motion_intensity": 0.1,
+        "novelty": 0.55,
+        "visual_value": 0.8
+      },
+      "tags": {
+        "color": [
+          "warm-tone",
+          "light-bg",
+          "single-accent",
+          "earth-tone"
+        ],
+        "domain": [
+          "restaurant",
+          "cafe",
+          "hospitality",
+          "local-business",
+          "booking"
+        ],
+        "imagery": [
+          "photo-led",
+          "custom-photo",
+          "full-bleed-img"
+        ],
+        "layout": [
+          "fixed-header",
+          "sticky-sections",
+          "single-column",
+          "two-column"
+        ],
+        "material": [
+          "matte",
+          "paper"
+        ],
+        "motion": [
+          "smooth-scroll"
+        ],
+        "style": [
+          "artisan",
+          "editorial",
+          "contemporary",
+          "soft"
+        ],
+        "tech": [
+          "css",
+          "vanilla-js"
+        ],
+        "typography": [
+          "serif-headings",
+          "display-serif",
+          "sans-serif",
+          "dual-font"
+        ]
+      }
+    },
+    {
+      "id": "mDGmR1dE",
+      "file": "graphic/product-launch-social-card-mdgmr1de.md",
+      "scenario": "graphic",
+      "category": "product launch / release announcement social card",
+      "gist": "A generalized template for product launch and release announcement social cards: the image on a launch post, a changelog update or a link preview (og image). One focal product view, a short plain headline, a mono metadata strip and one next step.",
+      "core_dimensions": [
+        "layout",
+        "typography",
+        "imagery",
+        "color"
+      ],
+      "scores": {
+        "anti_slop_value": 0.85,
+        "code_value": 0.55,
+        "density": 0.4,
+        "motion_intensity": 0,
+        "novelty": 0.6,
+        "visual_value": 0.8
+      },
+      "tags": {
+        "color": [
+          "limited-palette",
+          "high-contrast",
+          "neutral",
+          "light-bg",
+          "dark-bg"
+        ],
+        "domain": [
+          "social",
+          "saas",
+          "product-showcase",
+          "product-launch",
+          "changelog"
+        ],
+        "imagery": [
+          "ui-screenshot",
+          "cropped-img",
+          "product-render"
+        ],
+        "layout": [
+          "split-screen",
+          "stacked",
+          "active-negative-space"
+        ],
+        "material": [
+          "no-material",
+          "soft-shadow"
+        ],
+        "motion": [
+          "no-motion"
+        ],
+        "style": [
+          "minimal",
+          "technical",
+          "contemporary",
+          "bold"
+        ],
+        "tech": [
+          "css",
+          "svg",
+          "image-generation"
+        ],
+        "typography": [
+          "grotesque",
+          "monospace",
+          "dual-font",
+          "sans-serif"
+        ]
+      }
+    },
+    {
+      "id": "YqkjvOqz",
+      "file": "information/pricing-plan-comparison-table-yqkjvoqz.md",
+      "scenario": "information",
+      "category": "pricing plan comparison table",
+      "gist": "A generalized method for a pricing plan comparison table: the subscription tiers on a pricing page, a membership level chart, or a \"which plan should I pick\" review graphic. Two layers: audience cards saying who each tier is for, above a comparison table for checking features row by row.",
+      "core_dimensions": [
+        "layout",
+        "components",
+        "typography"
+      ],
+      "scores": {
+        "anti_slop_value": 0.85,
+        "code_value": 0.6,
+        "density": 0.85,
+        "motion_intensity": 0.1,
+        "novelty": 0.55,
+        "visual_value": 0.65
+      },
+      "tags": {
+        "color": [
+          "neutral",
+          "light-bg",
+          "single-accent",
+          "accent-blue"
+        ],
+        "domain": [
+          "saas",
+          "pricing",
+          "subscription",
+          "membership",
+          "ecommerce"
+        ],
+        "imagery": [
+          "no-imagery",
+          "icon-driven"
+        ],
+        "layout": [
+          "card-grid",
+          "sticky-sections",
+          "stacked",
+          "text-led"
+        ],
+        "material": [
+          "no-material"
+        ],
+        "motion": [
+          "hover-reveal"
+        ],
+        "style": [
+          "minimal",
+          "technical",
+          "flat",
+          "swiss-style"
+        ],
+        "tech": [
+          "css",
+          "vanilla-js"
+        ],
+        "typography": [
+          "sans-serif",
+          "single-font",
+          "grotesque"
         ]
       }
     }
