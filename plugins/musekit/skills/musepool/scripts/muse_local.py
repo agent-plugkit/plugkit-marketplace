@@ -595,9 +595,13 @@ def latest_release(base: str) -> str | None:
 def update_hint(library: Library) -> str | None:
     """Release 上有比当前所用库更新的版本时返回一行提示。结果在缓存目录里记 24 小时(失败也记),
     离线、出错或缓存目录不可写时一律静默。"""
-    if os.environ.get("MUSEPOOL_NO_UPDATE_CHECK", "") not in ("", "0") or not parse_version(library.version):
+    if os.environ.get("MUSEPOOL_NO_UPDATE_CHECK", "") not in ("", "0"):
         return None
     try:
+        # 自定义库的版本号可能异常(例如超出整数转换上限的位数),解析也放在保护里。
+        current = parse_version(library.version)
+        if not current:
+            return None
         path = cache_root() / UPDATE_CHECK_FILE
         now = time.time()
         try:
@@ -614,7 +618,7 @@ def update_hint(library: Library) -> str | None:
             with contextlib.suppress(Exception):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(json.dumps({"checked": now, "latest": latest}) + "\n", encoding="utf-8")
-        if (parse_version(latest) or (0, 0, 0)) > parse_version(library.version):
+        if (parse_version(latest) or (0, 0, 0)) > current:
             return f"有新 seed 版本 {latest}(当前 {library.version}),可让 musepool Skill 运行 `update` 更新"
     except Exception:
         pass

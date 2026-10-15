@@ -554,12 +554,14 @@ test('list and search hint at a newer release, cache the check for a day and sta
   const server = createServer((request, response) => {
     const name = request.url.split('/')[1];
     requests.push(`${request.method} ${request.url}`);
+    // /stall/ never answers, so the client has to give up on its own timeout.
+    if (name === 'stall') return;
     const [code, location] = answers[name] ?? [404];
     response.writeHead(code, location ? { Location: `https://github.com${location}` } : {});
     response.end();
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => server.close());
+  t.after(() => { server.closeAllConnections(); server.close(); });
   const base = (name) => `http://127.0.0.1:${server.address().port}/${name}`;
   const checked = (name, extra = {}) => ({
     MUSEKIT_CACHE_DIR: join(dir, name), MUSPRO_SEEDS_URL: base(name), MUSEPOOL_NO_UPDATE_CHECK: '', ...extra,
@@ -596,6 +598,38 @@ test('list and search hint at a newer release, cache the check for a day and sta
   assert.equal(unreachable.status, 0);
   assert.equal(unreachable.stdout, quiet.search.stdout);
   assert.equal(unreachable.stderr, quiet.search.stderr);
+  for (let run = 0; run < 2; run += 1) {
+    const stalled = await museAsync(checked('stall'), 'list');
+    assert.equal(stalled.status, 0);
+    assert.equal(stalled.stdout, quiet.list.stdout);
+    assert.equal(stalled.stderr, quiet.list.stderr);
+  }
+  assert.equal(requests.filter((line) => line.includes('/stall/')).length, 1);
+
+  // A cache root that cannot be written still shows the hint; the check simply runs again next time.
+  const unwritable = join(dir, 'unwritable');
+  writeFileSync(unwritable, '');
+  for (const args of [['list'], ['search', 'poster']]) {
+    const result = await museAsync(checked('newer', { MUSEKIT_CACHE_DIR: unwritable }), ...args);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, quiet[args[0]].stdout.replace('\n', `\n${hint}\n`));
+    assert.equal(result.stderr, quiet[args[0]].stderr);
+  }
+
+  // A custom library whose version cannot be compared leaves list and search as they were.
+  const odd = join(dir, 'odd-library');
+  cpSync(seeds, odd, { recursive: true });
+  const oddIndex = JSON.parse(readFileSync(join(odd, 'index.json'), 'utf8'));
+  oddIndex.version = `${'9'.repeat(4301)}.0.0`;
+  writeFileSync(join(odd, 'index.json'), JSON.stringify(oddIndex));
+  for (const args of [['list'], ['search', 'poster']]) {
+    const plain = muse({ MUSEPOOL_SEEDS_DIR: odd }, ...args);
+    assert.equal(plain.status, 0, plain.stderr);
+    const result = await museAsync(checked('odd', { MUSEPOOL_SEEDS_DIR: odd, MUSPRO_SEEDS_URL: base('newer') }), ...args);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, plain.stdout);
+    assert.equal(result.stderr, plain.stderr);
+  }
 
   // MUSEPOOL_NO_UPDATE_CHECK turns the check off; show and status never check.
   const before = requests.length;
