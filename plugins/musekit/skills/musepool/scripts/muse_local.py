@@ -19,8 +19,11 @@ seed 库按以下顺序查找,用到哪一份会在输出中注明来源与版�
      previous 及安装时的 contentHash,切换版本只原子替换这个文件;
      缓存损坏、内容与记录不符、schema 不兼容或版本旧于内置快照时跳过;
   3. 随 Skill 分发的内置快照 seeds/。
-只有 update 会联网;安装必须有发布包对应的 manifest.json 并通过 sha256 与 contentHash 校验,
-失败时不改动当前使用的 seed 库。update 与 rollback 持有缓存锁,同一时间只允许一个。
+检索本身不联网。list 与 search 每 24 小时最多向 <Release 基址>/releases/latest 发一个不跟随重定向的
+请求(超时 2 秒,结果记在缓存目录的 update-check.json,失败也记),有比当前所用库更新的版本时在来源行后
+提示运行 update;任何失败都静默,MUSEPOOL_NO_UPDATE_CHECK=1 可关闭。下载与安装 seed 只由 update 进行;
+安装必须有发布包对应的 manifest.json 并通过 sha256 与 contentHash 校验,失败时不改动当前使用的 seed 库。
+update 与 rollback 持有缓存锁,同一时间只允许一个。
 
 search 在 gist / category / tags / core_dimensions 及 seed 正文上做大小写不敏感的
 关键词打分。英文查询词从词首匹配:bar 不命中 sidebar,animat 命中 animation。连字符和点连成的是
@@ -49,7 +52,9 @@ import socket
 import sys
 import tarfile
 import tempfile
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import zlib
 from pathlib import Path
@@ -165,6 +170,10 @@ JOINED_AFTER = r"(?![-.][a-z0-9])"
 # sans 只在 sans-serif / sans serif 里表示否定(sans typeface 仍是字体)。
 NEGATED = r"(?<!\bno[\s-])(?<!\bnon[\s-])(?<!\bzero[\s-])(?<!\bwithout[\s-])(?<!\bsans[\s-](?=serif))"
 STATE_FILE = "state.json"
+UPDATE_CHECK_FILE = "update-check.json"
+UPDATE_CHECK_INTERVAL = 24 * 60 * 60
+UPDATE_CHECK_TIMEOUT = 2
+LATEST_TAG_RE = re.compile(r"/tag/v(\d+\.\d+\.\d+)/?$")
 STAGING_PREFIX = ".staging-"
 # 发布包体积与条目上限,防止异常包耗尽内存或磁盘。
 MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
@@ -565,6 +574,61 @@ def open_library() -> Library:
     return library
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def latest_release(base: str) -> str | None:
+    """<base>/releases/latest 重定向到 /releases/tag/vX.Y.Z;只读 Location,不跟随,也不走有限流的 API。"""
+    request = urllib.request.Request(f"{base}/releases/latest", method="HEAD",
+                                     headers={"User-Agent": "musekit-muse-local"})
+    try:
+        with urllib.request.build_opener(NoRedirect).open(request, timeout=UPDATE_CHECK_TIMEOUT) as response:
+            location = response.headers.get("Location")
+    except urllib.error.HTTPError as error:
+        location = error.headers.get("Location") if 300 <= error.code < 400 else None
+    match = LATEST_TAG_RE.search(urllib.parse.urlsplit(location or "").path)
+    return match.group(1) if match else None
+
+
+def update_hint(library: Library) -> str | None:
+    """Release 上有比当前所用库更新的版本时返回一行提示。结果在缓存目录里记 24 小时(失败也记),
+    离线、出错或缓存目录不可写时一律静默。"""
+    if os.environ.get("MUSEPOOL_NO_UPDATE_CHECK", "") not in ("", "0") or not parse_version(library.version):
+        return None
+    try:
+        path = cache_root() / UPDATE_CHECK_FILE
+        now = time.time()
+        try:
+            record = json.loads(path.read_bytes().decode("utf-8"))
+            if not (is_number(record["checked"]) and 0 <= now - record["checked"] < UPDATE_CHECK_INTERVAL):
+                raise ValueError
+            latest = record["latest"]
+        except Exception:
+            latest = None
+            try:
+                latest = latest_release((os.environ.get("MUSPRO_SEEDS_URL") or RELEASE_BASE).rstrip("/"))
+            except Exception:
+                pass
+            with contextlib.suppress(Exception):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps({"checked": now, "latest": latest}) + "\n", encoding="utf-8")
+        if (parse_version(latest) or (0, 0, 0)) > parse_version(library.version):
+            return f"有新 seed 版本 {latest}(当前 {library.version}),可让 musepool Skill 运行 `update` 更新"
+    except Exception:
+        pass
+    return None
+
+
+def print_header(library: Library) -> None:
+    """list 与 search 输出的首部:来源版本行,有新版本时紧随一行提示。"""
+    print(library.describe())
+    hint = update_hint(library)
+    if hint:
+        print(hint)
+
+
 def flat_tags(tags, sep: str = " ") -> str:
     if isinstance(tags, dict):
         return sep.join(str(v) for vs in tags.values() for v in (vs if isinstance(vs, list) else [vs]))
@@ -827,7 +891,7 @@ def cmd_list(args) -> int:
     entries = library.entries
     if args.scenario:
         entries = [e for e in entries if e["scenario"] == args.scenario]
-    print(library.describe())
+    print_header(library)
     for e in entries:
         print(f"[{e['scenario']}] {e['id']}  {label(e)}  —  {e.get('gist', '')[:110]}")
         print(f"    file: {library.display_path(e)}")
@@ -861,7 +925,7 @@ def cmd_search(args) -> int:
             scored.append((reliable, len(matched) == len(units), len(matched), label_hits, topic_hits,
                            (e.get("scores") or {}).get("novelty", 0), e, matched, key_hits))
     scored.sort(key=lambda t: t[:6], reverse=True)
-    print(library.describe())
+    print_header(library)
     expanded = [f"{u.text} → {' / '.join(u.synonyms)}" for u in zh_units if u.synonyms]
     if expanded:
         print(f"中文词展开:{' · '.join(expanded)}")

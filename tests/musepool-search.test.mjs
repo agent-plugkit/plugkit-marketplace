@@ -32,7 +32,7 @@ const isolated = mkdtempSync(join(tmpdir(), 'musekit-search-'));
 process.on('exit', () => rmSync(isolated, { recursive: true, force: true }));
 
 function museEnv(extra = {}) {
-  const env = { ...process.env, MUSEKIT_CACHE_DIR: join(isolated, 'empty-cache'), ...extra };
+  const env = { ...process.env, MUSEPOOL_NO_UPDATE_CHECK: '1', MUSEKIT_CACHE_DIR: join(isolated, 'empty-cache'), ...extra };
   for (const name of ['MUSEPOOL_SEEDS_DIR', 'MUSPRO_SEEDS_URL']) if (!(name in extra)) delete env[name];
   return env;
 }

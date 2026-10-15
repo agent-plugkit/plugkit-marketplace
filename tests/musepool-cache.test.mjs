@@ -1,12 +1,13 @@
 // muse_local.py and scripts/sync-seeds.mjs: lookup, update, rollback, archive safety and failure
 // paths. Uses only Node.js built-ins and Python 3 so it also runs on Windows CI.
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs, {
   chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync,
   writeFileSync,
 } from 'node:fs';
+import { createServer } from 'node:http';
 import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -28,9 +29,9 @@ const index = JSON.parse(readFileSync(join(seeds, 'index.json'), 'utf8')).seeds;
 const isolated = mkdtempSync(join(tmpdir(), 'musekit-cache-'));
 process.on('exit', () => rmSync(isolated, { recursive: true, force: true }));
 
-// Run muse_local.py with an empty cache and no overrides unless a test supplies them.
+// Run muse_local.py with an empty cache, no overrides and no release check unless a test supplies them.
 function museEnv(extra = {}) {
-  const env = { ...process.env, MUSEKIT_CACHE_DIR: isolated, ...extra };
+  const env = { ...process.env, MUSEPOOL_NO_UPDATE_CHECK: '1', MUSEKIT_CACHE_DIR: isolated, ...extra };
   for (const name of ['MUSEPOOL_SEEDS_DIR', 'MUSPRO_SEEDS_URL']) if (!(name in extra)) delete env[name];
   return env;
 }
@@ -527,6 +528,82 @@ test('online update downloads the latest release and explains when the network i
   assert.match(offline.stderr, /无法连接 .*禁止联网.*update --from/s);
   assert.match(offline.stderr, /继续使用 内置快照/);
   assert.ok(!offline.stderr.includes('Traceback'));
+});
+
+// spawnSync would block the event loop, so the local release server could not answer.
+function museAsync(env, ...args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(python, [script, ...args], { cwd: root, env: museEnv(env) });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    child.on('error', reject);
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+}
+
+test('list and search hint at a newer release, cache the check for a day and stay silent on failure', async (t) => {
+  const dir = scratch(t, 'musekit-hint-');
+  // /<name>/releases/latest answers like GitHub: a redirect to the latest tag, or something unusable.
+  const answers = {
+    newer: [302, '/o/r/releases/tag/v99.0.0'], same: [302, `/o/r/releases/tag/v${lock.version}`],
+    older: [302, '/o/r/releases/tag/v1.0.0'], broken: [500], untagged: [302, '/o/r/releases'],
+  };
+  const requests = [];
+  const server = createServer((request, response) => {
+    const name = request.url.split('/')[1];
+    requests.push(`${request.method} ${request.url}`);
+    const [code, location] = answers[name] ?? [404];
+    response.writeHead(code, location ? { Location: `https://github.com${location}` } : {});
+    response.end();
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+  const base = (name) => `http://127.0.0.1:${server.address().port}/${name}`;
+  const checked = (name, extra = {}) => ({
+    MUSEKIT_CACHE_DIR: join(dir, name), MUSPRO_SEEDS_URL: base(name), MUSEPOOL_NO_UPDATE_CHECK: '', ...extra,
+  });
+  const quiet = { list: muse({}, 'list'), search: muse({}, 'search', 'poster') };
+
+  const list = await museAsync(checked('newer'), 'list');
+  assert.equal(list.status, 0, list.stderr);
+  const hint = `有新 seed 版本 99.0.0(当前 ${lock.version}),可让 musepool Skill 运行 \`update\` 更新`;
+  assert.deepEqual(list.stdout.split('\n').slice(0, 2), [quiet.list.stdout.split('\n')[0], hint]);
+  assert.equal(list.stdout.replace(`${hint}\n`, ''), quiet.list.stdout);
+  assert.deepEqual(requests, ['HEAD /newer/releases/latest']);
+  // Within 24 hours the cached answer is used without another request.
+  const search = await museAsync(checked('newer'), 'search', 'poster');
+  assert.equal(search.stdout, quiet.search.stdout.replace('\n', `\n${hint}\n`));
+  assert.equal(requests.length, 1);
+  const record = join(dir, 'newer', 'update-check.json');
+  writeFileSync(record, JSON.stringify({ ...JSON.parse(readFileSync(record, 'utf8')), checked: Date.now() / 1000 - 25 * 3600 }));
+  assert.match((await museAsync(checked('newer'), 'list')).stdout, /有新 seed 版本 99\.0\.0/);
+  assert.equal(requests.length, 2);
+
+  // The same or an older release, HTTP errors, unusable redirects and unreachable hosts change nothing.
+  for (const name of ['same', 'older', 'broken', 'untagged']) {
+    for (let run = 0; run < 2; run += 1) {
+      const result = await museAsync(checked(name), 'list');
+      assert.equal(result.status, 0, name);
+      assert.equal(result.stdout, quiet.list.stdout, name);
+      assert.equal(result.stderr, quiet.list.stderr, name);
+    }
+    // Failures are cached too, so an offline machine waits at most once a day.
+    assert.equal(requests.filter((line) => line.includes(`/${name}/`)).length, 1, name);
+  }
+  const unreachable = await museAsync(checked('unreachable', { MUSPRO_SEEDS_URL: 'http://127.0.0.1:9' }), 'search', 'poster');
+  assert.equal(unreachable.status, 0);
+  assert.equal(unreachable.stdout, quiet.search.stdout);
+  assert.equal(unreachable.stderr, quiet.search.stderr);
+
+  // MUSEPOOL_NO_UPDATE_CHECK turns the check off; show and status never check.
+  const before = requests.length;
+  assert.equal((await museAsync(checked('off', { MUSEPOOL_NO_UPDATE_CHECK: '1' }), 'list')).stdout, quiet.list.stdout);
+  await museAsync(checked('quiet'), 'status');
+  await museAsync(checked('quiet'), 'show', index[0].id);
+  assert.equal(requests.length, before);
+  assert.ok(!existsSync(join(dir, 'off', 'update-check.json')));
 });
 
 // ---------------------------------------------------------------------------

@@ -21,7 +21,7 @@ python3 scripts/muse_local.py show mC1nkP2t
 python3 scripts/muse_local.py status
 ```
 
-Skill 内置一份锁定版本的 seed 快照，离线即可检索；`list`、`search` 首行注明当前来源与版本，`show` 把它写到 stderr。查找顺序为环境变量 `MUSEPOOL_SEEDS_DIR` 指向的目录、本机缓存、内置快照；正常直接运行脚本，由它按这个顺序选库。`MUSEPOOL_SEEDS_DIR` 只用于指向自定义 seed 库，不要把它设成本 Skill 的 `seeds/` 来“只用本地库”：本机缓存本来就在本地，这样设反而会跳过缓存里更新的版本，脚本会就此警告。用户想获取新 seed 时运行 `update`：它从 Muspro Seeds 的 GitHub Release 下载并校验，失败时不改动当前库。禁网环境把 Release 中的 tar.gz 与 `manifest.json` 一起下载到同一目录，再用 `update --from <tar.gz>` 安装；缺少对应 manifest 时拒绝安装。`update --rollback` 切回上一版缓存。普通检索不需要先更新。
+Skill 内置一份锁定版本的 seed 快照，离线即可检索；`list`、`search` 首行注明当前来源与版本，`show` 把它写到 stderr。查找顺序为环境变量 `MUSEPOOL_SEEDS_DIR` 指向的目录、本机缓存、内置快照；正常直接运行脚本，由它按这个顺序选库。`MUSEPOOL_SEEDS_DIR` 只用于指向自定义 seed 库，不要把它设成本 Skill 的 `seeds/` 来“只用本地库”：本机缓存本来就在本地，这样设反而会跳过缓存里更新的版本，脚本会就此警告。用户想获取新 seed 时运行 `update`：它从 Muspro Seeds 的 GitHub Release 下载并校验，失败时不改动当前库。禁网环境把 Release 中的 tar.gz 与 `manifest.json` 一起下载到同一目录，再用 `update --from <tar.gz>` 安装；缺少对应 manifest 时拒绝安装。`update --rollback` 切回上一版缓存。普通检索不需要先更新。`list`、`search` 在来源行后提示「有新 seed 版本 X（当前 Y）」时，告诉用户有新版 seed，用户同意后再运行 `update`；不要自行更新。
 
 seed 正文是英文，检索以英文为主。搜索前先把用户场景改写成带上下文的英文短语，例如酒吧官网写 "cocktail bar website" 而不是 "bar"；可以换几组说法分别搜索。所有词都命中、且至少一个命中在摘要、分类、标签或维度上的结果标 ★ 并排在最前，其后未标 ★ 的弱匹配不是可靠参考。没有 ★ 时，脚本列出在分类、标签、维度或摘要上命中部分查询词的条目，注明命中和没命中的词，由你看分类和摘要判断是否贴题；只在正文里零星提到查询词的不列出。查询里有词表未收录的中文词时也不标 ★，按部分命中列出。
 

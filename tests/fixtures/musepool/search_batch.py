@@ -29,6 +29,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as cache:
         os.environ["MUSEPOOL_SEEDS_DIR"] = library
         os.environ["MUSEKIT_CACHE_DIR"] = cache
+        os.environ["MUSEPOOL_NO_UPDATE_CHECK"] = "1"
         spec = importlib.util.spec_from_file_location("muse_local_under_test", script)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
