@@ -1,11 +1,11 @@
-<!-- 生成文件：scripts/sync-seeds.mjs 根据 seeds/scenarios.json（muspro-seeds 1.2.1）生成，请勿手改。 -->
+<!-- 生成文件：scripts/sync-seeds.mjs 根据 seeds/scenarios.json（muspro-seeds 1.3.0）生成，请勿手改。 -->
 # 检索分类与参考清单
 
 三类按参考的主要借鉴价值组织，用于缩小搜索范围。它们不与四个制作 Skill 一一对应；同一参考可以通过不同的 seed 简报用于不同场景。已有明确参考时不必重新检索。
 
 种子里的维度、分数和技术标签是原始描述与检索线索，不是交付配额。来源中的布局、颜色和技术栈也不是新任务的硬性要求。
 
-下面列出随 Skill 内置的 muspro-seeds 1.2.1 快照。用 `muse_local.py update` 更新本机缓存后，以 `list` 的输出为准。
+下面列出随 Skill 内置的 muspro-seeds 1.3.0 快照。用 `muse_local.py update` 更新本机缓存后，以 `list` 的输出为准。
 
 ## 界面 `ui`
 
@@ -25,6 +25,7 @@
 - [开发者工具](../seeds/ui/saas-developer-tools-o0w3sqmk.md) · `o0W3sQmk` — 桌面隐喻、窗口框架与工具入口。
 - [白板工具](../seeds/ui/whiteboard-tool-tvghvsn2.md) · `tVghVsn2` — 画布、工具栏与就地引导。
 - [设计师集体](../seeds/ui/design-collective-gzpjkoac.md) · `GzPJkoac` — 鲜明配色、项目浏览与行动入口。
+- [餐厅／咖啡馆官网](../seeds/ui/restaurant-cafe-website-e3isf3qw.md) · `E3ISF3qW` — 菜单、订位与到店信息的顺序与入口；文字菜单、营业状态和订位面板。
 
 ## 平面 `graphic`
 
@@ -40,6 +41,7 @@
 - [活动设计机构](../seeds/graphic/agency-portfolio-pibxrzsg.md) · `pibXRzsG` — 品牌色块、宣言与视觉钩子。
 - [品牌工作室作品集](../seeds/graphic/brand-studio-portfolio-ttceao0m.md) · `tTceao0M` — 大幅图像、黑色衬底与编辑节奏。
 - [像素字体样张](../seeds/graphic/font-specimen-type-foundry-t2q6d5jr.md) · `t2Q6D5JR` — 字形展示、技术标签与字符排印；不推导科学标注约定。
+- [产品发布社媒卡片](../seeds/graphic/product-launch-social-card-mdgmr1de.md) · `mDGmR1dE` — 发版公告与更新日志配图：一个产品焦点、短标题、元信息条与按尺寸重排的模板。
 
 ## 信息表达 `information`
 
@@ -50,5 +52,6 @@
 - [机构年度回顾](../seeds/information/agency-year-in-review-h9alyt6s.md) · `H9aLYT6s` — 按主题或阶段串联材料与重点；借叙事方法，不借宣传结论。
 - [交互式物理解释](../seeds/information/interactive-educational-article-1jlusoip.md) · `1JlUSoIP` — 由观察到机制的渐进解释、局部示意与交互；具体科学内容仍须核对来源。
 - [纪录片注释档案](../seeds/information/documentary-companion-yoiov5el.md) · `Yoiov5EL` — 关系、注释和引文的多层阅读；不是论文出版格式模板。
+- [套餐方案对比表](../seeds/information/pricing-plan-comparison-table-yqkjvoqz.md) · `YqkjvOqz` — 人群卡加核对矩阵的两层结构、推荐档理由与三类单元格；帮读者判断选哪档。
 
 跨场景使用时，先写清借鉴的具体细节与不适用的部分，再由制作 Skill 决定构图。完整来源、原始细节和授权说明保留在各 seed、[NOTICE](../seeds/NOTICE) 与[第三方说明](third-party-notices.md)中。
