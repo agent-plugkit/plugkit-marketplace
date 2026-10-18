@@ -45,6 +45,14 @@ export function stub(p, side, length = 14) {
 }
 export function segmentHits(a, b, r) {
   // Liang–Barsky against the open rectangle: touching an obstacle border is OK.
+  // Segments wholly beside the rectangle miss it; most obstacles are far away.
+  if (
+    Math.max(a.x, b.x) <= r.x ||
+    Math.min(a.x, b.x) >= right(r) ||
+    Math.max(a.y, b.y) <= r.y ||
+    Math.min(a.y, b.y) >= bottom(r)
+  )
+    return false;
   const q = expand(r, -EPS),
     dx = b.x - a.x,
     dy = b.y - a.y;
@@ -100,10 +108,78 @@ export function simplify(points, preserveReversals = true) {
 }
 export const pathData = (ps) =>
   ps.map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`).join(" ");
-const BEND = 16;
+const BEND = 16,
+  CROSS = 16,
+  LANE = 12;
 const cost = (ps) =>
   ps.slice(1).reduce((n, p, i) => n + distance(ps[i], p), 0) +
   (ps.length - 2) * BEND;
+// Other routes as axis-aligned lanes: running along one is blocked, crossing
+// one costs CROSS. `crosses` counts lanes strictly inside a segment and
+// `through` those at a point passed straight through in direction d, so every
+// crossing is counted once and a touch not at all. Diagonal segments are ignored.
+function lanes(avoid) {
+  const v = [],
+    h = [];
+  for (const { a, b } of avoid)
+    if (Math.abs(a.x - b.x) < EPS)
+      v.push({ c: a.x, lo: Math.min(a.y, b.y), hi: Math.max(a.y, b.y) });
+    else if (Math.abs(a.y - b.y) < EPS)
+      h.push({ c: a.y, lo: Math.min(a.x, b.x), hi: Math.max(a.x, b.x) });
+  v.sort((a, b) => a.c - b.c);
+  h.sort((a, b) => a.c - b.c);
+  // Lanes are sorted by coordinate; scan only those from c upward.
+  const from = (ls, c) => {
+    let lo = 0,
+      hi = ls.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (ls[mid].c < c) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+  const span = (a, b) => {
+    const vertical = Math.abs(a.x - b.x) < EPS;
+    return {
+      c: vertical ? a.x : a.y,
+      lo: vertical ? Math.min(a.y, b.y) : Math.min(a.x, b.x),
+      hi: vertical ? Math.max(a.y, b.y) : Math.max(a.x, b.x),
+      same: vertical ? v : h,
+      cross: vertical ? h : v,
+    };
+  };
+  // Lanes spanning c whose own coordinate is in [lo, hi): the ranges below
+  // tile a path's segments and vertices without overlap.
+  const count = (ls, c, lo, hi) => {
+    let n = 0;
+    for (let i = from(ls, lo); i < ls.length && ls[i].c < hi; i++)
+      if (c > ls[i].lo + EPS && c < ls[i].hi - EPS) n++;
+    return n;
+  };
+  return {
+    along(a, b) {
+      const { c, lo, hi, same } = span(a, b);
+      for (
+        let i = from(same, c - 0.02);
+        i < same.length && same[i].c < c + 0.02;
+        i++
+      )
+        if (Math.min(hi, same[i].hi) - Math.max(lo, same[i].lo) > EPS)
+          return true;
+      return false;
+    },
+    crosses(a, b) {
+      const { c, lo, hi, cross } = span(a, b);
+      return count(cross, c, lo + EPS, hi - EPS);
+    },
+    through(p, d) {
+      return d < 2
+        ? count(v, p.y, p.x - EPS, p.x + EPS)
+        : count(h, p.x, p.y - EPS, p.y + EPS);
+    },
+  };
+}
 // 0: +x, 1: -x, 2: +y, 3: -y; -1 when the points coincide.
 const heading = (a, b) =>
   distance(a, b) < EPS
@@ -149,8 +225,20 @@ class Heap {
   }
 }
 
-export function orthogonal(start, end, obstacles, hints = [], ports = {}) {
-  const clear = (ps) => !obstacles.some((r) => pathHits(ps, r));
+export function orthogonal(
+  start,
+  end,
+  obstacles,
+  hints = [],
+  ports = {},
+  { avoid = [], channels = [] } = {},
+) {
+  const { along, crosses, through } = lanes(avoid),
+    crossings = (ps) =>
+      ps.slice(1).reduce((n, p, i) => n + crosses(ps[i], p), 0);
+  const clear = (ps) =>
+    !obstacles.some((r) => pathHits(ps, r)) &&
+    !ps.slice(1).some((p, i) => along(ps[i], p));
   // Optional port points before start and after end: corners where the path
   // meets the port stubs count like any other corner.
   const full = (ps) =>
@@ -191,13 +279,22 @@ export function orthogonal(start, end, obstacles, hints = [], ports = {}) {
   const simple = candidates
     .map(simplify)
     .filter(clear)
-    .sort((a, b) => cost(full(a)) - cost(full(b)));
-  if (simple.length) return { points: simple[0], blocked: false };
+    .map((ps) => {
+      const drawn = full(ps);
+      return { ps, cost: cost(drawn) + crossings(drawn) * CROSS };
+    })
+    .sort((a, b) => a.cost - b.cost);
+  if (simple.length)
+    return { points: simple[0].ps, blocked: false, cost: simple[0].cost };
   // Visibility grid from measured obstacle boundaries; only neighboring grid points connect.
   for (const r of obstacles) {
     xs.push(r.x - 1, right(r) + 1);
     ys.push(r.y - 1, bottom(r) + 1);
   }
+  // Parallel channels beside the lanes a route has to leave.
+  for (const { x, y } of channels)
+    if (x !== undefined) xs.push(x - LANE, x + LANE);
+    else ys.push(y - LANE, y + LANE);
   xs.push(Math.min(...xs) - 24, Math.max(...xs) + 24);
   ys.push(Math.min(...ys) - 24, Math.max(...ys) + 24);
   const xx = [...new Set(xs)].sort((a, b) => a - b),
@@ -218,11 +315,22 @@ export function orthogonal(start, end, obstacles, hints = [], ports = {}) {
     ],
     goal = -1,
     enter = ports.from ? heading(ports.from, start) : -1,
-    leave = ports.to ? heading(end, ports.to) : -1;
+    leave = ports.to ? heading(end, ports.to) : -1,
+    head = ports.from || start,
+    tail = ports.to || end;
+  // Strictly between the ends of an axis-aligned port stub.
+  const within = (p, q, r) =>
+    Math.abs(p.x - q.x) < EPS
+      ? Math.abs(r.x - p.x) < EPS &&
+        r.y > Math.min(p.y, q.y) + EPS &&
+        r.y < Math.max(p.y, q.y) - EPS
+      : Math.abs(r.y - p.y) < EPS &&
+        r.x > Math.min(p.x, q.x) + EPS &&
+        r.x < Math.max(p.x, q.x) - EPS;
   const heap = new Heap(),
     best = new Map(),
     prev = new Map(),
-    blocked = new Map();
+    tolled = new Map();
   const push = (s, g, from, score) => {
     if (g >= (best.get(s) ?? Infinity)) return;
     best.set(s, g);
@@ -240,25 +348,60 @@ export function orthogonal(start, end, obstacles, hints = [], ports = {}) {
       d = cur.s % 4,
       a = point(k);
     if (k === last) {
-      const g = cur.g + (leave >= 0 && leave !== d ? BEND : 0);
+      // Arriving backwards along the end stub was charged where it joined it.
+      const g =
+        cur.g +
+        (leave >= 0 && leave !== d ? BEND : 0) +
+        (d === (leave ^ 1)
+          ? 0
+          : (crosses(end, tail) + (d === leave ? through(end, d) : 0)) *
+            CROSS);
       push(goal, g, cur.s, g);
       continue;
     }
+    // The path still lies on the start stub: at its end, or doubling back.
+    const stubbed =
+      cur.g === 0 || (d === (enter ^ 1) && within(head, start, a));
     const x = k % nx,
       y = Math.floor(k / nx);
     steps.forEach(([dx, dy], next) => {
+      // Among other routes, turn back only off the start stub's end. Each
+      // drawn run is then searched one way, so it is charged as drawn; a
+      // touch and turn back would hide the crossings simplify() keeps.
+      if (avoid.length && next === (d ^ 1) && cur.g > 0) return;
       const cx = x + dx,
         cy = y + dy;
       if (cx < 0 || cx >= nx || cy < 0 || cy >= yy.length) return;
       const n = key(cx, cy),
         b = point(n);
-      if (!blocked.has(k * 4 + next))
-        blocked.set(
+      if (!tolled.has(k * 4 + next))
+        tolled.set(
           k * 4 + next,
-          obstacles.some((r) => segmentHits(a, b, r)),
+          obstacles.some((r) => segmentHits(a, b, r)) || along(a, b)
+            ? Infinity
+            : crosses(a, b),
         );
-      if (blocked.get(k * 4 + next)) return;
-      const g = cur.g + distance(a, b) + (next === d ? 0 : BEND);
+      const crossed = tolled.get(k * 4 + next);
+      if (crossed === Infinity) return;
+      // Port stubs are drawn but not searched. Their crossings count where
+      // the path leaves or joins them, so travel doubling back along a stub,
+      // which simplify() removes, crosses nothing.
+      const charged = stubbed
+        ? next === (enter ^ 1)
+          ? 0
+          : crossed +
+            crosses(head, a) +
+            (next === enter ? through(a, next) : 0)
+        : next === (leave ^ 1) && within(end, tail, a)
+          ? next === d
+            ? 0
+            : crosses(a, tail)
+          : crossed + (next === d ? through(a, next) : 0);
+      const g =
+        cur.g +
+        distance(a, b) +
+        (next === d ? 0 : BEND) +
+        charged * CROSS;
       push(n * 4 + next, g, cur.s, g + estimate(b));
     });
   }
@@ -267,10 +410,30 @@ export function orthogonal(start, end, obstacles, hints = [], ports = {}) {
   const path = [];
   for (let s = prev.get(goal); s !== undefined; s = prev.get(s))
     path.push(point(Math.floor(s / 4)));
-  return { points: simplify(path.reverse()), blocked: false };
+  // `cost` ranked the route: length, corners and crossings, stubs included.
+  return {
+    points: simplify(path.reverse()),
+    blocked: false,
+    cost: best.get(goal) + distance(head, start) + distance(end, tail),
+  };
 }
 
-export function route(from, to, spec, obstacles) {
+const gapBetween = (from, to) =>
+  Math.max(
+    to.x - right(from),
+    from.x - right(to),
+    to.y - bottom(from),
+    from.y - bottom(to),
+    0,
+  );
+// Port stub length; short gutters halve it so stubs never enter the other node.
+export const reach = (from, to) => {
+  const gap = gapBetween(from, to);
+  return gap > 0 ? Math.min(14, gap / 2) : 14;
+};
+// `lanes.avoid` and `lanes.channels` pass other routes to orthogonal();
+// `lanes.reach` overrides each stub length.
+export function route(from, to, spec, obstacles, lanes = {}) {
   const fp = spec.fromPort || { side: "right" },
     tp = spec.toPort || { side: "left" };
   let a = port(from, fp),
@@ -293,19 +456,27 @@ export function route(from, to, spec, obstacles) {
       points: [a, b],
       blocked: obstacles.some((r) => pathHits([a, b], r)),
     };
-  const gap = Math.max(
-    to.x - right(from),
-    from.x - right(to),
-    to.y - bottom(from),
-    from.y - bottom(to),
-    0,
-  );
-  const length = gap > 0 ? Math.min(14, gap / 2) : 14,
+  const gap = gapBetween(from, to);
+  const length = reach(from, to),
     clearance = gap > 0 ? Math.min(6, gap / 4) : 6;
-  const s = stub(a, fp.side, length),
-    e = stub(b, tp.side, length);
-  const all = [...obstacles, expand(from, clearance), expand(to, clearance)];
-  const middle = orthogonal(s, e, all, spec.points || [], { from: a, to: b });
+  const reachFrom = lanes.reach?.from ?? length,
+    reachTo = lanes.reach?.to ?? length;
+  const s = stub(a, fp.side, reachFrom),
+    e = stub(b, tp.side, reachTo);
+  // A shortened stub still ends outside its own node's clearance.
+  const all = [
+    ...obstacles,
+    expand(from, Math.min(clearance, reachFrom)),
+    expand(to, Math.min(clearance, reachTo)),
+  ];
+  const middle = orthogonal(
+    s,
+    e,
+    all,
+    spec.points || [],
+    { from: a, to: b },
+    lanes,
+  );
   return {
     // Port stubs can briefly double back into the automatic path. Remove that
     // redundant travel, while keeping an author's explicit pins intact.

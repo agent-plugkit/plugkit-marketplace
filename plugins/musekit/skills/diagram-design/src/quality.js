@@ -496,6 +496,69 @@ function clearance(segment, rect) {
     ].map((p) => pointSegment(p, a, b)),
   );
 }
+// Relations leaving or entering the same node may share a trunk. Two between
+// the same pair of nodes would be indistinguishable, so they may not.
+export const sharesTrunk = (a, b) => (a.from === b.from) !== (a.to === b.to);
+// A route's segments as compared with another: stubs at shared nodes excluded.
+function comparable(edge, other) {
+  const shared = (id) => id === other.from || id === other.to;
+  return segments(trimEnds(edge.points, shared(edge.from), shared(edge.to)));
+}
+const apart = (s, t, c) =>
+  Math.max(s.a[c], s.b[c]) < Math.min(t.a[c], t.b[c]) - 0.02 ||
+  Math.max(t.a[c], t.b[c]) < Math.min(s.a[c], s.b[c]) - 0.02;
+export function sharedRuns(edge, other) {
+  if (sharesTrunk(edge, other)) return [];
+  const b = comparable(other, edge),
+    runs = [];
+  for (const left of comparable(edge, other))
+    for (const right of b) {
+      if (apart(left, right, "x") || apart(left, right, "y")) continue;
+      const run = parallelRun(left, right);
+      if (run && near(run.distance, 0) && run.length + G.EPS >= quality.run)
+        runs.push(run);
+    }
+  return runs;
+}
+// Conservative pass over independently drawn routes. Fixed routes are settled
+// first, then movable ones in ID code-unit order. Only a movable route sharing a
+// run with a settled one is rerouted, around all others; a route that would
+// still share one keeps its original. Returns the changed results.
+export function separateRoutes(routes, reroute) {
+  const list = [...routes]
+      .map((r) => ({ ...r }))
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
+    settled = list.filter((r) => !r.movable),
+    changed = new Map();
+  for (const item of list) {
+    if (!item.movable) continue;
+    const others = list.filter((o) => o !== item),
+      runs = settled.flatMap((o) => sharedRuns(item, o));
+    settled.push(item);
+    if (!runs.length) continue;
+    const avoid = others
+        .filter((o) => !sharesTrunk(item, o))
+        .flatMap((o) => comparable(o, item)),
+      channels = runs.flatMap(({ region }) =>
+        region.w < G.EPS
+          ? [{ x: region.x }]
+          : region.h < G.EPS
+            ? [{ y: region.y }]
+            : [],
+      );
+    const next = reroute(item, { avoid, channels }),
+      moved = next && { ...item, points: next.points };
+    if (
+      moved &&
+      !next.blocked &&
+      settled.every((o) => o === item || !sharedRuns(moved, o).length)
+    ) {
+      item.points = next.points;
+      changed.set(item.id, next);
+    }
+  }
+  return changed;
+}
 export function readability(edges, frames = [], existing = []) {
   const issues = [],
     entries = [...edges].sort(([a], [b]) => a.localeCompare(b));
@@ -508,22 +571,11 @@ export function readability(edges, frames = [], existing = []) {
       full = segments(edge.points);
     for (let j = i + 1; j < entries.length; j++) {
       const [other, next] = entries[j];
-      const shared = (id, other) => id === other.from || id === other.to;
-      const a = segments(
-        trimEnds(edge.points, shared(edge.from, next), shared(edge.to, next)),
-      );
-      const b = segments(
-        trimEnds(next.points, shared(next.from, edge), shared(next.to, edge)),
-      );
-      for (const left of a)
-        for (const right of b) {
-          const run = parallelRun(left, right);
-          if (run && near(run.distance, 0) && run.length + G.EPS >= quality.run)
-            add("shared-route", id, `与连线 ${other} 长距离重合`, [other], {
-              ...run,
-              minimumLength: quality.run,
-            });
-        }
+      for (const run of sharedRuns(edge, next))
+        add("shared-route", id, `与连线 ${other} 长距离重合`, [other], {
+          ...run,
+          minimumLength: quality.run,
+        });
     }
     for (const {
       id: group,

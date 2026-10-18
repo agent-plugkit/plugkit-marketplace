@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>连线分离</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 16px/1.4 Arial, "PingFang SC", sans-serif; color: #142c47; }
+      #art { width: 680px; height: 640px; background: #f5f4ef; position: relative; }
+      .body { position: absolute; inset: 0; }
+      .node { position: absolute; width: 120px; height: 60px; background: #fff; border: 1px solid #758cab; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <div id="art" data-diagram>
+      <main class="body" data-diagram-region="body">
+        <div class="node" data-diagram-node="A" style="left: 60px; top: 60px">A</div>
+        <div class="node" data-diagram-node="E" style="left: 60px; top: 210px">E</div>
+        <div class="node" data-diagram-node="B" style="left: 60px; top: 360px">B</div>
+        <div class="node" data-diagram-node="C" style="left: 460px; top: 210px">C</div>
+        <div class="node" data-diagram-node="D" style="left: 460px; top: 510px">D</div>
+      </main>
+    </div>
+    <script id="diagram-config" type="application/json">
+      {
+        "version": 1,
+        "name": "route-separation",
+        "edges": [
+          { "id": "e1", "from": "A", "to": "D", "fromPort": {"side": "right", "at": 0.5}, "toPort": {"side": "left", "at": 0.5} },
+          { "id": "e2", "from": "B", "to": "C", "fromPort": {"side": "right", "at": 0.5}, "toPort": {"side": "left", "at": 0.5} },
+          { "id": "e3", "from": "E", "to": "D", "fromPort": {"side": "right", "at": 0.5}, "toPort": {"side": "left", "at": 0.5} }
+        ]
+      }
+    </script>
+  </body>
+</html>

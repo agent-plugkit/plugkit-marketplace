@@ -242,19 +242,25 @@ test("shared endpoint exemptions do not shorten unrelated endpoint runs", () => 
     ],
     { to: "C" },
   );
-  for (const reverse of [false, true]) {
-    const next = reverse
-      ? { ...b, from: b.to, to: b.from, points: [...b.points].reverse() }
-      : b;
+  // A starts one relation and ends the other, so no trunk is shared.
+  const flip = (e) => ({
+    ...e,
+    from: e.to,
+    to: e.from,
+    points: [...e.points].reverse(),
+  });
+  for (const [first, second] of [
+    [a, flip(b)],
+    [flip(a), b],
+  ])
     assert.ok(
       readability(
         new Map([
-          ["a", a],
-          ["b", next],
+          ["a", first],
+          ["b", second],
         ]),
       ).some((i) => i.type === "shared-route" && i.evidence.length === 24),
     );
-  }
 });
 test("label clearance observes strict 4px boundary, ignores own route and suppresses collision duplicates", () => {
   const a = edge(

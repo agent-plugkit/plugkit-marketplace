@@ -132,6 +132,18 @@ test("ordinary inspection permits warnings, strict blocks them and diagnostics l
 }) => {
   const inspect =
     "plugins/musekit/skills/diagram-design/scripts/inspect_diagram.mjs";
+  // Straight relations are never rerouted, so their shared run stays a warning.
+  const file = join(work, "overlap.html");
+  writeFileSync(
+    file,
+    readFileSync("tests/fixtures/reader-quality.html", "utf8")
+      .replace(
+        '{ "id": "e1", "from": "A", "to": "B" }',
+        '{ "id": "e1", "from": "A", "to": "B", "kind": "straight" }',
+      )
+      .replace('"arrow": false }', '"arrow": false, "kind": "straight" }'),
+  );
+  execFileSync("python3", [script, file, "--output", file]);
   const ordinary = spawnSync(
     process.execPath,
     [inspect, file, "--output", join(work, "ordinary")],
@@ -148,7 +160,7 @@ test("ordinary inspection permits warnings, strict blocks them and diagnostics l
   );
   expect(strict.status).toBe(1);
   expect(JSON.parse(strict.stdout).checks.strictWarnings).toBe(false);
-  await open(page);
+  await open(page, file);
   await page.getByRole("button", { name: "编辑布局", exact: true }).click();
   await page.locator(".issues .warning").first().click();
   await expect(page.locator(".issues")).toContainText("连续长度");
@@ -631,4 +643,367 @@ test("transparent and hidden group borders do not produce readability warnings",
     window.museDiagram.refresh();
   });
   expect(await warnings()).toEqual([]);
+});
+
+test("routes that would share a line separate in ID order, while shared trunks stay", async ({
+  page,
+}) => {
+  const path = join(work, "separation.html");
+  execFileSync("python3", [
+    script,
+    "tests/fixtures/route-separation.html",
+    "--output",
+    path,
+  ]);
+  await open(page, path);
+  const { geometry } = await state(page);
+  const xy = (id) => geometry.edges[id].points.map(({ x, y }) => [x, y]);
+  // A→D keeps its original route; E→D shares its trunk into D.
+  expect(xy("e1")).toEqual([
+    [180, 90],
+    [194, 90],
+    [194, 540],
+    [460, 540],
+  ]);
+  expect(xy("e3")).toEqual([
+    [180, 240],
+    [194, 240],
+    [194, 540],
+    [460, 540],
+  ]);
+  const e2 = xy("e2");
+  for (let i = 1; i < e2.length; i++)
+    expect(e2[i][0] === 194 && e2[i - 1][0] === 194).toBe(false);
+  expect(geometry.issues.filter((i) => i.type === "shared-route")).toEqual([]);
+  await page.evaluate(() => {
+    const d = window.museDiagram;
+    d.change(() => d.move(["B"], 0, 12));
+  });
+  await page.evaluate(() => window.museDiagram.undo());
+  expect((await state(page)).geometry).toEqual(geometry);
+  // Routes on one side of A turn at the stub its shortest relation needs.
+  const reach = join(work, "reach.html");
+  writeFileSync(
+    reach,
+    readFileSync("tests/fixtures/route-separation.html", "utf8")
+      .replace("left: 460px; top: 210px", "left: 200px; top: 60px")
+      .replace(
+        /"edges": \[[\s\S]*?\]\n/,
+        `"edges": [
+          { "id": "f1", "from": "A", "to": "C", "fromPort": {"side": "right", "at": 0.3}, "toPort": {"side": "left", "at": 0.3} },
+          { "id": "f2", "from": "A", "to": "D", "fromPort": {"side": "right", "at": 0.7}, "toPort": {"side": "left", "at": 0.5} }
+        ]\n`,
+      ),
+  );
+  execFileSync("python3", [script, reach, "--output", reach]);
+  await open(page, reach);
+  const edges = (await state(page)).geometry.edges;
+  expect(edges.f1.points).toHaveLength(2);
+  expect(edges.f2.points[1]).toEqual({ x: 190, y: 102 });
+});
+
+test("without a forbidden shared run the bundled examples keep their routes point for point", async ({
+  page,
+}) => {
+  // Routes exported from the runtime before separation existed (ce1c3ae).
+  const before = JSON.parse(
+    readFileSync("tests/fixtures/example-routes.json", "utf8"),
+  );
+  for (const [name, routes] of Object.entries(before)) {
+    await open(
+      page,
+      `plugins/musekit/skills/diagram-design/references/examples/${name}.html`,
+    );
+    const { geometry } = await state(page);
+    const round = (v) => Math.round(v * 100) / 100;
+    expect(
+      Object.fromEntries(
+        Object.entries(geometry.edges).map(([id, e]) => [
+          id,
+          e.points.map(({ x, y }) => [round(x), round(y)]),
+        ]),
+      ),
+      name,
+    ).toEqual(routes);
+  }
+});
+
+// A variant of a fixture with its edges, and optionally nodes, replaced.
+function variant(name, source, edges, nodes = []) {
+  let html = readFileSync(source, "utf8").replace(
+    /"edges": \[[\s\S]*?\]\n/,
+    `"edges": ${JSON.stringify(edges)}\n`,
+  );
+  for (const [from, to] of nodes) html = html.replace(from, to);
+  const path = join(work, `${name}.html`);
+  writeFileSync(path, html);
+  execFileSync("python3", [script, path, "--output", path]);
+  return path;
+}
+const facing = {
+  fromPort: { side: "right", at: 0.5 },
+  toPort: { side: "left", at: 0.5 },
+};
+
+test("pinned, loop, straight and sequence relations are never rerouted, even with a later ID", async ({
+  page,
+}) => {
+  const separation = "tests/fixtures/route-separation.html",
+    xy = (edges, id) => edges[id].points.map(({ x, y }) => [x, y]),
+    shared = (issues) => issues.filter((i) => i.type === "shared-route");
+  const trunk = [
+    [180, 90],
+    [194, 90],
+    [194, 540],
+    [460, 540],
+  ];
+  // A→D is fixed and sorts after B→C, which therefore moves off its line.
+  for (const [kind, extra] of [
+    ["points", { points: [{ x: 194, y: 540 }] }],
+    ["loop", { kind: "loop" }],
+  ]) {
+    await open(
+      page,
+      variant(kind, separation, [
+        { id: "e1", from: "A", to: "D", ...facing, ...extra },
+        { id: "a2", from: "B", to: "C", ...facing },
+      ]),
+    );
+    const { edges, issues } = (await state(page)).geometry;
+    expect(xy(edges, "e1"), kind).toEqual(trunk);
+    const a2 = xy(edges, "a2");
+    expect([a2[0], a2.at(-1)], kind).toEqual([
+      [180, 390],
+      [460, 240],
+    ]);
+    expect(a2[1], kind).not.toEqual([194, 390]);
+    expect(shared(issues), kind).toEqual([]);
+  }
+  // E→B is a straight vertical line that A→D would follow.
+  await open(
+    page,
+    variant(
+      "straight",
+      separation,
+      [
+        { id: "a1", from: "A", to: "D", ...facing },
+        {
+          id: "e9",
+          from: "E",
+          to: "B",
+          kind: "straight",
+          fromPort: { side: "bottom", at: 0.5 },
+          toPort: { side: "top", at: 0.5 },
+        },
+      ],
+      [
+        ["left: 60px; top: 60px", "left: 60px; top: 160px"],
+        ["left: 60px; top: 210px", "left: 134px; top: 40px"],
+        ["left: 60px; top: 360px", "left: 134px; top: 560px"],
+        ["left: 460px; top: 210px", "left: 460px; top: 160px"],
+        ["left: 460px; top: 510px", "left: 460px; top: 460px"],
+      ],
+    ),
+  );
+  let { edges, issues } = (await state(page)).geometry;
+  expect(xy(edges, "e9")).toEqual([
+    [194, 100],
+    [194, 560],
+  ]);
+  const a1 = xy(edges, "a1");
+  expect([a1[0], a1.at(-1)]).toEqual([
+    [180, 190],
+    [460, 490],
+  ]);
+  expect(a1[1]).not.toEqual([194, 190]);
+  expect(shared(issues)).toEqual([]);
+  // Two messages on one row stay horizontal lines and stay reported.
+  const messages = JSON.parse(
+    readFileSync("tests/fixtures/sequence.html", "utf8").match(
+      /"edges": (\[[\s\S]*?\])\n/,
+    )[1],
+  );
+  await open(
+    page,
+    variant("sequence", "tests/fixtures/sequence.html", [
+      ...messages,
+      { id: "zz", kind: "sequence", from: "B", to: "A", row: "r1" },
+    ]),
+  );
+  ({ edges, issues } = (await state(page)).geometry);
+  const call = xy(edges, "call");
+  expect(xy(edges, "zz")).toEqual([...call].reverse());
+  expect(shared(issues).map((i) => [i.id, ...i.relatedIds])).toEqual([
+    ["call", "zz"],
+  ]);
+});
+
+test("a common stub on one side is kept only where the route stays clear without a detour", async ({
+  page,
+}) => {
+  const node = (id, x, y, w, h) => [
+    `data-diagram-node="${id}" style="left: ${{ A: 60, E: 60, B: 60, C: 460, D: 460 }[id]}px; top: ${{ A: 60, E: 210, B: 360, C: 210, D: 510 }[id]}px"`,
+    `data-diagram-node="${id}" style="left: ${x}px; top: ${y}px; width: ${w}px; height: ${h}px"`,
+  ];
+  const edges = [
+    {
+      id: "f1",
+      from: "A",
+      to: "C",
+      fromPort: { side: "right", at: 0.125 },
+      toPort: { side: "left", at: 0.5 },
+    },
+    {
+      id: "f2",
+      from: "A",
+      to: "D",
+      fromPort: { side: "right", at: 0.8 },
+      toPort: { side: "left", at: 0.5 },
+    },
+  ];
+  // A→C leaves A a 4 px stub; it no longer starts A→D inside A's clearance.
+  await open(
+    page,
+    variant("stub-clearance", "tests/fixtures/route-separation.html", edges, [
+      node("A", 60, 60, 120, 120),
+      node("C", 188, 60, 120, 30),
+      node("D", 460, 510, 120, 60),
+      node("E", 350, 140, 40, 40),
+      node("B", 600, 300, 40, 40),
+    ]),
+  );
+  let { edges: routes, issues } = (await state(page)).geometry;
+  expect(routes.f2.blocked).toBe(false);
+  expect(routes.f2.points.map(({ x, y }) => [x, y])).toEqual([
+    [180, 156],
+    [184, 156],
+    [184, 540],
+    [460, 540],
+  ]);
+  expect(issues.filter((i) => i.severity === "error")).toEqual([]);
+  // Below A, B would turn a 4 px stub into a detour: A→D keeps its own.
+  await open(
+    page,
+    variant("stub-kept", "tests/fixtures/route-separation.html", edges, [
+      node("A", 60, 60, 120, 120),
+      node("C", 188, 60, 120, 30),
+      node("D", 460, 510, 120, 60),
+      node("E", 350, 140, 40, 40),
+      node("B", 60, 400, 120, 60),
+    ]),
+  );
+  ({ edges: routes } = (await state(page)).geometry);
+  expect(routes.f2.blocked).toBe(false);
+  expect(routes.f2.points.map(({ x, y }) => [x, y])).toEqual([
+    [180, 156],
+    [194, 156],
+    [194, 540],
+    [460, 540],
+  ]);
+});
+
+test("a common stub is refused where it would be blocked or add corners", async ({
+  page,
+}) => {
+  const at = {
+      A: [60, 60],
+      E: [60, 210],
+      B: [60, 360],
+      C: [460, 210],
+      D: [460, 510],
+    },
+    node = (id, x, y, w = 120, h = 60) => [
+      `data-diagram-node="${id}" style="left: ${at[id][0]}px; top: ${at[id][1]}px"`,
+      `data-diagram-node="${id}" style="left: ${x}px; top: ${y}px; width: ${w}px; height: ${h}px"`,
+    ],
+    extra = (id, x, y, w, h) => [
+      "</main>",
+      `<div class="node" data-diagram-node="${id}" style="left: ${x}px; top: ${y}px; width: ${w}px; height: ${h}px">${id}</div></main>`,
+    ],
+    route = async (name, edges, nodes) => {
+      await open(
+        page,
+        variant(name, "tests/fixtures/route-separation.html", edges, nodes),
+      );
+      const { f2 } = (await state(page)).geometry.edges;
+      expect(f2.blocked, name).toBe(false);
+      return f2.points.map(({ x, y }) => [x, y]);
+    };
+  // A→C sets a 4 px stub on A's right side. A 4 px stub for A→D would
+  // start inside E, which its own 14 px stub clears. Neither turns at the
+  // stub, so only the blocked check refuses it.
+  const blocked = [
+    {
+      id: "f1",
+      from: "A",
+      to: "C",
+      fromPort: { side: "right", at: 0.875 },
+      toPort: { side: "left", at: 0.5 },
+    },
+    {
+      id: "f2",
+      from: "A",
+      to: "D",
+      fromPort: { side: "right", at: 0.05 },
+      toPort: { side: "left", at: 0.5 },
+    },
+  ];
+  const clear = (e) => [
+    node("A", 60, 70, 120, 120),
+    node("C", 188, 160, 120, 30),
+    node("D", 460, 520),
+    node("E", ...e, 26, 39),
+    node("B", 420, 230, 60, 60),
+  ];
+  expect(await route("stub-blocked", blocked, clear([160, 30]))).toEqual([
+    [180, 76],
+    [320, 76],
+    [320, 550],
+    [460, 550],
+  ]);
+  expect(await route("stub-unblocked", blocked, clear([560, 30]))).toEqual([
+    [180, 76],
+    [411, 76],
+    [411, 550],
+    [460, 550],
+  ]);
+  // A→C sets a 4 px stub. It moves the middle column of A→D 5 px left into
+  // E, leaving a choice with four corners instead of two; again neither turns
+  // at the stub, so only the corner check refuses it.
+  const corners = [
+    {
+      id: "f1",
+      from: "A",
+      to: "C",
+      fromPort: { side: "right", at: 0.125 },
+      toPort: { side: "left", at: 0.5 },
+    },
+    {
+      id: "f2",
+      from: "A",
+      to: "D",
+      fromPort: { side: "right", at: 0.8 },
+      toPort: { side: "left", at: 0.5 },
+    },
+  ];
+  const layout = (e) => [
+    node("A", 60, 60, 120, 120),
+    node("C", 188, 60, 120, 30),
+    node("D", 460, 510),
+    node("B", 60, 400, 140, 60),
+    node("E", ...e, 60, 60),
+    extra("Y", 360, 130, 50, 50),
+  ];
+  expect(await route("stub-corners", corners, layout([250, 220]))).toEqual([
+    [180, 156],
+    [320, 156],
+    [320, 540],
+    [460, 540],
+  ]);
+  expect(await route("stub-no-corners", corners, layout([560, 220]))).toEqual([
+    [180, 156],
+    [315, 156],
+    [315, 540],
+    [460, 540],
+  ]);
 });

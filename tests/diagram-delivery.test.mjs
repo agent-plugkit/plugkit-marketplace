@@ -19,7 +19,16 @@ import { digest } from "../plugins/musekit/skills/diagram-design/scripts/inspect
 const cli = resolve(
   "plugins/musekit/skills/diagram-design/scripts/deliver_diagram.mjs",
 );
-const sourceBytes = readFileSync("tests/fixtures/reader-quality.html");
+// Two straight relations on one line keep a shared-route warning: straight
+// lines are never rerouted around each other.
+const sourceBytes = Buffer.from(
+  readFileSync("tests/fixtures/reader-quality.html", "utf8")
+    .replace(
+      '{ "id": "e1", "from": "A", "to": "B" }',
+      '{ "id": "e1", "from": "A", "to": "B", "kind": "straight" }',
+    )
+    .replace('"arrow": false }', '"arrow": false, "kind": "straight" }'),
+);
 function run(args, options = {}) {
   const child = spawn(process.execPath, [cli, ...args, "--json"], {
     ...options,

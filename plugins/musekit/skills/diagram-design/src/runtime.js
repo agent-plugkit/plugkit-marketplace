@@ -4,6 +4,7 @@ import {
   orderedIssues,
   distributePorts,
   readability,
+  separateRoutes,
 } from "./quality.js";
 import { mountEditor } from "./editor.js";
 import { tidyLayout, layoutIssues } from "./layout.js";
@@ -853,14 +854,36 @@ export class Diagram {
     const defs = svg("defs");
     this.layer.append(defs);
     this.edgeGeometry.clear();
-    const paths = [];
+    const specs = new Map(
+      this.config.edges.map((edge) => [edge.id, this.edgeSpec(edge, boxes)]),
+    );
+    const automatic = (edge) =>
+      [undefined, "orthogonal"].includes(edge.kind) &&
+      edge.from !== edge.to &&
+      !specs.get(edge.id).points?.length;
+    // Automatic routes on one side of a node may turn at the same distance
+    // from it: the shortest stub any of them needs.
+    const side = (id, port) => `${id}\0${port.side}`,
+      reach = new Map();
+    for (const edge of this.config.edges)
+      if (automatic(edge)) {
+        const spec = specs.get(edge.id),
+          length = G.reach(boxes.get(edge.from), boxes.get(edge.to));
+        for (const key of [
+          side(edge.from, spec.fromPort),
+          side(edge.to, spec.toPort),
+        ])
+          reach.set(key, Math.min(reach.get(key) ?? Infinity, length));
+      }
+    const routes = new Map();
     for (const edge of this.config.edges) {
-      const spec = this.edgeSpec(edge, boxes),
+      const spec = specs.get(edge.id),
         from = boxes.get(edge.from),
         to = boxes.get(edge.to);
-      const obs = obstacles
-        .filter((r) => r.id !== edge.from && r.id !== edge.to)
-        .map((r) => G.expand(r, 8));
+      let obs = obstacles
+          .filter((r) => r.id !== edge.from && r.id !== edge.to)
+          .map((r) => G.expand(r, 8)),
+        lanes = {};
       if (headerBox) obs.push(G.expand(headerBox, 8));
       let result;
       if (edge.kind === "sequence") {
@@ -893,9 +916,56 @@ export class Diagram {
             .map((r) => G.expand(r, 2));
           if (headerBox) tight.push(G.expand(headerBox, 8));
           const fallback = G.route(from, to, spec, tight);
-          if (!fallback.blocked) result = fallback;
+          if (!fallback.blocked) [result, obs] = [fallback, tight];
+        }
+        // A shorter common stub is kept only when the route stays clear,
+        // gains no corner and still turns at the stub wherever it did.
+        const common = {
+            from: reach.get(side(edge.from, spec.fromPort)),
+            to: reach.get(side(edge.to, spec.toPort)),
+          },
+          own = G.reach(from, to);
+        if (
+          automatic(edge) &&
+          !result.blocked &&
+          Math.min(common.from, common.to) < own
+        ) {
+          const even = G.route(from, to, spec, obs, { reach: common }),
+            turns = (ps, i, end, port, length) =>
+              G.distance(ps.at(i), G.stub(ps.at(end), port.side, length)) <
+              G.EPS,
+            kept = (i, end, port, length) =>
+              !turns(result.points, i, end, port, own) ||
+              turns(even.points, i, end, port, length);
+          if (
+            !even.blocked &&
+            even.points.length <= result.points.length &&
+            kept(1, 0, spec.fromPort, common.from) &&
+            kept(-2, -1, spec.toPort, common.to)
+          )
+            [result, lanes] = [even, { reach: common }];
         }
       }
+      routes.set(edge.id, { from, to, spec, obs, lanes, result });
+    }
+    // Routes with a forbidden shared run are redrawn around the others.
+    const separated = separateRoutes(
+      this.config.edges.map((edge) => ({
+        id: edge.id,
+        from: edge.from,
+        to: edge.to,
+        points: routes.get(edge.id).result.points,
+        movable: automatic(edge) && !routes.get(edge.id).result.blocked,
+      })),
+      ({ id }, lanes) => {
+        const r = routes.get(id);
+        return G.route(r.from, r.to, r.spec, r.obs, { ...r.lanes, ...lanes });
+      },
+    );
+    for (const [id, result] of separated) routes.get(id).result = result;
+    const paths = [];
+    for (const edge of this.config.edges) {
+      const { spec, result } = routes.get(edge.id);
       const color = edge.color || "#334155",
         markerId = `mk-arrow-${edge.id}`;
       const marker = svg("marker", {
