@@ -5,6 +5,21 @@
   },
   "plugins": [
     {
+      "name": "agent-wake",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-wake"
+      },
+      "interface": {
+        "displayName": "Agent Wake"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "tooling"
+    },
+    {
       "name": "musekit",
       "source": {
         "source": "local",

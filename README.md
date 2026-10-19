@@ -33,6 +33,10 @@ Musekit `0.1.0` 整体替换 `musepool`、`design-compile` 和 `mermaid-render` 
 
 本地检索继续提供 `list/search/show`，`--scenario` 改用 `ui`、`graphic`、`information`；旧分类参数与旧插件路径不提供兼容别名。原有 seed 的 ID、来源与详细参考保留，`show <id>` 仍可定位同一参考。
 
+## agent-wake 长任务叫醒
+
+agent-wake 在后台运行 `claude -p` 或 `codex exec` 长任务，任务结束（完成、失败或中断）时经 webhook 叫醒发起任务的 Bot；状态落盘在 `~/.agent-wake/`，通知丢失时可用 `pending` 补查。仅支持 Linux 与 Node.js 20+，不改动 Claude 或 Codex 的全局配置。Bot 侧按 tag 取源码安装，不经下文的 `install-repo`。安装、启动与醒来规程见 [agent-wake Skill](plugins/agent-wake/skills/agent-wake/SKILL.md)。
+
 ## Install
 
 You need Node.js 20+ (for `npx`) and the agent's own CLI on `PATH`. One command registers this
