@@ -50,15 +50,18 @@ function alive(proc, boot) {
   return fields[19] === proc.start && !['Z', 'X'].includes(fields[0]);
 }
 
-// A recorded signal beats any earlier completion; otherwise the last completion event decides and
-// without one the caller's fallback applies.
-function verdict(dir, fallback) {
+// A signal (recorded, exit.signal or exit code >128) beats any earlier completion; otherwise the last
+// completion event decides. Without one, a non-zero exit is failed and anything else interrupted: a
+// signalled Codex can exit 0 without calling notify.
+function verdict(dir) {
   const all = events(dir);
-  if (all.some((e) => e.ev === 'signal' || (e.ev === 'exit' && e.signal))) return ['interrupted', 'signal'];
+  const exit = all.findLast((e) => e.ev === 'exit');
+  if (exit?.error) return ['failed', `spawn:${exit.error}`];
+  if (all.some((e) => e.ev === 'signal') || exit?.signal || exit?.code > 128) return ['interrupted', 'signal'];
   const last = all.findLast((e) => e.ev === 'completed' || e.ev === 'api_error');
   if (last?.ev === 'completed') return ['done', 'completed'];
   if (last) return ['failed', `api_error:${last.error}`];
-  return fallback;
+  return exit?.code ? ['failed', `exit ${exit.code}`] : ['interrupted', 'no completion'];
 }
 
 // Only the process that creates result.json (O_EXCL) wins; returns whether this call won.
@@ -102,8 +105,14 @@ function overridesReserved(argv) {
   });
 }
 
-function isHttpUrl(value) {
-  try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; }
+const wakeRequest = (body) => new Request(process.env.AGENT_WAKE_URL, {
+  method: 'POST', body,
+  headers: { authorization: `Bearer ${process.env.AGENT_WAKE_TOKEN}`, 'content-type': 'application/json' },
+});
+
+// Building the request offline catches what fetch would reject later (bad header bytes, credentials in the URL).
+function canRequest() {
+  try { return /^https?:/.test(wakeRequest('{}').url); } catch { return false; }
 }
 
 function inject(agent, argv, dir, task) {
@@ -133,8 +142,7 @@ async function run(args) {
   // Never echo these values: errors would land in bot transcripts.
   const { AGENT_WAKE_URL: url, AGENT_WAKE_TOKEN: token } = process.env;
   if (!url || !token) fail('AGENT_WAKE_URL and AGENT_WAKE_TOKEN must be set');
-  if (!isHttpUrl(url)) fail('AGENT_WAKE_URL must be an http(s) URL');
-  if (/[\0-\x1f\x7f]/.test(token)) fail('AGENT_WAKE_TOKEN must not contain newlines or control characters');
+  if (!canRequest()) fail('AGENT_WAKE_URL must be an http(s) URL without credentials and AGENT_WAKE_TOKEN a valid header value');
   if (agent === 'claude') {
     if (!hasFlag(argv, '-p', '--print')) fail('claude must run with -p');
     if (hasFlag(argv, '--bare', '--safe-mode', '--settings')) fail('--bare, --safe-mode and --settings are not supported');
@@ -166,13 +174,12 @@ async function run(args) {
   renameSync(join(dir, 'task.json.tmp'), join(dir, 'task.json'));
   console.log(`TASK ${id} ${dir}`);
 
-  let signaled = false;
   const cmd = inject(agent, argv, dir, task);
   const child = spawn(cmd[0], cmd.slice(1), {
     stdio: ['pipe', openSync(join(dir, 'out.log'), 'a'), openSync(join(dir, 'err.log'), 'a')],
   });
   for (const sig of ['SIGTERM', 'SIGINT']) {
-    process.on(sig, () => { signaled = true; record(dir, { ev: 'signal', signal: sig }); child.kill(sig); });
+    process.on(sig, () => { record(dir, { ev: 'signal', signal: sig }); child.kill(sig); });
   }
   const exit = await new Promise((resolve) => {
     child.on('error', (error) => resolve({ error: error.message }));
@@ -186,13 +193,9 @@ async function run(args) {
   record(dir, { ev: 'exit', ...exit });
 
   // Codex notify is spawned asynchronously and may land after the process exits.
-  for (let waited = 0; waited < GRACE_MS && !existsSync(join(dir, 'result.json')); waited += 200) await sleep(200);
-  // A signalled Codex can exit 0 without calling notify, so exit 0 without completion is interrupted.
-  const fallback = exit.error ? ['failed', `spawn:${exit.error}`]
-    : signaled || exit.signal || exit.code > 128 ? ['interrupted', 'signal']
-      : exit.code === 0 ? ['interrupted', 'exit 0 without completion']
-        : ['failed', `exit ${exit.code}`];
-  if (finalize(dir, verdict(dir, fallback))) sendDetached(dir);
+  const completed = () => events(dir).some((e) => e.ev === 'completed');
+  for (let waited = 0; agent === 'codex' && waited < GRACE_MS && !completed(); waited += 200) await sleep(200);
+  if (finalize(dir, verdict(dir))) sendDetached(dir);
   process.exitCode = exit.code ?? 1;
 }
 
@@ -209,12 +212,11 @@ function hook(dir) {
     if (data.hook_event_name === 'Stop') return record(dir, { ev: 'completed', session_id });
     if (data.hook_event_name === 'StopFailure') return record(dir, { ev: 'api_error', error: data.error ?? 'unknown', session_id });
     if (data.hook_event_name !== 'SessionEnd') return;
-    // Other Stop hooks may keep Claude working, so only SessionEnd finalizes.
     record(dir, { ev: 'session_end', reason: data.reason ?? null, session_id });
   }
-  // A recorded signal is left to run, which finalizes after the CLI exits.
-  const result = verdict(dir, null);
-  if (result && result[0] !== 'interrupted' && finalize(dir, result)) sendDetached(dir);
+  // While run is alive it finalizes after the CLI exits; the hook only steps in once run is gone.
+  const task = readJson(join(dir, 'task.json'));
+  if (!alive(task.run, task.boot_id) && finalize(dir, verdict(dir))) sendDetached(dir);
 }
 
 async function send(dir) {
@@ -223,12 +225,7 @@ async function send(dir) {
   for (const [attempt, delay] of RETRY_MS.entries()) {
     await sleep(delay);
     try {
-      const response = await fetch(process.env.AGENT_WAKE_URL, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${process.env.AGENT_WAKE_TOKEN}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ id, owner, state }),
-        signal: AbortSignal.timeout(15_000),
-      });
+      const response = await fetch(wakeRequest(JSON.stringify({ id, owner, state })), { signal: AbortSignal.timeout(15_000) });
       record(dir, { ev: 'notify', attempt: attempt + 1, status: response.status });
       if (response.ok) return;
     } catch (error) {

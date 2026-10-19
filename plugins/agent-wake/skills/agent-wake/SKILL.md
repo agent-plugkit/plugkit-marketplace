@@ -5,9 +5,9 @@ description: "Start long claude -p / codex exec tasks in the background and get 
 
 # agent-wake
 
-`scripts/agent-wake.mjs` wraps one `claude -p` or `codex exec` run. When the task ends, the CLI's own
-callback (Claude `Stop`/`StopFailure`/`SessionEnd` hooks, Codex `notify`) or the wrapper itself posts
-`{"id","owner","state"}` to your webhook. The webhook only speeds things up: the task directory
+`scripts/agent-wake.mjs` wraps one `claude -p` or `codex exec` run. When the task ends, the wrapper
+posts `{"id","owner","state"}` to your webhook; if the wrapper was killed, the CLI's own callback
+(Claude `SessionEnd` hook, Codex `notify`) posts instead. The webhook only speeds things up: the task directory
 `~/.agent-wake/<owner>/<id>/` is the source of truth, and `pending` finds anything a lost webhook missed.
 
 Linux and Node.js 20+ only. Nothing is written to Claude or Codex configuration; the callbacks are

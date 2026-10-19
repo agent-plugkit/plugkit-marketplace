@@ -167,7 +167,34 @@ test('codex killed directly exits 0 without notify and ends as interrupted', asy
       process.kill(pid, 'SIGTERM');
     },
   });
-  assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'exit 0 without completion']);
+  assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'no completion']);
+});
+
+test('claude killed directly after Stop exits 143 and ends as interrupted', async (t) => {
+  const { cli, run, notified } = await setup(t);
+  const task = await run('bot', [cli('claude'), '-p'], {
+    fake: 'stop_hang',
+    onTask: async (child, { dir }) => {
+      while (!read(dir).includes('"completed"')) await sleep(50);
+      process.kill((await started(dir)).pid, 'SIGTERM');
+    },
+  });
+  assert.equal(task.code, 143);
+  assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'signal']);
+  assert.deepEqual((await notified(task.id)).map((h) => h.state), ['interrupted']);
+});
+
+test('run killed before codex notify: the hook finalizes and wakes once', async (t) => {
+  const { cli, run, notified } = await setup(t);
+  const task = await run('bot', [cli('codex'), 'exec'], {
+    onTask: async (child, { dir }) => {
+      while (!read(dir).includes('"exit"')) await sleep(50);
+      child.kill('SIGKILL');
+    },
+  });
+  assert.equal(task.result, null);
+  assert.deepEqual((await notified(task.id)).map((h) => h.state), ['done']);
+  assert.equal(JSON.parse(readFileSync(join(task.dir, 'result.json'), 'utf8')).state, 'done');
 });
 
 test('orphan: run and CLI killed together are marked interrupted by pending, without a webhook', async (t) => {
@@ -192,6 +219,9 @@ test('run refuses to start without wake credentials or with hook-skipping flags'
   const missing = await run('bot', [cli('claude'), '-p'], { extraEnv: { AGENT_WAKE_TOKEN: '' } });
   assert.equal(missing.code, 2);
   assert.match(missing.err, /AGENT_WAKE_URL and AGENT_WAKE_TOKEN/);
+  const bad = await run('bot', [cli('claude'), '-p'], { extraEnv: { AGENT_WAKE_TOKEN: '中文' } });
+  assert.equal(bad.code, 2);
+  assert.doesNotMatch(bad.err, /中文/);
   for (const flag of ['--bare', '--settings']) {
     assert.equal((await run('bot', [cli('claude'), '-p', flag, '{}'])).code, 2);
   }
