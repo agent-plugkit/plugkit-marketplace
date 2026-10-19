@@ -10,6 +10,12 @@ import test from 'node:test';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const script = join(root, 'plugins/agent-wake/skills/agent-wake/scripts/agent-wake.mjs');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const read = (dir) => readFileSync(join(dir, 'events.jsonl'), { encoding: 'utf8', flag: 'a+' });
+
+async function started(dir) {
+  while (!read(dir).includes('"start"')) await sleep(50);
+  return read(dir).split('\n').filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.ev === 'start');
+}
 
 // Fake CLIs: `claude` fires the hooks from --settings, `codex` calls notify with the payload as last argv.
 const fake = `#!/usr/bin/env node
@@ -23,8 +29,9 @@ if (require('node:path').basename(process.argv[1]) === 'claude') {
   const session_id = args[args.indexOf('--session-id') + 1];
   const fire = (name, extra) => spawnSync('sh', ['-c', settings.hooks[name][0].hooks[0].command],
     { input: JSON.stringify({ session_id, hook_event_name: name, ...extra }) });
-  if (mode === 'hang') {
+  if (mode === 'hang' || mode === 'stop_hang') {
     process.on('SIGTERM', () => { fire('SessionEnd', { reason: 'other' }); process.exit(143); });
+    if (mode === 'stop_hang') fire('Stop');
     hang();
   } else if (mode === 'api_error') {
     fire('StopFailure', { error: 'rate_limit' }); fire('SessionEnd', { reason: 'other' }); process.exit(1);
@@ -37,6 +44,8 @@ if (require('node:path').basename(process.argv[1]) === 'claude') {
     !args.includes('shell_environment_policy.exclude=["AGENT_WAKE_URL","AGENT_WAKE_TOKEN"]')) process.exit(3);
   const notify = JSON.parse(args[args.indexOf('-c') + 1].slice('notify='.length));
   if (mode === 'fail') process.exit(1);
+  // Real codex killed directly exits 0 without calling notify.
+  if (mode === 'hang') { process.on('SIGTERM', () => process.exit(0)); process.stdout.write(' ready'); return hang(); }
   const payload = JSON.stringify({ type: 'agent-turn-complete', 'thread-id': 'thread-1' });
   spawn('sh', ['-c', 'sleep 1; exec "$@"', 'sh', ...notify, payload], { detached: true, stdio: 'ignore' }).unref();
 }
@@ -129,13 +138,36 @@ test('SIGTERM to run is forwarded and ends as interrupted', async (t) => {
   const { cli, run, notified } = await setup(t);
   const task = await run('bot', [cli('claude'), '-p'], {
     fake: 'hang',
+    onTask: async (child, { dir }) => { await started(dir); child.kill('SIGTERM'); },
+  });
+  assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'signal']);
+  assert.deepEqual((await notified(task.id)).map((h) => h.state), ['interrupted']);
+});
+
+test('a signal after an earlier Stop still ends as interrupted', async (t) => {
+  const { cli, run, notified } = await setup(t);
+  const task = await run('bot', [cli('claude'), '-p'], {
+    fake: 'stop_hang',
     onTask: async (child, { dir }) => {
-      while (!readFileSync(join(dir, 'events.jsonl'), { encoding: 'utf8', flag: 'a+' }).includes('"start"')) await sleep(50);
+      while (!read(dir).includes('"completed"')) await sleep(50);
       child.kill('SIGTERM');
     },
   });
   assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'signal']);
   assert.deepEqual((await notified(task.id)).map((h) => h.state), ['interrupted']);
+});
+
+test('codex killed directly exits 0 without notify and ends as interrupted', async (t) => {
+  const { cli, run } = await setup(t);
+  const task = await run('bot', [cli('codex'), 'exec'], {
+    fake: 'hang',
+    onTask: async (child, { dir }) => {
+      const { pid } = await started(dir);
+      while (!readFileSync(join(dir, 'out.log'), 'utf8').includes('ready')) await sleep(50);
+      process.kill(pid, 'SIGTERM');
+    },
+  });
+  assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'exit 0 without completion']);
 });
 
 test('orphan: run and CLI killed together are marked interrupted by pending, without a webhook', async (t) => {
@@ -145,7 +177,7 @@ test('orphan: run and CLI killed together are marked interrupted by pending, wit
     fake: 'hang',
     onTask: async (child, task) => {
       dir = task.dir;
-      while (!readFileSync(join(dir, 'events.jsonl'), { encoding: 'utf8', flag: 'a+' }).includes('"start"')) await sleep(50);
+      await started(dir);
       process.kill(-child.pid, 'SIGKILL');
     },
   });

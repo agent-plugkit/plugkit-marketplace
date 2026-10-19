@@ -33,19 +33,29 @@ function events(dir) {
 
 const bootId = () => readFileSync('/proc/sys/kernel/random/boot_id', 'utf8').trim();
 
-// Field 22 of /proc/<pid>/stat (start time in clock ticks); together with boot_id it defeats PID reuse.
-function startTime(pid) {
+// /proc/<pid>/stat fields after the command name: [0] state, [19] start time in clock ticks.
+function stat(pid) {
   try {
-    const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
-    return stat.slice(stat.lastIndexOf(')') + 2).split(' ')[19];
-  } catch { return null; }
+    const text = readFileSync(`/proc/${pid}/stat`, 'utf8');
+    return text.slice(text.lastIndexOf(')') + 2).split(' ');
+  } catch { return []; }
 }
 
-const alive = (proc, boot) => Boolean(proc) && boot === bootId() && startTime(proc.pid) === proc.start;
+const startTime = (pid) => stat(pid)[19] ?? null;
 
-// The last completion event decides; without one the caller's fallback applies.
+// Start time plus boot_id defeats PID reuse; zombie (Z) and dead (X) processes do not count.
+function alive(proc, boot) {
+  if (!proc?.start || boot !== bootId()) return false;
+  const fields = stat(proc.pid);
+  return fields[19] === proc.start && !['Z', 'X'].includes(fields[0]);
+}
+
+// A recorded signal beats any earlier completion; otherwise the last completion event decides and
+// without one the caller's fallback applies.
 function verdict(dir, fallback) {
-  const last = events(dir).findLast((e) => e.ev === 'completed' || e.ev === 'api_error');
+  const all = events(dir);
+  if (all.some((e) => e.ev === 'signal' || (e.ev === 'exit' && e.signal))) return ['interrupted', 'signal'];
+  const last = all.findLast((e) => e.ev === 'completed' || e.ev === 'api_error');
   if (last?.ev === 'completed') return ['done', 'completed'];
   if (last) return ['failed', `api_error:${last.error}`];
   return fallback;
@@ -80,6 +90,22 @@ function option(args, name) {
 
 const hasFlag = (argv, ...flags) => argv.some((a) => flags.some((f) => a === f || a.startsWith(`${f}=`)));
 
+// Codex applies -c/--config overrides in order, so a later caller value would replace the injected
+// notify or the secret exclusion.
+function overridesReserved(argv) {
+  return argv.some((a, i) => {
+    const value = a === '-c' || a === '--config' ? argv[i + 1]
+      : a.startsWith('--config=') ? a.slice('--config='.length)
+        : a.startsWith('-c') && a.length > 2 ? a.slice(2).replace(/^=/, '') : null;
+    const key = value?.split('=')[0].replace(/["'\s]/g, '').split('.')[0];
+    return key === 'notify' || key === 'shell_environment_policy';
+  });
+}
+
+function isHttpUrl(value) {
+  try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; }
+}
+
 function inject(agent, argv, dir, task) {
   const hook = [process.execPath, SELF, 'hook', dir];
   if (agent === 'codex') {
@@ -104,12 +130,17 @@ async function run(args) {
   const root = ownerDir(option(args.slice(0, split), '--owner'));
   const owner = basename(root);
   const agent = basename(argv[0] ?? '');
-  if (!process.env.AGENT_WAKE_URL || !process.env.AGENT_WAKE_TOKEN) fail('AGENT_WAKE_URL and AGENT_WAKE_TOKEN must be set');
+  // Never echo these values: errors would land in bot transcripts.
+  const { AGENT_WAKE_URL: url, AGENT_WAKE_TOKEN: token } = process.env;
+  if (!url || !token) fail('AGENT_WAKE_URL and AGENT_WAKE_TOKEN must be set');
+  if (!isHttpUrl(url)) fail('AGENT_WAKE_URL must be an http(s) URL');
+  if (/[\0-\x1f\x7f]/.test(token)) fail('AGENT_WAKE_TOKEN must not contain newlines or control characters');
   if (agent === 'claude') {
     if (!hasFlag(argv, '-p', '--print')) fail('claude must run with -p');
     if (hasFlag(argv, '--bare', '--safe-mode', '--settings')) fail('--bare, --safe-mode and --settings are not supported');
   } else if (agent === 'codex') {
     if (!argv.includes('exec')) fail('codex must run as codex exec');
+    if (overridesReserved(argv)) fail('-c/--config must not set notify or shell_environment_policy');
   } else {
     fail('usage: run --owner <botId> -- <claude -p … | codex exec …>');
   }
@@ -156,9 +187,11 @@ async function run(args) {
 
   // Codex notify is spawned asynchronously and may land after the process exits.
   for (let waited = 0; waited < GRACE_MS && !existsSync(join(dir, 'result.json')); waited += 200) await sleep(200);
+  // A signalled Codex can exit 0 without calling notify, so exit 0 without completion is interrupted.
   const fallback = exit.error ? ['failed', `spawn:${exit.error}`]
     : signaled || exit.signal || exit.code > 128 ? ['interrupted', 'signal']
-      : ['failed', `exit ${exit.code}`];
+      : exit.code === 0 ? ['interrupted', 'exit 0 without completion']
+        : ['failed', `exit ${exit.code}`];
   if (finalize(dir, verdict(dir, fallback))) sendDetached(dir);
   process.exitCode = exit.code ?? 1;
 }
@@ -179,8 +212,9 @@ function hook(dir) {
     // Other Stop hooks may keep Claude working, so only SessionEnd finalizes.
     record(dir, { ev: 'session_end', reason: data.reason ?? null, session_id });
   }
+  // A recorded signal is left to run, which finalizes after the CLI exits.
   const result = verdict(dir, null);
-  if (result && finalize(dir, result)) sendDetached(dir);
+  if (result && result[0] !== 'interrupted' && finalize(dir, result)) sendDetached(dir);
 }
 
 async function send(dir) {
@@ -198,7 +232,8 @@ async function send(dir) {
       record(dir, { ev: 'notify', attempt: attempt + 1, status: response.status });
       if (response.ok) return;
     } catch (error) {
-      record(dir, { ev: 'notify', attempt: attempt + 1, error: error.message });
+      // error.message can echo the token or URL; keep only a fixed category.
+      record(dir, { ev: 'notify', attempt: attempt + 1, error: error.cause?.code ?? error.name });
     }
   }
 }
