@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -209,6 +209,10 @@ test('orphan: run and CLI killed together are marked interrupted by pending, wit
     },
   });
   assert.equal(existsSync(join(dir, 'result.json')), false);
+  // Events in the last 10 s leave room for a late callback, so it stays running for now.
+  assert.equal(pending('bot')[0].state, 'running');
+  const old = new Date(Date.now() - 11_000);
+  utimesSync(join(dir, 'events.jsonl'), old, old);
   const [task] = pending('bot');
   assert.deepEqual([task.state, task.reason], ['interrupted', 'orphan']);
   assert.deepEqual(await notified(task.id), []);

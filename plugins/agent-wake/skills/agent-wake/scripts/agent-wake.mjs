@@ -3,7 +3,7 @@
 // when the task ends. Linux only, Node 20+, no dependencies. State lives in ~/.agent-wake/<owner>/<id>/.
 import { spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 const SELF = fileURLToPath(import.meta.url);
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const GRACE_MS = 5000;
+const QUIET_MS = 10_000;
 const RETRY_MS = [0, 10_000, 60_000];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -249,7 +250,10 @@ function pending(args) {
     if (!existsSync(join(dir, 'result.json'))) {
       const cli = events(dir).find((e) => e.ev === 'start');
       // Orphan: neither run nor the CLI survives. The bot is already awake, so no webhook.
-      if (!alive(task.run, task.boot_id) && !alive(cli, task.boot_id)) finalize(dir, ['interrupted', 'orphan']);
+      // Recent events mean a callback (e.g. a late Codex notify) may still finalize it; judge next time.
+      const log = join(dir, 'events.jsonl');
+      const quiet = !existsSync(log) || Date.now() - statSync(log).mtimeMs >= QUIET_MS;
+      if (quiet && !alive(task.run, task.boot_id) && !alive(cli, task.boot_id)) finalize(dir, ['interrupted', 'orphan']);
     }
     const result = readJson(join(dir, 'result.json'));
     console.log(JSON.stringify({

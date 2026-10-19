@@ -52,7 +52,8 @@ because they would replace the callback or expose the wake secrets.
 
 1. Run `node ~/tools/agent-wake/scripts/agent-wake.mjs pending --owner <owner>`. Each line is JSON with
    `id`, `state` (`running` | `done` | `failed` | `interrupted`), `reason`, `session_id`, `cwd`, `dir`.
-   Pending also marks tasks whose processes vanished (e.g. host restart) as `interrupted`/`orphan`.
+   Pending also marks tasks whose processes vanished (e.g. host restart) and whose events have been
+   quiet for 10 s as `interrupted`/`orphan`.
    Handle every finished task listed, not only the one that woke you. A webhook whose `owner` is not
    yours is not your task: do not handle it; tell the user or pass it to that owner.
 2. For each finished task, verify from disk: `result.json`, `out.log` (final reply), `err.log`,
@@ -63,6 +64,13 @@ because they would replace the callback or expose the wake secrets.
    resume command, and start it (through `run` again) only if they ask:
    - Claude: `… run --owner <owner> -- claude -p --resume <session_id>`
    - Codex: `… run --owner <owner> -- codex exec resume <session_id>`
+
+## Known limits
+
+- If `run` is already dead and Claude is killed after `Stop` but before `SessionEnd` (or after a caller's
+  own Stop hook made it continue), the task is recorded as `done`. `done` only means the agent stopped;
+  always verify from disk.
+- A host restart, or `run` and the CLI killed together, sends no webhook; the fallback routine picks it up.
 
 ## Bot routines
 
