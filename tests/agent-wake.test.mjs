@@ -17,9 +17,9 @@ async function started(dir) {
   return read(dir).split('\n').filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.ev === 'start');
 }
 
-// Fake CLIs: `claude` fires the hooks from --settings, `codex` calls notify with the payload as last argv.
+// Fake CLIs fire the injected hooks with a JSON payload on stdin: `claude` from --settings, `codex` from -c.
 const fake = `#!/usr/bin/env node
-const { spawn, spawnSync } = require('node:child_process');
+const { spawnSync } = require('node:child_process');
 const args = process.argv.slice(2);
 const mode = process.env.FAKE;
 const hang = () => setInterval(() => {}, 1000);
@@ -37,17 +37,22 @@ if (require('node:path').basename(process.argv[1]) === 'claude') {
     fire('StopFailure', { error: 'rate_limit' }); fire('SessionEnd', { reason: 'other' }); process.exit(1);
   } else {
     fire('Stop'); fire('SessionEnd', { reason: 'other' });
+    if (mode === 'stop_fail') process.exit(1);
   }
 } else {
-  // Real codex ignores -c overrides placed before exec.
-  if (args.indexOf('-c') < args.indexOf('exec') ||
+  // Real codex ignores -c overrides placed before exec and skips -c hooks without the trust bypass.
+  if (args.indexOf('-c') < args.indexOf('exec') || !args.includes('--dangerously-bypass-hook-trust') ||
     !args.includes('shell_environment_policy.exclude=["AGENT_WAKE_URL","AGENT_WAKE_TOKEN"]')) process.exit(3);
-  const notify = JSON.parse(args[args.indexOf('-c') + 1].slice('notify='.length));
+  const command = (name) => JSON.parse(args.find((a) => a.startsWith('hooks.' + name + '=')).match(/command=("(?:[^"\\\\]|\\\\.)*")/)[1]);
+  const fire = (name, extra) => spawnSync('sh', ['-c', command(name)],
+    { input: JSON.stringify({ session_id: 'thread-1', hook_event_name: name, ...extra }) });
   if (mode === 'fail') process.exit(1);
-  // Real codex killed directly exits 0 without calling notify.
   if (mode === 'hang') { process.on('SIGTERM', () => process.exit(0)); process.stdout.write(' ready'); return hang(); }
-  const payload = JSON.stringify({ type: 'agent-turn-complete', 'thread-id': 'thread-1' });
-  spawn('sh', ['-c', 'sleep 1; exec "$@"', 'sh', ...notify, payload], { detached: true, stdio: 'ignore' }).unref();
+  const end = () => { fire('Stop'); fire('SessionEnd', { reason: 'other' }); };
+  if (mode !== 'after_run') return end();
+  const ppid = process.ppid;
+  process.stdout.write(' ready');
+  const poll = setInterval(() => { if (process.ppid !== ppid) { clearInterval(poll); end(); } }, 50);
 }
 `;
 
@@ -127,7 +132,13 @@ test('API error and non-zero exit without a completion event are failed', async 
   assert.deepEqual((await notified(codex.id)).map((h) => h.state), ['failed']);
 });
 
-test('codex notify arriving after the process exits still counts as done', async (t) => {
+test('non-zero exit after a completion event is failed', async (t) => {
+  const { cli, run } = await setup(t);
+  const task = await run('bot', [cli('claude'), '-p'], { fake: 'stop_fail' });
+  assert.deepEqual([task.result.state, task.result.reason], ['failed', 'exit 1']);
+});
+
+test('codex hooks from stdin: done with the hook session id', async (t) => {
   const { cli, run, notified } = await setup(t);
   const task = await run('bot', [cli('codex'), 'exec', '--skip-git-repo-check']);
   assert.deepEqual([task.result.state, task.result.session_id], ['done', 'thread-1']);
@@ -157,7 +168,7 @@ test('a signal after an earlier Stop still ends as interrupted', async (t) => {
   assert.deepEqual((await notified(task.id)).map((h) => h.state), ['interrupted']);
 });
 
-test('codex killed directly exits 0 without notify and ends as interrupted', async (t) => {
+test('codex killed directly exits 0 without Stop and ends as interrupted', async (t) => {
   const { cli, run } = await setup(t);
   const task = await run('bot', [cli('codex'), 'exec'], {
     fake: 'hang',
@@ -168,7 +179,6 @@ test('codex killed directly exits 0 without notify and ends as interrupted', asy
     },
   });
   assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'no completion']);
-  assert.equal(task.result.hint, '可能是 Codex 版本删了 notify');
 });
 
 test('claude killed directly after Stop exits 143 and ends as interrupted', async (t) => {
@@ -185,15 +195,16 @@ test('claude killed directly after Stop exits 143 and ends as interrupted', asyn
   assert.deepEqual((await notified(task.id)).map((h) => h.state), ['interrupted']);
 });
 
-test('run killed before codex notify: the hook finalizes and wakes once', async (t) => {
+test('run killed before the codex hooks: SessionEnd finalizes and wakes once', async (t) => {
   const { cli, run, notified } = await setup(t);
   const task = await run('bot', [cli('codex'), 'exec'], {
+    fake: 'after_run',
     onTask: async (child, { dir }) => {
-      while (!read(dir).includes('"exit"')) await sleep(50);
+      await started(dir);
+      while (!readFileSync(join(dir, 'out.log'), 'utf8').includes('ready')) await sleep(50);
       child.kill('SIGKILL');
     },
   });
-  assert.equal(task.result, null);
   assert.deepEqual((await notified(task.id)).map((h) => h.state), ['done']);
   assert.equal(JSON.parse(readFileSync(join(task.dir, 'result.json'), 'utf8')).state, 'done');
 });
@@ -229,6 +240,9 @@ test('run refuses to start without wake credentials or with hook-skipping flags'
   assert.doesNotMatch(bad.err, /中文/);
   for (const flag of ['--bare', '--settings']) {
     assert.equal((await run('bot', [cli('claude'), '-p', flag, '{}'])).code, 2);
+  }
+  for (const config of ['hooks.Stop=[]', 'shell_environment_policy.inherit="all"']) {
+    assert.equal((await run('bot', [cli('codex'), 'exec', '-c', config])).code, 2);
   }
   assert.equal(existsSync(join(home, '.agent-wake/bot')), false);
 });

@@ -10,7 +10,6 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-const GRACE_MS = 5000;
 const QUIET_MS = 10_000;
 const RETRY_MS = [0, 10_000, 60_000];
 
@@ -52,25 +51,26 @@ function alive(proc, boot) {
 }
 
 // A signal (recorded, exit.signal or exit code >128) beats any earlier completion; otherwise the last
-// completion event decides. Without one, a non-zero exit is failed and anything else interrupted: a
-// signalled Codex can exit 0 without calling notify.
+// completion event decides, except that a non-zero exit overrides completed (another Stop hook can
+// make the CLI continue). Without one, a non-zero exit is failed and anything else interrupted: a
+// signalled Codex can exit 0 without firing Stop.
 function verdict(dir) {
   const all = events(dir);
   const exit = all.findLast((e) => e.ev === 'exit');
   if (exit?.error) return ['failed', `spawn:${exit.error}`];
   if (all.some((e) => e.ev === 'signal') || exit?.signal || exit?.code > 128) return ['interrupted', 'signal'];
   const last = all.findLast((e) => e.ev === 'completed' || e.ev === 'api_error');
-  if (last?.ev === 'completed') return ['done', 'completed'];
+  if (last?.ev === 'completed') return exit?.code ? ['failed', `exit ${exit.code}`] : ['done', 'completed'];
   if (last) return ['failed', `api_error:${last.error}`];
   return exit?.code ? ['failed', `exit ${exit.code}`] : ['interrupted', 'no completion'];
 }
 
 // Only the process that creates result.json (O_EXCL) wins; returns whether this call won.
-function finalize(dir, [state, reason], hint) {
+function finalize(dir, [state, reason]) {
   const task = readJson(join(dir, 'task.json')) ?? {};
   const session_id = events(dir).findLast((e) => e.session_id)?.session_id ?? task.session_id ?? null;
   try {
-    writeFileSync(join(dir, 'result.json'), `${JSON.stringify({ id: task.id, state, reason, session_id, hint, at: new Date().toISOString() })}\n`, { flag: 'wx' });
+    writeFileSync(join(dir, 'result.json'), `${JSON.stringify({ id: task.id, state, reason, session_id, at: new Date().toISOString() })}\n`, { flag: 'wx' });
     return true;
   } catch (error) {
     if (error.code === 'EEXIST') return false;
@@ -95,14 +95,14 @@ function option(args, name) {
 const hasFlag = (argv, ...flags) => argv.some((a) => flags.some((f) => a === f || a.startsWith(`${f}=`)));
 
 // Codex applies -c/--config overrides in order, so a later caller value would replace the injected
-// notify or the secret exclusion.
+// hooks or the secret exclusion.
 function overridesReserved(argv) {
   return argv.some((a, i) => {
     const value = a === '-c' || a === '--config' ? argv[i + 1]
       : a.startsWith('--config=') ? a.slice('--config='.length)
         : a.startsWith('-c') && a.length > 2 ? a.slice(2).replace(/^=/, '') : null;
     const key = value?.split('=')[0].replace(/["'\s]/g, '').split('.')[0];
-    return key === 'notify' || key === 'shell_environment_policy';
+    return key === 'hooks' || key === 'shell_environment_policy';
   });
 }
 
@@ -117,16 +117,18 @@ function canRequest() {
 }
 
 function inject(agent, argv, dir, task) {
-  const hook = [process.execPath, SELF, 'hook', dir];
+  const hook = [process.execPath, SELF, 'hook', dir].map(quote).join(' ');
   if (agent === 'codex') {
     // Overrides placed before `exec` are silently ignored (codex-cli 0.162.1), so they go right after it.
+    // Hooks passed with -c are untrusted and silently skipped unless hook trust is bypassed.
     const at = argv.indexOf('exec') + 1;
-    return [...argv.slice(0, at),
-      '-c', `notify=${JSON.stringify(hook)}`,
+    const codexHook = (name, timeout) => `hooks.${name}=[{hooks=[{type="command",command=${JSON.stringify(hook)},timeout=${timeout}}]}]`;
+    return [...argv.slice(0, at), '--dangerously-bypass-hook-trust',
+      '-c', codexHook('Stop', 10), '-c', codexHook('SessionEnd', 3),
       '-c', 'shell_environment_policy.exclude=["AGENT_WAKE_URL","AGENT_WAKE_TOKEN"]',
       ...argv.slice(at)];
   }
-  const command = { type: 'command', command: hook.map(quote).join(' ') };
+  const command = { type: 'command', command: hook };
   const hooks = Object.fromEntries(['Stop', 'StopFailure', 'SessionEnd'].map((name) => [name, [{ hooks: [command] }]]));
   const extra = ['--settings', JSON.stringify({ hooks })];
   if (task.session_id) extra.push('--session-id', task.session_id);
@@ -149,7 +151,7 @@ async function run(args) {
     if (hasFlag(argv, '--bare', '--safe-mode', '--settings')) fail('--bare, --safe-mode and --settings are not supported');
   } else if (agent === 'codex') {
     if (!argv.includes('exec')) fail('codex must run as codex exec');
-    if (overridesReserved(argv)) fail('-c/--config must not set notify or shell_environment_policy');
+    if (overridesReserved(argv)) fail('-c/--config must not set hooks or shell_environment_policy');
   } else {
     fail('usage: run --owner <botId> -- <claude -p … | codex exec …>');
   }
@@ -193,31 +195,18 @@ async function run(args) {
   });
   record(dir, { ev: 'exit', ...exit });
 
-  // Codex notify is spawned asynchronously and may land after the process exits.
-  const completed = () => events(dir).some((e) => e.ev === 'completed');
-  for (let waited = 0; agent === 'codex' && waited < GRACE_MS && !completed(); waited += 200) await sleep(200);
-  // Upstream marks notify as legacy and plans to remove it (codex-rs/hooks/src/legacy_notify.rs).
-  const result = verdict(dir);
-  const hint = agent === 'codex' && exit.code === 0 && result[1] === 'no completion' ? '可能是 Codex 版本删了 notify' : undefined;
-  if (finalize(dir, result, hint)) sendDetached(dir);
+  if (finalize(dir, verdict(dir))) sendDetached(dir);
   process.exitCode = exit.code ?? 1;
 }
 
 function hook(dir) {
-  const payload = process.argv.at(-1);
-  if (payload !== dir) {
-    // Codex notify: the JSON payload is the last argv entry.
-    const data = JSON.parse(payload);
-    if (data.type !== 'agent-turn-complete') return;
-    record(dir, { ev: 'completed', session_id: data['thread-id'] ?? null });
-  } else {
-    const data = JSON.parse(readFileSync(0, 'utf8'));
-    const session_id = data.session_id ?? null;
-    if (data.hook_event_name === 'Stop') return record(dir, { ev: 'completed', session_id });
-    if (data.hook_event_name === 'StopFailure') return record(dir, { ev: 'api_error', error: data.error ?? 'unknown', session_id });
-    if (data.hook_event_name !== 'SessionEnd') return;
-    record(dir, { ev: 'session_end', reason: data.reason ?? null, session_id });
-  }
+  // Claude and Codex both send the payload as JSON on stdin; Codex has no StopFailure.
+  const data = JSON.parse(readFileSync(0, 'utf8'));
+  const session_id = data.session_id ?? null;
+  if (data.hook_event_name === 'Stop') return record(dir, { ev: 'completed', session_id });
+  if (data.hook_event_name === 'StopFailure') return record(dir, { ev: 'api_error', error: data.error ?? 'unknown', session_id });
+  if (data.hook_event_name !== 'SessionEnd') return;
+  record(dir, { ev: 'session_end', reason: data.reason ?? null, session_id });
   // While run is alive it finalizes after the CLI exits; the hook only steps in once run is gone.
   const task = readJson(join(dir, 'task.json'));
   if (!alive(task.run, task.boot_id) && finalize(dir, verdict(dir))) sendDetached(dir);
@@ -253,7 +242,7 @@ function pending(args) {
     if (!existsSync(join(dir, 'result.json'))) {
       const cli = events(dir).find((e) => e.ev === 'start');
       // Orphan: neither run nor the CLI survives. The bot is already awake, so no webhook.
-      // Recent events mean a callback (e.g. a late Codex notify) may still finalize it; judge next time.
+      // Recent events mean a hook that outlived its CLI may still finalize it; judge next time.
       const log = join(dir, 'events.jsonl');
       const quiet = !existsSync(log) || Date.now() - statSync(log).mtimeMs >= QUIET_MS;
       if (quiet && !alive(task.run, task.boot_id) && !alive(cli, task.boot_id)) finalize(dir, ['interrupted', 'orphan']);

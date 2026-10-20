@@ -7,11 +7,14 @@ description: "Start long claude -p / codex exec tasks in the background and get 
 
 `scripts/agent-wake.mjs` wraps one `claude -p` or `codex exec` run. When the task ends, the wrapper
 posts `{"id","owner","state"}` to your webhook; if the wrapper was killed, the CLI's own callback
-(Claude `SessionEnd` hook, Codex `notify`) posts instead. The webhook only speeds things up: the task directory
+(the `SessionEnd` lifecycle hook of either CLI) posts instead. The webhook only speeds things up: the task directory
 `~/.agent-wake/<owner>/<id>/` is the source of truth, and `pending` finds anything a lost webhook missed.
 
-Linux and Node.js 20+ only. Nothing is written to Claude or Codex configuration; the callbacks are
-injected per run.
+Linux and Node.js 20+ only. Nothing is written to Claude or Codex configuration; the `Stop` and
+`SessionEnd` hooks are injected per run (Claude via `--settings`, Codex via `-c hooks.*`). Every Codex
+call also gets `--dangerously-bypass-hook-trust`, because Codex silently skips unreviewed `-c` hooks;
+it makes every enabled hook in that call run without review, including hooks from the user's global
+and project configuration.
 
 ## Install
 
@@ -45,8 +48,8 @@ cd <repo> && printf '%s' "<task text>" | timeout 3h node ~/tools/agent-wake/scri
 
 The first output line is `TASK <id> <dir>`. Note the id and tell the user the task started; you may end
 the turn. `--bare`, `--safe-mode` and a caller-supplied `--settings` are refused because they would drop
-the hooks; for Codex, `-c`/`--config` values that set `notify` or `shell_environment_policy` are refused
-because they would replace the callback or expose the wake secrets.
+the hooks; for Codex, `-c`/`--config` values that set `hooks` or `shell_environment_policy` are refused
+because they would replace the hooks or expose the wake secrets.
 
 ## When you wake up
 
@@ -67,13 +70,12 @@ because they would replace the callback or expose the wake secrets.
 
 ## Known limits
 
-- If `run` is already dead and Claude is killed after `Stop` but before `SessionEnd` (or after a caller's
+- If `run` is already dead and the CLI is killed after `Stop` but before `SessionEnd` (or after a caller's
   own Stop hook made it continue), the task is recorded as `done`. `done` only means the agent stopped;
   always verify from disk.
 - A host restart, or `run` and the CLI killed together, sends no webhook; the fallback routine picks it up.
-- Tested with codex-cli 0.162.1. The Codex side relies on `notify`, which upstream marks as legacy and
-  plans to remove (`codex-rs/hooks/src/legacy_notify.rs`); once removed, a normal completion is recorded
-  as `interrupted`. A Codex exit 0 without `notify` adds a `hint` to `result.json`.
+- An exit 0 without a `Stop` hook is recorded as `interrupted`.
+- The Codex side was tested with codex-cli 0.162.1, which caps `SessionEnd` hooks at 3 s.
 
 ## Bot routines
 
