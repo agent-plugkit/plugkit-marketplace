@@ -123,7 +123,9 @@ function inject(agent, argv, dir, task) {
     // Hooks passed with -c are untrusted and silently skipped unless hook trust is bypassed.
     const at = argv.indexOf('exec') + 1;
     const codexHook = (name, timeout) => `hooks.${name}=[{hooks=[{type="command",command=${JSON.stringify(hook)},timeout=${timeout}}]}]`;
-    return [...argv.slice(0, at), '--dangerously-bypass-hook-trust',
+    const end = argv.indexOf('--', at);
+    const trust = argv.slice(at, end < 0 ? argv.length : end).includes('--dangerously-bypass-hook-trust') ? [] : ['--dangerously-bypass-hook-trust'];
+    return [...argv.slice(0, at), ...trust,
       '-c', codexHook('Stop', 10), '-c', codexHook('SessionEnd', 3),
       '-c', 'shell_environment_policy.exclude=["AGENT_WAKE_URL","AGENT_WAKE_TOKEN"]',
       ...argv.slice(at)];

@@ -41,7 +41,7 @@ if (require('node:path').basename(process.argv[1]) === 'claude') {
   }
 } else {
   // Real codex ignores -c overrides placed before exec and skips -c hooks without the trust bypass.
-  if (args.indexOf('-c') < args.indexOf('exec') || !args.includes('--dangerously-bypass-hook-trust') ||
+  if (args.indexOf('-c') < args.indexOf('exec') || args.filter((a) => a === '--dangerously-bypass-hook-trust').length !== 1 ||
     !args.includes('shell_environment_policy.exclude=["AGENT_WAKE_URL","AGENT_WAKE_TOKEN"]')) process.exit(3);
   const command = (name) => JSON.parse(args.find((a) => a.startsWith('hooks.' + name + '=')).match(/command=("(?:[^"\\\\]|\\\\.)*")/)[1]);
   const fire = (name, extra) => spawnSync('sh', ['-c', command(name)],
@@ -143,6 +143,12 @@ test('codex hooks from stdin: done with the hook session id', async (t) => {
   const task = await run('bot', [cli('codex'), 'exec', '--skip-git-repo-check']);
   assert.deepEqual([task.result.state, task.result.session_id], ['done', 'thread-1']);
   assert.deepEqual((await notified(task.id)).map((h) => h.state), ['done']);
+});
+
+test('codex hook trust bypass passed by the caller is not repeated', async (t) => {
+  const { cli, run } = await setup(t);
+  const task = await run('bot', [cli('codex'), 'exec', '--dangerously-bypass-hook-trust']);
+  assert.deepEqual([task.code, task.result.state], [0, 'done']);
 });
 
 test('SIGTERM to run is forwarded and ends as interrupted', async (t) => {
