@@ -22,7 +22,7 @@ Fetch the tagged source into `~/tools/agent-wake` (do not use `npx agent-plugkit
 it writes the CLI's user-level plugin config, and the wake mechanism does not need it):
 
 ```bash
-git clone --depth 1 -b agent-wake-v0.1.0 https://github.com/agent-plugkit/plugkit-marketplace /tmp/agent-wake-src
+git clone --depth 1 -b agent-wake-v0.1.1 https://github.com/agent-plugkit/plugkit-marketplace /tmp/agent-wake-src
 mkdir -p ~/tools && cp -a /tmp/agent-wake-src/plugins/agent-wake/skills/agent-wake ~/tools/agent-wake
 rm -rf /tmp/agent-wake-src
 ```
