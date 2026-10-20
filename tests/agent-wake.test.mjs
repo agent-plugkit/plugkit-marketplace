@@ -69,7 +69,9 @@ async function setup(t) {
     req.on('end', () => { hits.push({ auth: req.headers.authorization, ...JSON.parse(body) }); res.end('ok'); });
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => { server.close(); rmSync(home, { recursive: true, force: true }); });
+  const groups = [];
+  const killGroup = (pid) => { try { process.kill(-pid, 'SIGKILL'); } catch {} };
+  t.after(() => { groups.forEach(killGroup); server.close(); rmSync(home, { recursive: true, force: true }); });
   const env = {
     ...process.env, HOME: home,
     AGENT_WAKE_URL: `http://127.0.0.1:${server.address().port}/wake`, AGENT_WAKE_TOKEN: 'secret',
@@ -81,6 +83,7 @@ async function setup(t) {
   function run(owner, cmd, { fake: mode = 'ok', extraEnv = {}, onTask } = {}) {
     const child = spawn(process.execPath, [script, 'run', '--owner', owner, '--', ...cmd],
       { env: { ...env, FAKE: mode, ...extraEnv }, detached: true });
+    groups.push(child.pid);
     child.stdin.end('do the work');
     let out = '';
     let err = '';
@@ -88,7 +91,10 @@ async function setup(t) {
     child.stdout.on('data', (chunk) => {
       out += chunk;
       const [, id, dir] = out.match(/^TASK (\S+) (\S+)\n/) ?? [];
-      if (id && onTask && !child.task) { child.task = { id, dir }; onTask(child, child.task); }
+      if (id && onTask && !child.task) {
+        child.task = { id, dir };
+        onTask(child, child.task).catch((error) => { killGroup(child.pid); throw error; });
+      }
     });
     return new Promise((resolve) => child.on('exit', (code) => {
       const [, id, dir] = out.match(/^TASK (\S+) (\S+)\n/) ?? [];
