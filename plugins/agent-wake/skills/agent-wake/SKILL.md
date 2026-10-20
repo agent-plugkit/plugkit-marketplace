@@ -71,6 +71,9 @@ because they would replace the callback or expose the wake secrets.
   own Stop hook made it continue), the task is recorded as `done`. `done` only means the agent stopped;
   always verify from disk.
 - A host restart, or `run` and the CLI killed together, sends no webhook; the fallback routine picks it up.
+- Tested with codex-cli 0.162.1. The Codex side relies on `notify`, which upstream marks as legacy and
+  plans to remove (`codex-rs/hooks/src/legacy_notify.rs`); once removed, a normal completion is recorded
+  as `interrupted`. A Codex exit 0 without `notify` adds a `hint` to `result.json`.
 
 ## Bot routines
 

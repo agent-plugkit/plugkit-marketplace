@@ -168,6 +168,7 @@ test('codex killed directly exits 0 without notify and ends as interrupted', asy
     },
   });
   assert.deepEqual([task.result.state, task.result.reason], ['interrupted', 'no completion']);
+  assert.equal(task.result.hint, '可能是 Codex 版本删了 notify');
 });
 
 test('claude killed directly after Stop exits 143 and ends as interrupted', async (t) => {

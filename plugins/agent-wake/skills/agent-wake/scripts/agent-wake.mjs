@@ -66,11 +66,11 @@ function verdict(dir) {
 }
 
 // Only the process that creates result.json (O_EXCL) wins; returns whether this call won.
-function finalize(dir, [state, reason]) {
+function finalize(dir, [state, reason], hint) {
   const task = readJson(join(dir, 'task.json')) ?? {};
   const session_id = events(dir).findLast((e) => e.session_id)?.session_id ?? task.session_id ?? null;
   try {
-    writeFileSync(join(dir, 'result.json'), `${JSON.stringify({ id: task.id, state, reason, session_id, at: new Date().toISOString() })}\n`, { flag: 'wx' });
+    writeFileSync(join(dir, 'result.json'), `${JSON.stringify({ id: task.id, state, reason, session_id, hint, at: new Date().toISOString() })}\n`, { flag: 'wx' });
     return true;
   } catch (error) {
     if (error.code === 'EEXIST') return false;
@@ -196,7 +196,10 @@ async function run(args) {
   // Codex notify is spawned asynchronously and may land after the process exits.
   const completed = () => events(dir).some((e) => e.ev === 'completed');
   for (let waited = 0; agent === 'codex' && waited < GRACE_MS && !completed(); waited += 200) await sleep(200);
-  if (finalize(dir, verdict(dir))) sendDetached(dir);
+  // Upstream marks notify as legacy and plans to remove it (codex-rs/hooks/src/legacy_notify.rs).
+  const result = verdict(dir);
+  const hint = agent === 'codex' && exit.code === 0 && result[1] === 'no completion' ? '可能是 Codex 版本删了 notify' : undefined;
+  if (finalize(dir, result, hint)) sendDetached(dir);
   process.exitCode = exit.code ?? 1;
 }
 
