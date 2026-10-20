@@ -1,0 +1,16 @@
+name: agent-wake
+version: "0.1.0"
+description: "Claude Code / Codex 长任务结束后经 webhook 叫醒调度 Bot；状态落盘可补查。"
+author:
+  name: "Agent Plugkit"
+category: tooling
+tags:
+  - claude-code
+  - codex
+  - webhook
+
+components:
+  skills:
+    - name: agent-wake
+      path: skills/agent-wake
+      description: "后台启动 claude -p / codex exec 长任务，结束时叫醒 Bot 并验收。"
