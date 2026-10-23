@@ -26,6 +26,8 @@ tags:
   - dashboard
   - finance
   - saas
+  - supply-chain
+  - procurement
   imagery:
   - svg-led
   - data-viz

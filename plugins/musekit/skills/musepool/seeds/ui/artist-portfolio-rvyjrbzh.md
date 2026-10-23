@@ -55,6 +55,7 @@ tags:
   - dual-font
   - oversized-type
   - type-driven
+  - fluid-type
 dimensions_with_reference:
 - motion
 - typography

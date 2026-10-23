@@ -36,6 +36,7 @@ tags:
   - centered
   - scrollytelling
   - single-column
+  - masonry
   material:
   - no-material
   motion:

@@ -25,6 +25,7 @@ tags:
   - studio
   - portfolio
   - art
+  - print
   imagery:
   - photo-led
   - custom-photo

@@ -31,6 +31,7 @@ tags:
   - masked-img
   - mixed-media
   - photo-led
+  - collage
   layout:
   - two-column
   - asymmetric-grid

@@ -33,6 +33,7 @@ tags:
   - single-column
   - fixed-header
   - full-screen
+  - mobile-first
   material:
   - no-material
   - soft-shadow

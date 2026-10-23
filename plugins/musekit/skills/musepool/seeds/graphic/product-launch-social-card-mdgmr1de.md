@@ -30,6 +30,9 @@ tags:
   - product-showcase
   - product-launch
   - changelog
+  - og-image
+  - link-preview
+  - banner
   imagery:
   - ui-screenshot
   - cropped-img

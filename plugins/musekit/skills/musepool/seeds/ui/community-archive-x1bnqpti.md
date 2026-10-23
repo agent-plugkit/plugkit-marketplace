@@ -25,6 +25,7 @@ tags:
   - community
   - museum
   - art
+  - archive
   imagery:
   - photo-led
   - mixed-media

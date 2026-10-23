@@ -27,6 +27,7 @@ tags:
   - agency
   - event
   - portfolio
+  - community
   imagery:
   - no-imagery
   - type-only

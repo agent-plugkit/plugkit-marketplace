@@ -36,6 +36,7 @@ tags:
   - sticky-sections
   - stacked
   - text-led
+  - comparison-table
   material:
   - no-material
   motion:

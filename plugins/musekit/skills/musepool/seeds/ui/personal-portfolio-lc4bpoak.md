@@ -49,6 +49,7 @@ tags:
   - nextjs
   - tailwind
   - react
+  - swiper
   typography:
   - monospace
   - type-driven

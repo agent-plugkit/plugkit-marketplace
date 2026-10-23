@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "seeds": [
     {
       "id": "vEj9F5om",
@@ -58,7 +58,8 @@
         "tech": [
           "vue",
           "nuxt",
-          "vanilla-js"
+          "vanilla-js",
+          "web-audio"
         ],
         "typography": [
           "serif",
@@ -134,7 +135,8 @@
           "custom-font",
           "dual-font",
           "oversized-type",
-          "type-driven"
+          "type-driven",
+          "fluid-type"
         ]
       }
     },
@@ -203,7 +205,8 @@
           "monospace",
           "custom-font",
           "dual-font",
-          "experimental-type"
+          "experimental-type",
+          "fluid-type"
         ]
       }
     },
@@ -235,7 +238,8 @@
         "domain": [
           "community",
           "museum",
-          "art"
+          "art",
+          "archive"
         ],
         "imagery": [
           "photo-led",
@@ -337,7 +341,8 @@
           "dual-font",
           "condensed",
           "tight-tracking",
-          "display-serif"
+          "display-serif",
+          "fluid-type"
         ]
       }
     },
@@ -369,7 +374,8 @@
         "domain": [
           "studio",
           "portfolio",
-          "art"
+          "art",
+          "print"
         ],
         "imagery": [
           "photo-led",
@@ -439,7 +445,9 @@
           "corporate",
           "product-showcase",
           "sports",
-          "education"
+          "education",
+          "sustainability",
+          "circular-design"
         ],
         "imagery": [
           "photo-led",
@@ -510,7 +518,8 @@
         "domain": [
           "event",
           "art",
-          "community"
+          "community",
+          "book-fair"
         ],
         "imagery": [
           "svg-led",
@@ -618,7 +627,9 @@
           "tight-tracking",
           "all-caps",
           "dual-font",
-          "custom-font"
+          "custom-font",
+          "sans-serif",
+          "monospace"
         ]
       }
     },
@@ -657,7 +668,8 @@
           "custom-photo",
           "masked-img",
           "mixed-media",
-          "photo-led"
+          "photo-led",
+          "collage"
         ],
         "layout": [
           "two-column",
@@ -729,7 +741,8 @@
           "poster",
           "zine",
           "packaging",
-          "social"
+          "social",
+          "cover"
         ],
         "imagery": [
           "photo-led",
@@ -805,7 +818,9 @@
         "domain": [
           "dashboard",
           "finance",
-          "saas"
+          "saas",
+          "supply-chain",
+          "procurement"
         ],
         "imagery": [
           "svg-led",
@@ -880,7 +895,9 @@
         "domain": [
           "health",
           "education",
-          "product-showcase"
+          "product-showcase",
+          "research",
+          "report"
         ],
         "imagery": [
           "3d-render",
@@ -952,7 +969,9 @@
         "domain": [
           "art",
           "education",
-          "portfolio"
+          "portfolio",
+          "exhibition",
+          "photography"
         ],
         "imagery": [
           "photo-led",
@@ -1056,7 +1075,10 @@
         "tech": [
           "vanilla-js",
           "gsap",
-          "shopify"
+          "shopify",
+          "kirby",
+          "swup",
+          "flickity"
         ],
         "typography": [
           "sans-serif",
@@ -1108,7 +1130,8 @@
           "full-bleed",
           "centered",
           "scrollytelling",
-          "single-column"
+          "single-column",
+          "masonry"
         ],
         "material": [
           "no-material"
@@ -1168,7 +1191,8 @@
         "domain": [
           "agency",
           "event",
-          "portfolio"
+          "portfolio",
+          "community"
         ],
         "imagery": [
           "no-imagery",
@@ -1249,7 +1273,9 @@
           "full-bleed",
           "centered",
           "card-grid",
-          "hero-centered"
+          "hero-centered",
+          "asymmetric-grid",
+          "horizontal-scroll"
         ],
         "material": [
           "gradient-bg",
@@ -1337,7 +1363,9 @@
         "tech": [
           "nextjs",
           "react",
-          "vanilla-js"
+          "vanilla-js",
+          "paper.js",
+          "canvas"
         ],
         "typography": [
           "sans-serif",
@@ -1385,7 +1413,8 @@
         "layout": [
           "single-column",
           "fixed-header",
-          "full-screen"
+          "full-screen",
+          "mobile-first"
         ],
         "material": [
           "no-material",
@@ -1462,7 +1491,8 @@
           "carousel",
           "scroll-triggered",
           "custom-cursor",
-          "infinite-loop"
+          "infinite-loop",
+          "smooth-scroll"
         ],
         "style": [
           "editorial",
@@ -1581,7 +1611,9 @@
         ],
         "domain": [
           "education",
-          "blog"
+          "blog",
+          "physics",
+          "aerodynamics"
         ],
         "imagery": [
           "generative",
@@ -1653,7 +1685,9 @@
           "mixed-media",
           "video-bg",
           "custom-photo",
-          "gallery"
+          "gallery",
+          "data-viz",
+          "network-graph"
         ],
         "layout": [
           "split-screen",
@@ -1715,7 +1749,8 @@
           "monochrome-cool",
           "dark-bg",
           "muted-color",
-          "earth-tone"
+          "earth-tone",
+          "green-dominant"
         ],
         "domain": [
           "health",
@@ -1823,7 +1858,8 @@
         "tech": [
           "nextjs",
           "tailwind",
-          "react"
+          "react",
+          "swiper"
         ],
         "typography": [
           "monospace",
@@ -1860,7 +1896,8 @@
         "domain": [
           "saas",
           "product-showcase",
-          "corporate"
+          "corporate",
+          "developer-tools"
         ],
         "imagery": [
           "illustration-led",
@@ -1927,7 +1964,9 @@
         "domain": [
           "product-showcase",
           "community",
-          "saas"
+          "saas",
+          "whiteboard",
+          "onboarding"
         ],
         "imagery": [
           "svg-led",
@@ -2004,7 +2043,8 @@
           "photo-led",
           "custom-photo",
           "gallery",
-          "full-bleed-img"
+          "full-bleed-img",
+          "video-bg"
         ],
         "layout": [
           "full-bleed",
@@ -2074,7 +2114,9 @@
           "cafe",
           "hospitality",
           "local-business",
-          "booking"
+          "booking",
+          "bar",
+          "bakery"
         ],
         "imagery": [
           "photo-led",
@@ -2145,7 +2187,10 @@
           "saas",
           "product-showcase",
           "product-launch",
-          "changelog"
+          "changelog",
+          "og-image",
+          "link-preview",
+          "banner"
         ],
         "imagery": [
           "ui-screenshot",
@@ -2224,7 +2269,8 @@
           "card-grid",
           "sticky-sections",
           "stacked",
-          "text-led"
+          "text-led",
+          "comparison-table"
         ],
         "material": [
           "no-material"

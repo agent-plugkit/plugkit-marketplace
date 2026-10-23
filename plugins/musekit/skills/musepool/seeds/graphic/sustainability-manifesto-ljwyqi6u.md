@@ -27,6 +27,8 @@ tags:
   - product-showcase
   - sports
   - education
+  - sustainability
+  - circular-design
   imagery:
   - photo-led
   - macro

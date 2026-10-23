@@ -56,6 +56,8 @@ tags:
   - all-caps
   - dual-font
   - custom-font
+  - sans-serif
+  - monospace
 dimensions_with_reference: []
 ---
 

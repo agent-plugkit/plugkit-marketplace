@@ -26,6 +26,7 @@ tags:
   - event
   - art
   - community
+  - book-fair
   imagery:
   - svg-led
   - no-imagery

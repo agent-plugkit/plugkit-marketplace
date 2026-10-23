@@ -35,6 +35,8 @@ tags:
   - centered
   - card-grid
   - hero-centered
+  - asymmetric-grid
+  - horizontal-scroll
   material:
   - gradient-bg
   - soft-shadow

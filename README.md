@@ -4,6 +4,8 @@ The official plugin marketplace maintained by the Agent Plugkit organization.
 
 ## Musekit 设计工具箱
 
+当前版本为 Musekit `0.6.4`，内置 [Muspro Seeds `v1.3.1`](https://github.com/agent-plugkit/muspro-seeds/releases/tag/v1.3.1) 快照，由 `seeds.lock` 固定 Release 资产与内容校验值。
+
 Musekit 将设计灵感与场景制作分开：
 
 | Skill | 用途 |
@@ -185,7 +187,7 @@ install.
 ## Releases
 
 After a plugin version change is merged into `main`, tag the merge commit as
-`<plugin>-v<version>` (for example `musekit-v0.6.0`) and create a GitHub Release for that tag.
+`<plugin>-v<version>` (for example `musekit-v0.6.4`) and create a GitHub Release for that tag.
 
 ## License
 

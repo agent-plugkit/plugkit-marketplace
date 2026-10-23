@@ -26,6 +26,8 @@ tags:
   domain:
   - education
   - blog
+  - physics
+  - aerodynamics
   imagery:
   - generative
   - data-viz

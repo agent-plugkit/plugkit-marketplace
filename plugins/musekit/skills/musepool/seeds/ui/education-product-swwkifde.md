@@ -54,6 +54,7 @@ tags:
   - condensed
   - tight-tracking
   - display-serif
+  - fluid-type
 dimensions_with_reference: []
 ---
 

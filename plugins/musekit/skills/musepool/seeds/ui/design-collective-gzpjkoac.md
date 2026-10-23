@@ -32,6 +32,7 @@ tags:
   - custom-photo
   - gallery
   - full-bleed-img
+  - video-bg
   layout:
   - full-bleed
   - sticky-sections

@@ -41,6 +41,7 @@ tags:
   - scroll-triggered
   - custom-cursor
   - infinite-loop
+  - smooth-scroll
   style:
   - editorial
   - minimal
