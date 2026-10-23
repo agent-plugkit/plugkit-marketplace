@@ -51,6 +51,9 @@ tags:
   - vanilla-js
   - gsap
   - shopify
+  - kirby
+  - swup
+  - flickity
   typography:
   - sans-serif
   - oversized-type

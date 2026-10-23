@@ -26,6 +26,8 @@ tags:
   - art
   - education
   - portfolio
+  - exhibition
+  - photography
   imagery:
   - photo-led
   - custom-photo

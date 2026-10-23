@@ -29,6 +29,8 @@ tags:
   - hospitality
   - local-business
   - booking
+  - bar
+  - bakery
   imagery:
   - photo-led
   - custom-photo

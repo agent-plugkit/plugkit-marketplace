@@ -34,6 +34,7 @@ tags:
   - zine
   - packaging
   - social
+  - cover
   imagery:
   - photo-led
   - halftone-img

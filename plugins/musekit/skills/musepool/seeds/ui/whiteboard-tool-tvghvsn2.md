@@ -26,6 +26,8 @@ tags:
   - product-showcase
   - community
   - saas
+  - whiteboard
+  - onboarding
   imagery:
   - svg-led
   - no-imagery

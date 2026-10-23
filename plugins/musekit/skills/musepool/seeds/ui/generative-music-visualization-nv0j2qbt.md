@@ -47,6 +47,8 @@ tags:
   - nextjs
   - react
   - vanilla-js
+  - paper.js
+  - canvas
   typography:
   - sans-serif
   - serif

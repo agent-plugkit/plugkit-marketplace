@@ -47,6 +47,7 @@ tags:
   - vue
   - nuxt
   - vanilla-js
+  - web-audio
   typography:
   - serif
   - display-serif

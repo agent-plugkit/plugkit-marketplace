@@ -31,6 +31,8 @@ tags:
   - video-bg
   - custom-photo
   - gallery
+  - data-viz
+  - network-graph
   layout:
   - split-screen
   - two-column

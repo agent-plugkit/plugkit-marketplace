@@ -22,6 +22,7 @@ tags:
   - dark-bg
   - muted-color
   - earth-tone
+  - green-dominant
   domain:
   - health
   - ecommerce
