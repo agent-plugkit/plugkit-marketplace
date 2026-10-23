@@ -179,6 +179,9 @@ artwork in `references/examples/source/`, run `npm run build:diagram` before the
 development dependencies above are only for this repository; what plugin users need is listed under
 [Runtime requirements](#runtime-requirements).
 
+The Plugkit skills use `npx agent-plugkit` so a local dev dependency works without a global CLI
+install.
+
 ## Releases
 
 After a plugin version change is merged into `main`, tag the merge commit as

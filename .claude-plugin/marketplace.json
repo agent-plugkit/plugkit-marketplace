@@ -43,7 +43,7 @@
       "name": "plugkit",
       "source": "./plugins/plugkit",
       "description": "Official agent-plugkit maintenance plugin",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Agent Plugkit"
       },

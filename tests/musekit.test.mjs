@@ -83,6 +83,7 @@ test('generated client indexes replace old design plugins and keep portable meta
   for (const path of [
     'marketplace.json', '.github/plugin/marketplace.json', '.cursor-plugin/marketplace.json',
     '.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json',
+    '.grok-plugin/marketplace.json',
   ]) {
     const entries = JSON.parse(readFileSync(join(root, path), 'utf8')).plugins;
     assert.deepEqual(entries.map((entry) => entry.name).sort(), ['agent-wake', 'musekit', 'plugkit'], path);
