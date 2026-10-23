@@ -179,6 +179,11 @@ artwork in `references/examples/source/`, run `npm run build:diagram` before the
 development dependencies above are only for this repository; what plugin users need is listed under
 [Runtime requirements](#runtime-requirements).
 
+The Plugkit skills use `npx agent-plugkit` so a local dev dependency works without a global CLI
+install. The upstream `agent-plugkit` repository's `packages/cli/resources/plugkit/skills/setup/SKILL.md`
+also needs this correction; the fix here only updates this marketplace's skill files. Updating the
+CLI does not replace previously scaffolded skills, so review those copies separately.
+
 ## Releases
 
 After a plugin version change is merged into `main`, tag the merge commit as
