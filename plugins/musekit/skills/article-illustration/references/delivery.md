@@ -5,7 +5,7 @@
 ```text
 {文章目录}/article-illustration/
   outline.md
-  seed.md
+  style.md
   {原名}.illustrated.md
   images/NN-{scene}-{slug}.png
   sources/NN-{scene}-{slug}.mmd
@@ -22,7 +22,7 @@
 ```markdown
 # 配图方案
 
-视觉方向：用户参考，或 seed.md
+视觉方向：用户参考，或 style.md
 
 ## 01
 - 种类：题图 | 示意插画 | 关系图 | 数据图

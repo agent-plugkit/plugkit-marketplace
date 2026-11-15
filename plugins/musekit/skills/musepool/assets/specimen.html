@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Musepool specimen</title>
+__FONT_LINKS__
+<style>
+:root {
+__CSS_VARS__
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  width: 1440px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-text);
+  font-size: var(--size-body, 17px);
+  line-height: var(--leading-body, 1.5);
+}
+.page { padding: var(--margin, 64px); }
+.grid { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); }
+.meta { font-family: var(--font-mono, var(--font-text)); font-size: var(--size-meta, 13px); letter-spacing: var(--tracking-meta, 0); color: var(--color-ink-muted, var(--color-ink)); }
+.rule { border-top: var(--rule-width, 1px) solid var(--color-ink); }
+header { padding-bottom: 96px; }
+header h1 { grid-column: 1 / span 9; font-family: var(--font-display); font-weight: var(--weight-display, 600); font-size: var(--size-display, 120px); line-height: var(--leading-display-cjk, 1.05); letter-spacing: 0; }
+header .en { grid-column: 1 / span 9; font-family: var(--font-display); font-size: var(--size-title, 28px); margin-top: 16px; }
+header .side { grid-column: 10 / span 3; align-self: end; }
+section { padding: 24px 0 96px; }
+section > .head { margin-bottom: 32px; }
+section > .head .index { grid-column: 1 / span 1; }
+section > .head h2 { grid-column: 2 / span 11; font-family: var(--font-display); font-weight: var(--weight-strong, 600); font-size: var(--size-title, 28px); line-height: 1.1; }
+.swatches { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); row-gap: 24px; }
+.swatch { grid-column: span 3; }
+.swatch .chip { height: 160px; border: var(--rule-width, 1px) solid var(--color-ink); border-radius: var(--radius, 0); }
+.swatch p { margin-top: 8px; }
+.pairs { margin-top: 32px; grid-column: 1 / -1; }
+.pairs .row { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); padding: 8px 0; border-bottom: var(--rule-width, 1px) solid var(--color-ink); }
+.pairs .row > :first-child { grid-column: span 4; }
+.pairs .row > :nth-child(2) { grid-column: span 4; }
+.pairs .row > :nth-child(3) { grid-column: span 4; }
+.type .row { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); align-items: baseline; padding: 16px 0; border-bottom: var(--rule-width, 1px) solid var(--color-ink); }
+.type .row .meta { grid-column: span 2; }
+.type .row .sample { grid-column: span 10; font-family: var(--font-display); white-space: nowrap; overflow: hidden; }
+.fonts { margin-top: 24px; }
+.columns { position: relative; height: 320px; }
+.columns .col { background: color-mix(in srgb, var(--color-accent) 10%, transparent); border-left: var(--rule-width, 1px) solid var(--color-accent); border-right: var(--rule-width, 1px) solid var(--color-accent); }
+.columns .block { position: absolute; top: 48px; bottom: 48px; padding: 16px; }
+.block.main { background: var(--color-ink); color: var(--color-paper); }
+.block.side { background: var(--color-accent); color: var(--color-on-accent, var(--color-paper)); }
+.space .row { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); align-items: center; padding: 6px 0; }
+.space .row .meta { grid-column: span 2; }
+.space .row .bar { grid-column: span 10; height: 16px; }
+.space .bar span { display: block; height: 100%; background: var(--color-ink); }
+.shape .heavy { border-top: var(--rule-heavy, 4px) solid var(--color-ink); margin-top: 32px; }
+.rules { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); row-gap: 48px; }
+.rules article { grid-column: span 6; border-top: var(--rule-width, 1px) solid var(--color-ink); padding-top: 16px; }
+.rules h3 { font-size: var(--size-title, 28px); font-weight: var(--weight-strong, 600); line-height: 1.2; margin: 8px 0 16px; }
+.rules li { margin: 0 0 8px 1.2em; }
+</style>
+</head>
+<body>
+<div class="page" id="page"></div>
+<script type="application/json" id="spec">__SPEC__</script>
+<script>
+const spec = JSON.parse(document.getElementById('spec').textContent);
+const page = document.getElementById('page');
+const el = (tag, attrs = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === 'class') node.className = value; else if (key === 'style') node.style.cssText = value; else node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  return node;
+};
+const section = (index, title, ...body) => el('section', {},
+  el('div', { class: 'head grid rule', style: 'padding-top:16px' }, el('span', { class: 'meta index' }, index), el('h2', {}, title)),
+  ...body);
+const inline = (text) => {
+  const span = el('span');
+  text.split(/(`[^`]+`|\*\*[^*]+\*\*)/).forEach((part) => {
+    if (part.startsWith('`')) span.append(el('code', { class: 'meta' }, part.slice(1, -1)));
+    else if (part.startsWith('**')) span.append(el('strong', {}, part.slice(2, -2)));
+    else span.append(part);
+  });
+  return span;
+};
+
+page.append(el('header', { class: 'grid' },
+  el('h1', {}, spec.name),
+  el('p', { class: 'en' }, spec.name_en),
+  el('div', { class: 'side meta' },
+    el('p', { class: 'rule', style: 'padding-top:8px' }, `template / ${spec.id}`),
+    el('p', {}, `variant / ${spec.variant || 'none'}`),
+    el('p', {}, `status / ${spec.status}`))));
+
+page.append(section('01', '色彩',
+  el('div', { class: 'swatches' },
+    spec.colors.map((c) => el('div', { class: 'swatch' },
+      el('div', { class: 'chip', style: `background:${c.value}` }),
+      el('p', { class: 'meta' }, `${c.name}  ${c.value}`),
+      el('p', {}, c.role))),
+    el('div', { class: 'pairs' }, spec.pairs.map((p) => el('div', { class: 'row' },
+      el('span', { style: `background:var(--color-${p.bg});color:var(--color-${p.fg});padding:4px 8px;font-size:${p.level === 'large' ? '24px' : 'var(--size-body)'}` }, `${p.fg} 在 ${p.bg} 上`),
+      el('span', { class: 'meta' }, `${p.ratio}:1  ${p.level}`),
+      el('span', { class: 'meta' }, p.pass ? '通过 WCAG AA' : '未通过')))))));
+
+page.append(section('02', '字体',
+  el('div', { class: 'type' }, spec.type.map((t) => el('div', { class: 'row' },
+    el('span', { class: 'meta' }, `${t.name}  ${t.value}`),
+    el('span', { class: 'sample', style: `font-size:${t.value};line-height:${t.name === 'size-display' ? 'var(--leading-display-cjk,1.05)' : '1.25'};${t.name === 'size-display' || t.name === 'size-headline' ? 'font-weight:var(--weight-display);' : ''}` }, '城市设计周 Design Week 2027')))),
+  el('div', { class: 'fonts meta' }, spec.fonts.map((f) => el('p', {}, `${f.family} · ${f.license}`)))));
+
+const columns = el('div', { class: 'grid columns' }, Array.from({ length: spec.columns }, () => el('div', { class: 'col' })));
+const span = (from, count) => `left:calc((100% - (var(--columns) - 1) * var(--gutter)) / var(--columns) * ${from} + var(--gutter) * ${from});width:calc((100% - (var(--columns) - 1) * var(--gutter)) / var(--columns) * ${count} + var(--gutter) * ${count - 1})`;
+columns.append(el('div', { class: 'block main', style: span(0, 8) }, el('p', { class: 'meta', style: 'color:inherit' }, '主体 8 栏')));
+columns.append(el('div', { class: 'block side', style: span(9, 3) }, el('p', { class: 'meta', style: 'color:inherit' }, '辅助 3 栏')));
+page.append(section('03', `网格 · ${spec.columns} 栏`, columns));
+
+page.append(section('04', '间距', el('div', { class: 'space' }, spec.space.map((s) => el('div', { class: 'row' },
+  el('span', { class: 'meta' }, `${s}px`), el('div', { class: 'bar' }, el('span', { style: `width:${s}px` })))))));
+
+page.append(section('05', '形态', el('div', { class: 'shape' },
+  el('p', { class: 'meta rule', style: 'padding-top:8px' }, 'rule-width'),
+  el('div', { class: 'heavy' }), el('p', { class: 'meta', style: 'margin-top:8px' }, 'rule-heavy'))));
+
+if (spec.rules.length) {
+  page.append(section('06', '规则', el('div', { class: 'rules' }, spec.rules.map((r) => el('article', {},
+    el('p', { class: 'meta' }, r.category), el('h3', {}, r.name),
+    el('ul', {}, r.points.split('\n').filter((l) => l.startsWith('- ')).map((l) => el('li', {}, inline(l.slice(2))))))))));
+}
+</script>
+</body>
+</html>

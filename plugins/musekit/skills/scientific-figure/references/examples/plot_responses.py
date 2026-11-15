@@ -71,7 +71,7 @@ def build_figure(data_path):
                          strokeColor=colors.HexColor("#e5e8ed"), strokeWidth=0.45))
     drawing.add(chart)
 
-    # 统计表达独立于 seed：中心横杠为均值，须线为均值 ± 样本 SD。
+    # 统计表达独立于风格：中心横杠为均值，须线为均值 ± 样本 SD。
     for position, (key, color) in enumerate(zip(groups, (BLUE, WARM)), start=1):
         mean, sd = summary[key]
         x = chart.x + (position - 0.4) / 2.2 * chart.width
