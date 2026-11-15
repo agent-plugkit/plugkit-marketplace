@@ -69,6 +69,8 @@ def _scalar(text: str):
         return float(text)
     if text == "{}":
         return {}
+    if " #" in text:
+        raise MuseError(f"含 # 的值要加引号：{text}")
     return text
 
 
@@ -392,14 +394,16 @@ def cmd_search(args, lib: Library):
     for item in pool:
         if args.scene and args.scene not in item.get("scenes", []):
             continue
-        hay = " ".join([item.get("name", ""), item.get("name_en", ""), item.get("family", ""),
-                        " ".join(map(str, item.get("mood", []) + item.get("affinity", []))),
-                        item["_body"]]).lower()
-        hits = [word for word in words if word in hay]
+        # 名称与气质词是策展人写下的定位，命中权重高于正文里的偶然出现。
+        label = " ".join([item.get("name", ""), item.get("name_en", ""), item.get("family", ""),
+                          " ".join(map(str, item.get("mood", []) + item.get("affinity", [])))]).lower()
+        body = item["_body"].lower()
+        hits = [word for word in words if word in label or word in body]
         if words and not hits:
             continue
+        score = sum(3 if word in label else 1 for word in hits)
         verified = item.get("status") == "verified"
-        results.append((len(hits), verified, item, hits))
+        results.append((score, verified, item, hits))
     results.sort(key=lambda row: (row[0], row[1]), reverse=True)
     if not results:
         print("无命中：换用风格名、气质词或去掉场景限制再试。")
@@ -687,11 +691,14 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
             if not name.startswith("font-") or not isinstance(token, dict):
                 continue
             css = (lib.fonts.get(token.get("value")) or {}).get("css") or ""
-            match = re.search(r"wght@([\d;]+)", css)
-            if not match:
+            loaded = css_weights(css)
+            if not loaded:
                 continue
-            loaded = {int(w) for w in match.group(1).split(";")}
-            needed = {weights.get("weight-text")} if name == "font-mono" else set(weights.values())
+            needed = {
+                "font-display": {weights.get("weight-display")},
+                "font-text": {weights.get("weight-text"), weights.get("weight-strong")},
+                "font-mono": {weights.get("weight-text")},
+            }.get(name, set(weights.values()))
             missing = sorted(w for w in needed if isinstance(w, int) and w not in loaded)
             if missing:
                 errors.append(f"{where}：{name}（{token.get('value')}）的加载地址缺少字重 {', '.join(map(str, missing))}")
@@ -716,6 +723,22 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
                 ratio = contrast(palette[fg], palette[bg])
                 if ratio < LEVELS[level]:
                     errors.append(f"{where}：{variant} 中 {fg}/{bg} 对比 {ratio:.2f} 低于 {level} 要求 {LEVELS[level]}")
+
+
+def css_weights(css: str) -> set[int]:
+    """读取 Google Fonts 地址里的字重，支持 wght@400;700、ital,wght@0,400;1,400 与 100..900 范围。"""
+    match = re.search(r"wght@([\d;,.]+)", css)
+    if not match:
+        return set()
+    weights = set()
+    for part in match.group(1).split(";"):
+        value = part.split(",")[-1]
+        if ".." in value:
+            low, high = (int(x) for x in value.split(".."))
+            weights.update(range(low, high + 1, 100))
+        elif value:
+            weights.add(int(value))
+    return weights
 
 
 def check_template(lib: Library, template, errors: list[str]):

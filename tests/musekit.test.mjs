@@ -216,6 +216,32 @@ ${overrides}
   }
 });
 
+test('every library template resolves for each declared scene and ranks by curated mood words', () => {
+  const ids = readdirSync(join(library, 'templates')).filter((name) => name.endsWith('.md')).map((name) => name.slice(0, -3));
+  assert.deepEqual(new Set(ids), new Set(['neo-swiss', 'japanese-ma', 'editorial-serif', 'neo-brutalism', 'mono-print']));
+  for (const id of ids) {
+    const meta = frontmatter(join(library, `templates/${id}.md`));
+    assert.ok(existsSync(join(library, `templates/${id}.png`)), `${id} specimen`);
+    for (const scene of meta.scenes) assert.match(cli('resolve', id, '--scene', scene), /## 文字配对/, `${id} ${scene}`);
+    for (const variant of meta.variants.options) cli('resolve', id, '--scene', meta.scenes[0], '--variant', variant);
+  }
+  const quiet = cli('search', '--scene', 'web', '慢读', '安静').split('\n').filter((line) => !line.startsWith(' '));
+  assert.match(quiet[0], /^editorial-serif/);
+  assert.match(quiet[1], /^japanese-ma/);
+  assert.match(cli('search', '--scene', 'web', '好玩', '年轻').split('\n')[0], /^neo-brutalism/);
+});
+
+test('unquoted hash values are rejected instead of silently diverging from YAML', () => {
+  const dir = scratch({ 'bad.md': userSeed('bad', 'pairs: []').replace('value: "#2050D0"', 'value: 2px solid #2050D0') });
+  try {
+    const result = run('check', join(dir, 'bad.md'));
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /含 # 的值要加引号/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('search is scene-aware and says when nothing matches', () => {
   const found = cli('search', '--scene', 'graphic', '理性', '海报');
   assert.match(found, /neo-swiss/);
@@ -267,12 +293,12 @@ test('typography seeds only accept registered open fonts with CJK coverage', () 
   const dir = scratch({
     'commercial.md': source.replace('value: Inter\n    role: 西文展示字与标题', 'value: Helvetica Neue\n    role: 西文展示字与标题'),
     'latin.md': source.replace('value: Noto Sans SC', 'value: IBM Plex Sans'),
-    'weight.md': source.replace('weight-display:\n    value: 600', 'weight-display:\n    value: 800'),
+    'weight.md': source.replace('weight-display:\n    value: 600', 'weight-display:\n    value: 300'),
   });
   try {
     assert.match(run('check', join(dir, 'commercial.md')).stdout, /只能使用开源字体/);
     assert.match(run('check', join(dir, 'latin.md')).stdout, /不覆盖汉字/);
-    assert.match(run('check', join(dir, 'weight.md')).stdout, /加载地址缺少字重 800/);
+    assert.match(run('check', join(dir, 'weight.md')).stdout, /加载地址缺少字重 300/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

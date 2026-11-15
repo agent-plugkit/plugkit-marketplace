@@ -2,7 +2,7 @@
 
 ## mono-color-skill
 
-The `library/precedents/graphic/editorial-print-system-mc1nkp2t.md` precedent adapts system-level guidance from [yanliudesign/mono-color-skill](https://github.com/yanliudesign/mono-color-skill) at revision `de607fedfff647eaf5400e0aa43085787d7d1fca`.
+The `library/precedents/graphic/editorial-print-system-mc1nkp2t.md` precedent, the `mono-print` template and its `two-plate`, `plate-grotesk`, `print-asymmetric`, `halftone-plate` and `halftone-photo` seeds adapt system-level guidance from [yanliudesign/mono-color-skill](https://github.com/yanliudesign/mono-color-skill) at revision `de607fedfff647eaf5400e0aa43085787d7d1fca`.
 
 MIT License
 

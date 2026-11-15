@@ -1,0 +1,22 @@
+---
+id: halftone-photo
+category: imagery
+nature: rule
+name: 机械复制的图像
+status: draft
+scenes: [graphic, web, slides]
+affinity: [mono-print]
+conflicts: []
+---
+
+# 机械复制的图像
+
+## 要点
+
+- 照片以单色网点或高反差剪影出现，不用全彩照片。
+- 大胆裁切：一个巨大的局部往往比完整的物体更有力；保留主体能被认出的关键特征。
+- 文字与图像可以发生碰撞：标题压住物体、绕开它或紧贴它的边缘。
+
+## 适用与边界
+
+图像主体的身份、地点和品牌来自用户素材；不用生成图冒充真实场景。

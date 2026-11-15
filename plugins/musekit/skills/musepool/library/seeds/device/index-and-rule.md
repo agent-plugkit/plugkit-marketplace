@@ -5,7 +5,7 @@ nature: rule
 name: 索引与分隔线
 status: draft
 scenes: [graphic, web, slides, diagram]
-affinity: [neo-swiss, swiss, editorial]
+affinity: [neo-swiss, swiss, editorial, mono-print]
 conflicts: []
 tokens:
   index-format:

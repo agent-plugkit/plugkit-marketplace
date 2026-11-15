@@ -5,7 +5,7 @@ nature: value
 name: 零圆角细线
 status: draft
 scenes: [graphic, web, slides, diagram, data]
-affinity: [neo-swiss, swiss, editorial]
+affinity: [neo-swiss, swiss, editorial, japanese-ma, editorial-serif, mono-print]
 conflicts: [soft-rounded]
 tokens:
   radius:

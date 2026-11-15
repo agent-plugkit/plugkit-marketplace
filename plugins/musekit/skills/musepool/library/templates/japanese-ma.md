@@ -1,0 +1,92 @@
+---
+id: japanese-ma
+kind: template
+name: 日式留白（间）
+name_en: Japanese Ma
+family: japanese-ma
+status: draft
+source: library
+scenes: [graphic, web, slides]
+mood: [安静, 留白, 内省, 克制, 文学, 慢, 手作, 东方, 诗意, quiet, minimal, ma, zen]
+seeds:
+  color: sumi-shu
+  typography: mincho-cjk
+  grid: off-center-void
+  spacing: baseline-8
+  shape: zero-radius-hairline
+  device: seal-and-vertical
+  technique: ma-interval
+  imagery: still-life
+variants:
+  default: shu
+  options: [shu, ai]
+overrides:
+  graphic:
+    canvas-width: 1080px
+    canvas-height: 1440px
+    margin: 96px
+    gutter: 16px
+    size-display: 120px
+    size-headline: 48px
+    size-title: 28px
+    size-body: 20px
+    size-meta: 15px
+  web:
+    breakpoints:
+      mobile:
+        max-width: 767px
+        columns: 4
+        gutter: 16px
+        margin: 28px
+        size-display: 48px
+        size-headline: 28px
+        size-title: 20px
+        size-body: 16px
+exemplars: [Nv0J2QBT]
+---
+
+# 日式留白（间）
+
+## 精神
+
+让空白和停顿成为内容的一部分。读者先感到安静，再看到唯一的焦点；信息不多，但每一样都被放在被留出来的空间里。适合需要放慢阅读、强调内省与质感的内容，而不是需要一眼抓住注意力的促销。
+
+## 文法
+
+- **网格**：12 栏只用来定位，不用来填满。内容占一屏的三分之一以内，焦点偏离中心，落在三分线附近。
+- **对齐**：焦点与次要信息形成对角牵引；次要信息退到远处的角落，可以竖排。
+- **层级**：靠位置、留白和字号建立，字重只用常规与半粗两档；展示字常规字重、拉开字距。
+- **留白**：大块的空有明确的边界，在每个重要内容之前先留一段停顿。外边距明显宽于一般版面。
+- **色彩**：纸与墨占据全部画面，层次来自墨的浓淡；朱色（或藍）只出现一次，用在印章或一个关键词上。
+- **装置**：一枚小印章、竖排的栏目名、极细的分隔线，都只为分组和标记服务。
+- **图像**：单一主体的静物或局部，自然光，低饱和，周围留出大片空。
+
+## 场景适配
+
+### graphic
+
+海报、封面、社媒图。覆盖值按 1080 × 1440 的画布给出（`canvas-width`、`canvas-height`），外边距 96px。
+
+- 标题可以竖排，放在画面右侧或左侧三分线上，由上往下读；横排时偏左上或偏右下，不居中。
+- 焦点（标题或一张静物图）占画面面积的五分之一到三分之一，其余是纸面。
+- 日期、地点、主办方排成一组竖排或横排的小字，放在与焦点相对的角落；朱色印章压在这组信息旁边。
+- 只有一个焦点：标题与图像同时出现时，让图像小而安静，标题大，或者反过来，不让两者抢夺注意力。
+
+### web
+
+官网、落地页、文章页。参照视口 1440 × 900px，外边距 120px。
+
+- 首屏只放标题、一句导语和关键信息；标题偏左上或竖排在右侧，首屏一半以上保持空白。
+- 导航是一行淡墨小字，放在顶部角落；当前页用细下划线。
+- 章节之间留出一屏左右的大间隔（`space-scale` 的最大一级以上）；章节标题可以竖排在左侧窄栏，正文在中间偏右的 5–6 栏，行长控制在每行 30–40 个汉字。
+- 主操作用墨底纸字或纸底墨框的方形按钮；朱色只用于一枚印章或一个当前态标记。
+- 窄屏退为 4 栏：竖排标题改为横排，保留宽外边距（`mobile` 断点给出），章节间隔按比例缩小但仍明显大于段间距。
+- 动效缓慢、短暂，只做透明度渐显。
+
+## 常见误用
+
+把内容缩小后散落在空画布上，读者只会觉得版面没做完；堆砌樱花、鸟居、和纸纹理等符号，会把「间」变成主题乐园；整页居中对称、处处加粗，也会失去安静。判断方法：去掉颜色后，仍应能看出唯一的焦点和有意图的空白。
+
+## 范例
+
+- `Nv0J2QBT` 生成式音乐可视化：一块几乎占满屏幕的画布，界面文字退到四角，只有一个焦点。借它的「一个焦点、界面退场」，不借其无衬线字体和音乐内容。库中暂无更贴近日式留白的真实范例。

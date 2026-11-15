@@ -5,7 +5,7 @@ nature: rule
 name: 尺度反差
 status: draft
 scenes: [graphic, web, slides]
-affinity: [neo-swiss, swiss, neo-brutalism]
+affinity: [neo-swiss, swiss, neo-brutalism, mono-print]
 conflicts: []
 tokens:
   ratio-adjacent:
