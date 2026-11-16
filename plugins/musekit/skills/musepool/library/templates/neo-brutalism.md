@@ -50,6 +50,9 @@ overrides:
         ratio-adjacent: 1.6
         ratio-display: 3
 exemplars: [pibXRzsG, AT5oq8hX, nB7kQ2mX]
+examples:
+  graphic: skills/graphic-design/references/examples/neo-brutalism-maker-fair.md
+  web: skills/web-design/references/examples/neo-brutalism-maker-fair.md
 ---
 
 # 新粗野主义

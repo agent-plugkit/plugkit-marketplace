@@ -24,6 +24,7 @@ import urllib.request
 from pathlib import Path
 
 SKILL = Path(__file__).resolve().parent.parent
+PLUGIN = SKILL.parent.parent
 LIBRARY = SKILL / "library"
 SEEDS = LIBRARY / "seeds"
 TEMPLATES = LIBRARY / "templates"
@@ -525,6 +526,9 @@ def cmd_resolve(args, lib: Library):
     shown = [e for e in template.get("exemplars") or [] if e in lib.precedents]
     if shown:
         out.append("原始记录：" + "、".join(f"`muse.py show {e}`" for e in shown) + "。只借方法，不搬运内容、文案、品牌和图片。")
+    example = (template.get("examples") or {}).get(args.scene)
+    if example:
+        out += ["", f"制作示例：插件内的 `{example}` 记录了这个风格在本场景的一次完整制作，包括 Brief、栏位决定、评审发现与修正。学判断过程，不照搬构图。"]
     text = "\n".join(out).rstrip() + "\n"
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
@@ -828,6 +832,16 @@ def check_template(lib: Library, template, errors: list[str]):
     for exemplar in template.get("exemplars") or []:
         if exemplar not in lib.precedents:
             errors.append(f"{where}：范例 {exemplar} 不存在")
+    examples = template.get("examples") or {}
+    if not isinstance(examples, dict):
+        errors.append(f"{where}：examples 必须是场景到制作示例路径的映射")
+        examples = {}
+    for scene, path in examples.items():
+        if scene not in (template.get("scenes") or []):
+            errors.append(f"{where}：examples 的场景 {scene} 不在 scenes 里")
+        target = (PLUGIN / str(path)).resolve()
+        if PLUGIN.resolve() not in target.parents or target.suffix != ".md" or not target.is_file():
+            errors.append(f"{where}：制作示例 {path} 不是插件内存在的 Markdown 文件")
     if all(lib.seed(seed_id, template) for seed_id in seeds.values()):
         try:
             variants = template.get("variants") or {}

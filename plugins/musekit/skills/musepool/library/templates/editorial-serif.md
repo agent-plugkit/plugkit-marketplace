@@ -45,6 +45,9 @@ overrides:
         size-title: 22px
         size-body: 18px
 exemplars: [C4aZtWoH, B3LYgTWe, rvYJrbZh, G26LBSOO]
+examples:
+  graphic: skills/graphic-design/references/examples/editorial-serif-long-river.md
+  web: skills/web-design/references/examples/editorial-serif-long-river.md
 ---
 
 # 编辑衬线

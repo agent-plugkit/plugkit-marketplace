@@ -40,6 +40,7 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 | `variants` | `default` 与 `options`，取值来自颜色 Seed 的变体 |
 | `overrides` | 按场景覆盖 token 值，见下方「场景覆盖」 |
 | `exemplars` | Precedent id 列表 |
+| `examples` | 可选。场景到 Workflow 制作示例的映射，路径相对插件根，例如 `web: skills/web-design/references/examples/<名称>.md`；场景必须在 `scenes` 里，文件必须存在。`resolve` 只输出当前场景那一条 |
 
 正文章节依次为：`## 精神`（必填，一段话说明这个风格要解决什么阅读问题）、`## 文法`（必填：网格、对齐、层级、留白、色彩、装置、图像，以及选中、出错、完成等状态）、`## 场景适配`（每个场景一个 `### <场景>` 小节，可缺）、`## 常见误用`、`## 范例`（每条写明 Precedent id、借什么、不借什么；`resolve` 会把这一节原样写进 `style.md`）。
 

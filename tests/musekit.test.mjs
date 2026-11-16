@@ -158,6 +158,34 @@ test('resolve keeps what each exemplar is borrowed for', () => {
   assert.match(examples, /muse\.py show LjwyQI6U/);
 });
 
+test('templates link workflow examples per scene and resolve points to the current one', () => {
+  for (const id of ['neo-brutalism', 'editorial-serif']) {
+    const { examples } = frontmatter(join(library, `templates/${id}.md`));
+    assert.deepEqual(Object.keys(examples).sort(), ['graphic', 'web'], id);
+    for (const [scene, path] of Object.entries(examples)) {
+      assert.ok(existsSync(join(plugin, path)), path);
+      const tail = cli('resolve', id, '--scene', scene).split('## 范例')[1];
+      assert.match(tail, new RegExp(`制作示例：插件内的 \`${path}\``));
+      assert.match(tail, /不照搬构图/);
+    }
+  }
+  assert.doesNotMatch(cli('resolve', 'neo-brutalism', '--scene', 'slides'), /制作示例：/);
+  const withExamples = (examples) => userTemplate('brand.md').replace('seeds:', `examples:\n${examples}\nseeds:`);
+  const dir = scratch({
+    'brand.md': userSeed('brand', 'pairs:\n  - [ink, paper, body]'),
+    'scene.md': withExamples('  graphic: skills/graphic-design/references/examples.md'),
+    'missing.md': withExamples('  web: skills/web-design/references/examples/none.md'),
+    'escape.md': withExamples('  web: ../../package.json'),
+  });
+  try {
+    assert.match(run('check', join(dir, 'scene.md')).stdout, /examples 的场景 graphic 不在 scenes 里/);
+    assert.match(run('check', join(dir, 'missing.md')).stdout, /制作示例 skills\/web-design\/references\/examples\/none\.md 不是插件内存在的 Markdown 文件/);
+    assert.match(run('check', join(dir, 'escape.md')).stdout, /制作示例 \.\.\/\.\.\/package\.json 不是/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('resolve applies variants, scene overrides and reports missing adaptations', () => {
   const graphic = cli('resolve', 'neo-swiss', '--scene', 'graphic');
   assert.match(graphic, /^adaptation: provided$/m);
