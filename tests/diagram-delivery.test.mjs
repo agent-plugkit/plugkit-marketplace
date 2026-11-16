@@ -10,6 +10,7 @@ import {
   writeFileSync,
   readdirSync,
   existsSync,
+  realpathSync,
 } from "node:fs";
 import { spawn, execFileSync } from "node:child_process";
 import { join, resolve, basename } from "node:path";
@@ -41,7 +42,8 @@ function run(args, options = {}) {
   });
 }
 async function fixture(t) {
-  const dir = mkdtempSync(join(tmpdir(), "musekit-delivery-"));
+  // The CLI reports canonical paths; on macOS tmpdir() sits behind the /var -> /private/var symlink.
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "musekit-delivery-")));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const source = join(dir, "source.html"),
     output = join(dir, "final diagram.html");
