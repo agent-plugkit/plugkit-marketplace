@@ -223,7 +223,7 @@ button, input, textarea { font: inherit; color: inherit; }
   container-type: inline-size;
   border-top: 0;
   grid-template-columns: calc(var(--margin) + 8 * var(--step) - var(--gutter) / 2 - var(--rule-width) / 2) 1fr;
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-rows: 2fr 3fr 1.4fr; /* 地点板最高：上部留空给贴片 */
   min-height: calc(var(--canvas-height) - var(--nav-h));
   border-bottom: 0;
 }
@@ -255,12 +255,12 @@ button, input, textarea { font: inherit; color: inherit; }
 /* 压缝贴片 */
 .sticker {
   position: absolute;
-  bottom: 112px; /* 落在主板右下空白与主办板上部空白之间，跨 x=948 竖缝 */
+  top: 43%; /* 落在主板右侧空白与地点板上部空白之间，跨 8/9 栏的竖缝 */
   right: -126px;
   width: 252px;
   padding: var(--space-3) var(--space-4);
   background: var(--color-accent-2);
-  color: var(--color-ink); /* 贴片压在墨底板上时也不继承纸色字 */
+  color: var(--color-ink);
   border: var(--rule-width) solid var(--color-ink);
   box-shadow: var(--shadow);
   transform: rotate(calc(-1 * var(--sticker-tilt)));
@@ -298,16 +298,17 @@ button, input, textarea { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 
-/* ===== W2 摊位类别：主板 + 列表板（左 9 栏：主板在上、须知在下；右 3 栏：列表板） ===== */
+/* ===== W2 摊位类别：主板 + 列表板（左 7 栏：主板在上、须知在下；右 5 栏：列表板）。墙标题跨 7 栏，字号小于首屏的 8 栏 ===== */
 .cats {
-  grid-template-columns: calc(var(--margin) + 9 * var(--step) - var(--gutter) / 2 - var(--rule-width) / 2) 1fr;
+  grid-template-columns: calc(var(--margin) + 7 * var(--step) - var(--gutter) / 2 - var(--rule-width) / 2) 1fr;
   grid-template-rows: auto auto;
 }
 .cats-main { grid-column: 1; grid-row: 1; padding: var(--space-6) var(--pad) var(--space-6) var(--margin); z-index: 2; }
-/* muse.py fit neo-brutalism --scene web --chars 4 --span 9 --padding 0 --tracking -0.04 */
-.cats-main .wall-title { margin-top: var(--space-4); font-size: calc(((min(100cqw, 1440px) - 96px - 264px) / 12 * 9 + 192px) / 3.88); }
+/* muse.py fit neo-brutalism --scene web --chars 4 --span 7 --padding 0 --tracking -0.04 */
+.cats-main .wall-title { margin-top: var(--space-4); font-size: calc(((min(100cqw, 1440px) - 96px - 264px) / 12 * 7 + 144px) / 3.88); }
 .cats-main .lede { margin-top: var(--space-4); font-size: var(--size-title); line-height: var(--leading-title); max-width: 24em; }
-.cats-note { grid-column: 1; grid-row: 2; padding: var(--space-5) var(--pad) var(--space-5) var(--margin); display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3) var(--space-7); }
+/* 须知内容竖排靠左，右侧留空给压缝贴片 */
+.cats-note { grid-column: 1; grid-row: 2; padding: var(--space-5) var(--pad) var(--space-5) var(--margin); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
 .cats-note dl, .signup-note dl { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); }
 .cats-note dt, .signup-note dt { font-family: var(--font-mono); font-size: var(--size-meta); font-weight: 700; }
 .cats-note dd, .signup-note dd { font-weight: var(--weight-strong); }
@@ -333,11 +334,11 @@ button, input, textarea { font: inherit; color: inherit; }
 .cat .name { grid-column: 2; }
 .cat .desc { grid-column: 2; font-size: var(--size-meta); }
 .cat .go { font-family: var(--font-mono); }
-.sticker.s-cats { top: auto; bottom: -52px; right: var(--space-9); }
+.sticker.s-cats { top: auto; bottom: -72px; right: var(--space-4); } /* 靠主板右缘、多压进须知板右侧的空白，避开主板说明和须知条目 */
 
-/* ===== W3 报名：左小右大（左 3 栏：步骤板在上、须知在下；右 9 栏：表单主板） ===== */
+/* ===== W3 报名：左小右大（左 5 栏：步骤板在上、须知在下；右 7 栏：表单主板）。没有墨底板，贴片压在两块浅色板之间 ===== */
 .signup {
-  grid-template-columns: calc(var(--margin) + 3 * var(--step) - var(--gutter) / 2 - var(--rule-width) / 2) 1fr;
+  grid-template-columns: calc(var(--margin) + 5 * var(--step) - var(--gutter) / 2 - var(--rule-width) / 2) 1fr;
   grid-template-rows: 1fr auto;
 }
 .how { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-6) var(--pad) var(--space-6) var(--margin); z-index: 2; }
@@ -348,8 +349,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .signup-note dl { flex-direction: column; gap: var(--space-3); }
 .sticker.s-signup { top: auto; right: auto; bottom: -46px; left: var(--margin); width: auto; }
 .form-panel { grid-column: 2; grid-row: 1 / 3; padding: var(--space-6) var(--margin) var(--space-7) var(--pad); }
-/* muse.py fit neo-brutalism --scene web --chars 4 --span 9 --padding 10 --tracking -0.04（表单板左侧离接缝 32、右侧 margin 48，内宽比 9 栏少 20px） */
-.form-panel .wall-title { font-size: calc(((min(100cqw, 1440px) - 96px - 264px) / 12 * 9 + 192px - 20px) / 3.88); }
+/* muse.py fit neo-brutalism --scene web --chars 4 --span 7 --padding 10 --tracking -0.04（表单板左侧离接缝 32、右侧 margin 48，内宽比 7 栏少 20px） */
+.form-panel .wall-title { font-size: calc(((min(100cqw, 1440px) - 96px - 264px) / 12 * 7 + 144px - 20px) / 3.88); }
 .form-panel.is-done { background: var(--color-accent); }
 .form-head { margin-bottom: var(--space-4); }
 .form-note { margin-bottom: var(--space-6); max-width: 40em; }
@@ -418,10 +419,10 @@ legend { padding: 0; margin-bottom: var(--space-2); }
   .hero { grid-template-columns: repeat(3, 1fr); grid-template-rows: auto auto; min-height: 0; }
   .hero-main { grid-row: auto; grid-column: 1 / -1; padding-right: var(--margin); min-height: 560px; }
   .hero-title { font-size: calc((100cqw - 96px) / 3.88); } /* fit --span 12 --breakpoint tablet */
-  .fact { min-height: 160px; padding-right: var(--pad); }
+  .fact { min-height: 208px; padding-right: var(--pad); } /* 文字贴底排，上部留空给压下来的贴片 */
   .fact.is-right { padding-right: var(--margin); }
   .fact:not(.is-left) { padding-left: var(--pad); }
-  .sticker { bottom: -48px; right: var(--margin); }
+  .sticker { top: auto; bottom: -48px; right: calc(50% - 126px); } /* 压主板下缘，落在中间的地点板上，不压墨底主办板 */
   .cats, .signup { grid-template-columns: 1fr; grid-template-rows: auto; }
   .cats-main, .cats-note, .list-board, .how, .signup-note, .form-panel { grid-column: 1; grid-row: auto; }
   .cats-main { padding-right: var(--margin); }
@@ -445,6 +446,7 @@ legend { padding: 0; margin-bottom: var(--space-2); }
   .nav .short { display: inline; }
   .nav .brand small { display: none; }
   .fact, .fact:not(.is-left) { min-height: 0; padding-left: var(--margin); padding-right: var(--margin); }
+  .sticker { right: var(--margin); } /* 单列时主板下面是日期板，事实文字齐左，贴片靠右 */
 }
 
 /* ===== 窄屏：4 栏，单列堆叠，仍共用横线 ===== */
@@ -474,7 +476,7 @@ legend { padding: 0; margin-bottom: var(--space-2); }
   .cat, .cat:nth-child(odd) { padding: var(--space-3) var(--margin); }
   .cats-note { padding: var(--space-4) var(--margin); gap: var(--space-2) var(--space-5); }
   .sticker.s-cats, .sticker.s-signup { width: auto; right: var(--space-4); }
-  .sticker.s-cats { bottom: -24px; }
+  .sticker.s-cats { bottom: -44px; } /* 多压进须知板，避开说明最后一行 */
   .sticker.s-signup { top: -40px; }
   form { grid-template-columns: 1fr; }
   .choices.c3 { grid-template-columns: 1fr 1fr; }
@@ -564,7 +566,7 @@ legend { padding: 0; margin-bottom: var(--space-2); }
 
   <!-- W3 报名 -->
   <section id="signup" class="wall signup" aria-labelledby="signup-title">
-    <div class="panel how bg-ink on-ink">
+    <div class="panel how bg-accent-3">
       <h3 class="title">怎么报名</h3>
       <ol>
         <li><span class="no">01</span><span>选一个摊位类别</span></li>
@@ -573,7 +575,7 @@ legend { padding: 0; margin-bottom: var(--space-2); }
       </ol>
       <p class="sticker s-signup"><span class="s1">示例表单</span><br><span class="s2">不会发出</span></p>
     </div>
-    <div class="panel signup-note bg-accent-3">
+    <div class="panel signup-note">
       <h3 class="title">报名的这些还没定</h3>
       <dl><div><dt>报名截止</dt><dd>待公布</dd></div><div><dt>正式报名渠道</dt><dd>待公布</dd></div><div><dt>联系方式</dt><dd>待公布</dd></div></dl>
     </div>
