@@ -20,7 +20,7 @@ Musekit 把「风格」和「场景制作」分成两层：
 
 `article-illustration` 只编排整篇文章，不替代单张图的场景 Skill，也不做公众号排版。字体只登记可合法获得的开源字体；版权字体作为风格原型登记，并给出开源替代。
 
-完整示例包含[观察记录界面](plugins/musekit/skills/web-design/references/examples.md)、[刊物封面](plugins/musekit/skills/graphic-design/references/examples.md)、[六种图解](plugins/musekit/skills/diagram-design/references/examples.md)和[学术数据图](plugins/musekit/skills/scientific-figure/references/examples.md)，各自附输入、选择理由与可编辑源文件。
+完整示例包含[两种风格的官网首页](plugins/musekit/skills/web-design/references/examples.md)、[两种风格的活动海报](plugins/musekit/skills/graphic-design/references/examples.md)、[六种图解](plugins/musekit/skills/diagram-design/references/examples.md)和[学术数据图](plugins/musekit/skills/scientific-figure/references/examples.md)，各自附输入、选择理由与可编辑源文件；网页和海报示例还记录了评审发现与修正。
 
 Musekit `0.3.0` 的图解成品支持节点查找与直接关系定位，内置按错误和提示分组的布局诊断。点击“编辑布局”可调整模块、分组、连线与标签，按编号定位或删除折点；属性区与对象列表独立滚动，窄窗口使用底部双栏。保存新 HTML 后可离线继续编辑，使用者直接在桌面 Chrome 或 Edge 打开文件。[布局编辑说明](plugins/musekit/skills/diagram-design/references/editor.md)包含保存和 PNG 导出操作。
 
