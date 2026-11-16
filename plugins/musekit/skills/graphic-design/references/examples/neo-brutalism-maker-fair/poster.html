@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>造物集市 Maker Fair 2027 · 社媒海报（虚构示例）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Tokens：逐字取自 style.md（neo-brutalism · graphic · yellow） */
+:root {
+  --color-paper: #FFF8E7;
+  --color-ink: #0A0A0A;
+  --color-ink-muted: #3D3B36;
+  --color-accent: #FFD23F;
+  --color-accent-2: #FF7AB6;
+  --color-accent-3: #3EC5F0;
+  --color-on-accent: #0A0A0A;
+  --font-display: "Archivo", "Noto Sans SC", "Arial Black", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-text: "Archivo", "Noto Sans SC", "Arial Black", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-cjk: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Space Mono", "Noto Sans SC", "IBM Plex Mono", "Menlo", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
+  --weight-display: 900;
+  --weight-text: 400;
+  --weight-strong: 800;
+  --size-display: 200px;
+  --size-headline: 88px;
+  --size-title: 40px;
+  --size-body: 24px;
+  --size-meta: 16px;
+  --leading-display: 0.9;
+  --leading-display-cjk: 1.05;
+  --leading-headline: 0.98;
+  --leading-title: 1.15;
+  --leading-body: 1.5;
+  --tracking-display: -0.04em;
+  --tracking-meta: 0.02em;
+  --canvas-width: 1080px;
+  --canvas-height: 1440px;
+  --gutter: 16px;
+  --margin: 48px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --radius: 0px;
+  --rule-width: 3px;
+  --shadow: 6px 6px 0 0 #0A0A0A;
+  --sticker-tilt: 6deg;
+
+  /* 本作品推导值（写进交付说明）：fit --span 12 --padding 32 --tracking -0.04 → 237.1px */
+  --title-fit: 237px;
+  --pad: var(--space-5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--color-paper); }
+body {
+  width: var(--canvas-width);
+  height: var(--canvas-height);
+  position: relative;
+  overflow: hidden;
+  color: var(--color-ink);
+  font-family: var(--font-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 一面墙：外框落在 margin 线上；板与板重叠一条 rule-width，接缝只有一条线 */
+.wall {
+  position: absolute;
+  left: var(--margin);
+  top: var(--margin);
+  width: calc(var(--canvas-width) - 2 * var(--margin));   /* 984 */
+  height: calc(var(--canvas-height) - 2 * var(--margin)); /* 1344 */
+  box-shadow: var(--shadow);
+}
+.panel {
+  position: absolute;
+  border: var(--rule-width) solid var(--color-ink);
+  border-radius: var(--radius);
+  padding: var(--pad);
+}
+
+/* P1 主板：12 栏，墙高 57% */
+.p-main { left: 0; top: 0; width: 984px; height: 767px; background: var(--color-accent); }
+/* P2 地点：1–7 栏；竖缝中线 x≈623（第 7/8 栏间隙中线） */
+.p-venue { left: 0; top: 764px; width: 577px; height: 363px; background: var(--color-accent-3);
+  display: flex; flex-direction: column; justify-content: flex-end; }
+/* P3 主办：墨底 */
+.p-host { left: 0; top: 1124px; width: 577px; height: 220px; background: var(--color-ink); color: var(--color-paper);
+  display: flex; flex-direction: column; justify-content: space-between; }
+/* P4 类别列表板：8–12 栏 */
+.p-list { left: 574px; top: 764px; width: 410px; height: 580px; background: var(--color-paper); padding: 0;
+  display: flex; flex-direction: column; }
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--size-body);
+  font-weight: 700;
+  letter-spacing: var(--tracking-meta);
+  line-height: 1;
+  padding: var(--space-2) var(--space-3);
+  border: var(--rule-width) solid var(--color-ink);
+  background: var(--color-accent-2);
+  color: var(--color-ink);
+}
+
+.title-cjk {
+  margin-top: var(--space-5);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--title-fit);
+  line-height: var(--leading-display-cjk);
+  letter-spacing: var(--tracking-display);
+  white-space: nowrap;
+}
+.headline {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--size-headline);
+  line-height: var(--leading-headline);
+  white-space: nowrap;
+}
+.en { margin-top: var(--space-3); }
+.date { margin-top: var(--space-6); font-variant-numeric: tabular-nums; }
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--size-body);
+  font-weight: 700;
+  letter-spacing: var(--tracking-meta);
+  line-height: var(--leading-title);
+}
+.title {
+  font-family: var(--font-cjk);
+  font-weight: var(--weight-strong);
+  font-size: var(--size-title);
+  line-height: var(--leading-title);
+  white-space: nowrap;
+}
+.p-venue .title { margin-top: var(--space-2); }
+.note {
+  font-family: var(--font-cjk);
+  font-size: var(--size-body);
+  font-weight: var(--weight-text);
+  line-height: var(--leading-body);
+}
+
+/* 列表板：表头 + 6 行，板内同样 3px 粗线分格 */
+.list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--pad);
+  height: 106px;
+}
+.list-row {
+  flex: 1;
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: 0 var(--pad);
+  border-top: var(--rule-width) solid var(--color-ink);
+}
+.num {
+  font-family: var(--font-mono);
+  font-size: var(--size-body);
+  font-weight: 700;
+  width: 2.2em;
+}
+
+/* 压缝贴片：跨主板与地点板的接缝（墙内 y=764–767） */
+.sticker {
+  position: absolute;
+  left: 88px;
+  top: 718px;
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-accent-2);
+  border: var(--rule-width) solid var(--color-ink);
+  box-shadow: var(--shadow);
+  transform: rotate(calc(-1 * var(--sticker-tilt)));
+  z-index: 2;
+}
+.sticker .s1 { font-family: var(--font-cjk); font-weight: var(--weight-strong); font-size: var(--size-title); line-height: var(--leading-title); }
+.sticker .s2 { font-family: var(--font-cjk); font-weight: var(--weight-display); font-size: var(--size-headline); line-height: var(--leading-headline); }
+</style>
+</head>
+<body>
+  <div class="wall" id="wall">
+    <section class="panel p-main" id="p-main">
+      <span class="tag">虚构示例活动</span>
+      <h1 class="title-cjk" id="title">造物集市</h1>
+      <p class="headline en" id="en">Maker Fair 2027</p>
+      <p class="headline date" id="date">2027.08.09—08.10</p>
+    </section>
+
+    <section class="panel p-venue" id="p-venue">
+      <p class="label">地点</p>
+      <p class="title" id="venue">西岸创意园 B 栋</p>
+    </section>
+
+    <section class="panel p-host" id="p-host">
+      <p class="title" id="host">主办：造物集市志愿团</p>
+      <p class="note">虚构示例活动 · 摊位类别为示例</p>
+    </section>
+
+    <section class="panel p-list" id="p-list">
+      <div class="list-head">
+        <p class="title">摊位类别</p>
+        <span class="tag">示例</span>
+      </div>
+      <div class="list-row"><span class="num">01</span><span class="title">手作饰品</span></div>
+      <div class="list-row"><span class="num">02</span><span class="title">陶瓷器物</span></div>
+      <div class="list-row"><span class="num">03</span><span class="title">织物与缝纫</span></div>
+      <div class="list-row"><span class="num">04</span><span class="title">独立出版</span></div>
+      <div class="list-row"><span class="num">05</span><span class="title">木作与皮具</span></div>
+      <div class="list-row"><span class="num">06</span><span class="title">电子造物</span></div>
+    </section>
+  </div>
+
+  <div class="sticker" id="sticker">
+    <p class="s1">创作者摊位</p>
+    <p class="s2">报名中</p>
+  </div>
+</body>
+</html>
