@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 import re
@@ -455,6 +456,11 @@ def cmd_search(args, lib: Library):
     results.sort(key=lambda row: row[:3], reverse=True)
     if not results:
         print("无命中：换用风格名、气质词或去掉场景限制再试。")
+        if not args.seeds:
+            moods = dict.fromkeys(str(mood) for item in pool
+                                  if not args.scene or args.scene in item.get("scenes", [])
+                                  for mood in item.get("mood", []))
+            print(f"{args.scene + ' 场景' if args.scene else '库里'}可用的气质词：{'、'.join(moods)}")
         return
     for count, _, _, item, hits in results[: args.n]:
         label = f"{item['category']}/{item['id']}" if args.seeds else item["id"]
@@ -499,6 +505,10 @@ def cmd_resolve(args, lib: Library):
            f"adaptation: {'provided' if adaptation else 'missing'}", "tokens:"]
     for name, value in values.items():
         out.append(f"  {name}: {json.dumps(value, ensure_ascii=False)}")
+    data = (lib.seed(template["seeds"]["color"], template) or {}).get("data") if args.scene == "data" else None
+    if data:
+        out.append("data:")
+        out += [f"  {kind}: {json.dumps(data[kind])}" for kind in DATA_KINDS]
     breakpoints = scene_breakpoints(template, args.scene, values)
     if breakpoints:
         out.append("breakpoints:")
@@ -509,7 +519,11 @@ def cmd_resolve(args, lib: Library):
     out.append(f"- Template `{template['id']}`，来源 {template.get('source', 'library')}，状态 {template['status']}，变体 {variant or '无'}。")
     if template["status"] != "verified":
         out.append("- 这个风格尚未通过人工确认，交付时说明它是 draft。")
-    css = ["```css", ":root {", *css_variables(lib, values, owner), "}"]
+    css = ["```css", ":root {", *css_variables(lib, values, owner)]
+    if data:
+        for kind, short in zip(DATA_KINDS, ("cat", "seq", "div")):
+            css += [f"  --data-{short}-{i}: {color};" for i, color in enumerate(data[kind], 1)]
+    css.append("}")
     for name, entry in breakpoints.items():
         if not entry["tokens"]:
             css.append(f"/* {name}：max-width {entry['max-width']}，只调整版面，没有 token 变化 */")
@@ -524,7 +538,15 @@ def cmd_resolve(args, lib: Library):
             "| 文字 | 背景 | 对比 | 可用字号 |", "| --- | --- | --- | --- |"]
     for fg, bg, ratio, level in text_pairs(lib, template, values):
         out.append(f"| `{fg}` | `{bg}` | {ratio:.2f}:1 | {'任意字号' if level == 'body' else '仅大字'} |")
-    out += ["", "未列出的组合不要使用。", "", "## 字体", ""]
+    out += ["", "未列出的组合不要使用。", ""]
+    if data:
+        out += ["## 数据色板", "", "按数据要做的事选一组。颜色按顺序取用，不循环、不跳号；同一序列在各面板里用同一个颜色。", "",
+                "| 用途 | 颜色 | 怎么用 |", "| --- | --- | --- |",
+                f"| 分类 `categorical` | {'、'.join(data['categorical'])} | 区分序列身份。序列比颜色多时，把小项合并为「其他」或分面，不另造颜色；除颜色外再配直接标注、形状或线型 |",
+                f"| 顺序 `sequential` | {'、'.join(data['sequential'])} | 表示多少，由浅到深 |",
+                f"| 发散 `diverging` | {'、'.join(data['diverging'])} | 表示偏离基准的方向，中点对应基准值 |", "",
+                "强调色 `accent` 不在这些色板里：只想突出一项时，用 `accent` 标那一项，其余用 `ink-muted`。数值、刻度、标注和图例的文字用 `ink` 与 `ink-muted`，不用序列色。", ""]
+    out += ["## 字体", ""]
     for font in used_fonts(lib, values):
         links = f"网页加载 {font['css']}" if font.get("css") else "无网页加载地址，本地安装使用"
         out.append(f"- {font['family']}（{font.get('license', font['kind'])}）：{links}；下载 {font.get('download', '无')}。")
@@ -708,6 +730,86 @@ def contrast(a: str, b: str) -> float:
     return (high + 0.05) / (low + 0.05)
 
 
+DATA_KINDS = ("categorical", "sequential", "diverging")
+# 色盲模拟：Machado、Oliveira、Fernandes 2009，严重度 1.0，作用在线性 RGB 上。
+CVD = {
+    "红色盲": ((0.152286, 1.052583, -0.204868), (0.114503, 0.786281, 0.099216), (-0.003882, -0.048116, 1.051998)),
+    "绿色盲": ((0.367322, 0.860646, -0.227968), (0.280085, 0.672501, 0.047413), (-0.011820, 0.042940, 0.968881)),
+}
+
+
+def linear_rgb(hex_color: str) -> list[float]:
+    value = hex_color.lstrip("#")
+    channels = [int(value[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    return [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+
+
+def oklab(rgb) -> tuple[float, float, float]:
+    r, g, b = (min(1.0, max(0.0, c)) for c in rgb)
+    l = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+    m = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+    s = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+    return (0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+            1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+            0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s)
+
+
+def color_distance(a: str, b: str, matrix=None) -> float:
+    """两色在 OKLab 中的距离 ×100；给出矩阵时先做色盲模拟。"""
+    def lab(hex_color):
+        rgb = linear_rgb(hex_color)
+        if matrix:
+            rgb = [sum(row[i] * rgb[i] for i in range(3)) for row in matrix]
+        return oklab(rgb)
+    return math.dist(lab(a), lab(b)) * 100
+
+
+def data_problems(data, paper: str) -> list[str]:
+    """数据色板的机检：分类色可辨、顺序色单调、发散色两臂对称且中点中性。"""
+    if not isinstance(data, dict) or any(not isinstance(data.get(kind), list) for kind in DATA_KINDS):
+        return ["数据色板必须有 categorical、sequential、diverging 三组颜色列表"]
+    bad = [c for kind in DATA_KINDS for c in data[kind] if not re.fullmatch(r"#[0-9A-Fa-f]{6}", str(c))]
+    if bad:
+        return [f"数据色板含无效颜色 {', '.join(map(str, bad))}"]
+    problems = []
+    categorical, sequential, diverging = (data[kind] for kind in DATA_KINDS)
+    if not 3 <= len(categorical) <= 6:
+        problems.append("数据色板 categorical 需要 3–6 个颜色")
+    for c in categorical:
+        if contrast(c, paper) < 3:
+            problems.append(f"数据色板 categorical 的 {c} 对纸面只有 {contrast(c, paper):.2f}:1，至少 3:1")
+    # 分类色按顺序取用，n 个序列会让前 n 个颜色同框，所以任意两色都要分得开，不只相邻的。
+    for a, b in itertools.combinations(categorical, 2):
+        if color_distance(a, b) < 15:
+            problems.append(f"数据色板 categorical 的 {a} 与 {b} 太接近（ΔE {color_distance(a, b):.1f}，至少 15）")
+        for name, matrix in CVD.items():
+            if color_distance(a, b, matrix) < 8:
+                problems.append(f"数据色板 categorical 的 {a} 与 {b} 在色盲模拟下太接近（{name} ΔE {color_distance(a, b, matrix):.1f}，至少 8）")
+    lightness = lambda c: oklab(linear_rgb(c))[0]
+    if not 3 <= len(sequential) <= 9:
+        problems.append("数据色板 sequential 需要 3–9 个颜色")
+    if any(lightness(a) <= lightness(b) for a, b in zip(sequential, sequential[1:])):
+        problems.append("数据色板 sequential 必须由浅到深排列")
+    elif sequential and contrast(sequential[-1], paper) < 3:
+        problems.append(f"数据色板 sequential 最深的 {sequential[-1]} 对纸面不到 3:1")
+    if len(diverging) < 5 or len(diverging) % 2 == 0:
+        problems.append("数据色板 diverging 必须是奇数个颜色，至少 5 个")
+    else:
+        half = len(diverging) // 2
+        mid = diverging[half]
+        _, a, b = oklab(linear_rgb(mid))
+        if math.hypot(a, b) > 0.03:
+            problems.append(f"数据色板 diverging 的中点必须是中性色，{mid} 带有色相")
+        for arm in (diverging[half::-1], diverging[half:]):
+            if any(lightness(x) <= lightness(y) for x, y in zip(arm, arm[1:])):
+                problems.append("数据色板 diverging 从中点向两端必须逐级变深")
+                break
+        for end in (diverging[0], diverging[-1]):
+            if contrast(end, paper) < 3:
+                problems.append(f"数据色板 diverging 端点 {end} 对纸面不到 3:1")
+    return problems
+
+
 def check_fonts(lib: Library, errors: list[str]):
     for family, font in lib.fonts.items():
         kind = font.get("kind")
@@ -820,6 +922,10 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
                 ratio = contrast(palette[fg], palette[bg])
                 if ratio < LEVELS[level]:
                     errors.append(f"{where}：{variant} 中 {fg}/{bg} 对比 {ratio:.2f} 低于 {level} 要求 {LEVELS[level]}")
+        if "data" in seed:
+            papers = sorted({palette["paper"] for palette in palettes.values() if "paper" in palette})
+            for paper in papers:
+                errors += [f"{where}：{problem}" for problem in data_problems(seed["data"], paper)]
 
 
 def css_weights(css: str) -> set[int]:
@@ -866,6 +972,9 @@ def check_template(lib: Library, template, errors: list[str]):
                 errors.append(f"{where}：{a['id']} 与 {b['id']} 互相冲突")
     if any(scene not in SCENES for scene in template.get("scenes") or []):
         errors.append(f"{where}：scenes 含未知场景")
+    color = lib.seed(seeds.get("color"), template) if seeds.get("color") else None
+    if "data" in (template.get("scenes") or []) and color and "data" not in color:
+        errors.append(f"{where}：声明了 data 场景，但颜色 Seed {color['id']} 没有数据色板")
     for scene in (template.get("overrides") or {}):
         if scene not in SCENES:
             errors.append(f"{where}：overrides 含未知场景 {scene}")

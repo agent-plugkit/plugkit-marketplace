@@ -1,6 +1,6 @@
 name: musekit
 version: "1.0.0"
-description: "设计风格库与场景制作工作流：按设计元素分类的 Seed、组合成风格的 Template，以及网页、平面、图解、学术图和文章配图。"
+description: "设计风格库与场景制作工作流：按设计元素分类的 Seed、组合成风格的 Template，以及网页、平面、图解、数据图和文章配图。"
 author:
   name: "Agent Plugkit"
 category: general
@@ -10,7 +10,7 @@ tags:
   - ui
   - graphic
   - diagram
-  - scientific-figure
+  - data-figure
   - article-illustration
 
 components:
@@ -27,19 +27,19 @@ components:
     - name: diagram-design
       path: skills/diagram-design
       description: "把 Mermaid 或关系说明制作成可直接微调的图解（含科学过程示意），从 musepool 取风格，内置尺寸测量、走线、构图整理、布局编辑与验证后离线交付。"
-    - name: scientific-figure
-      path: skills/scientific-figure
-      description: "基于原始资料制作学术数据图与科学示意图，核对数据编码、标注和出版尺寸。"
+    - name: data-figure
+      path: skills/data-figure
+      description: "把数据做成准确、好看的数据图，从 musepool 取风格，核对数据编码与标注；学术出版图另守统计口径和出版尺寸。"
     - name: article-illustration
       path: skills/article-illustration
-      description: "为一整篇文章编排配图，确认后交给图解、平面或学术图 Skill，并把 PNG 插入不改原文的副本。"
+      description: "为一整篇文章编排配图，确认后交给图解、平面或数据图 Skill，并把 PNG 插入不改原文的副本。"
 
 platform:
   codex:
     interface:
       displayName: "Musekit"
       shortDescription: "从设计风格到场景作品"
-      longDescription: "Musepool 把按设计元素分类的 Seed 组合成风格 Template，按场景解析成 style.md；网页、平面、图解或学术图工作流用它完成制作与评审。文章配图由 article-illustration 编排后交给对应场景。用户的品牌规范或既有设计系统会被整理成同形的风格。"
+      longDescription: "Musepool 把按设计元素分类的 Seed 组合成风格 Template，按场景解析成 style.md；网页、平面、图解或数据图工作流用它完成制作与评审。文章配图由 article-illustration 编排后交给对应场景。用户的品牌规范或既有设计系统会被整理成同形的风格。"
       category: "General"
       developerName: "Agent Plugkit"
       capabilities:

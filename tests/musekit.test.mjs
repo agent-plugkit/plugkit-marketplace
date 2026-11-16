@@ -13,7 +13,7 @@ const plugin = join(root, 'plugins/musekit');
 const musepool = join(plugin, 'skills/musepool');
 const library = join(musepool, 'library');
 const script = join(musepool, 'scripts/muse.py');
-const skillNames = ['musepool', 'web-design', 'graphic-design', 'diagram-design', 'scientific-figure', 'article-illustration'];
+const skillNames = ['musepool', 'web-design', 'graphic-design', 'diagram-design', 'data-figure', 'article-illustration'];
 const precedentIds = [
   'vEj9F5om', 'rvYJrbZh', 'weZM545X', 'x1BNQPTi', 'swwKiFDe',
   'JiAIwOJv', 'LjwyQI6U', 'Vy3KTWAC', 'AT5oq8hX', 'B3LYgTWe', 'mC1nkP2t',
@@ -306,6 +306,56 @@ test('every template resolves for diagrams, with adaptations only where a direct
   assert.doesNotMatch(skill, /生图/);
 });
 
+test('color seeds carry checked data palettes that only the data scene resolves', () => {
+  for (const [id, first] of [['neo-swiss', '#2A6BC4'], ['editorial-serif', '#30609F']]) {
+    const data = cli('resolve', id, '--scene', 'data');
+    const meta = parse(/^---\n([\s\S]*?)\n---/.exec(data)[1]);
+    assert.equal(meta.data.categorical[0], first, id);
+    assert.equal(meta.data.diverging.length % 2, 1, id);
+    assert.match(data, new RegExp(`--data-cat-1: ${first};`), id);
+    assert.match(data, /--data-seq-1: /, id);
+    assert.match(data, /## 数据色板/, id);
+    const web = cli('resolve', id, '--scene', 'web');
+    assert.doesNotMatch(web, /--data-|## 数据色板/, id);
+    assert.equal(parse(/^---\n([\s\S]*?)\n---/.exec(web)[1]).data, undefined, id);
+  }
+  const palette = (categorical, sequential, diverging) =>
+    `data:\n  categorical: [${categorical}]\n  sequential: [${sequential}]\n  diverging: [${diverging}]\npairs:\n  - [ink, paper, body]`;
+  const seq = '"#CEDFF8", "#93B5E5", "#598AD0", "#1D5FB7", "#00368B"';
+  const div = '"#00489E", "#7393C0", "#DEDBD3", "#BA8168", "#8E1E00"';
+  const cat = '"#2A6BC4", "#C9581A", "#13906A", "#94468F", "#831826"';
+  const dataTemplate = (color) => userTemplate(color).replace('scenes: [web]', 'scenes: [web, data]');
+  const dir = scratch({
+    'good.md': userSeed('good', palette(cat, seq, div)).replace('scenes: [web]', 'scenes: [web, data]'),
+    'pale.md': userSeed('pale', palette('"#2A6BC4", "#F0C8A0", "#13906A"', seq, div)),
+    'twins.md': userSeed('twins', palette('"#2A6BC4", "#2D6EC8", "#13906A"', seq, div)),
+    'cvd.md': userSeed('cvd', palette('"#C2457E", "#16936A", "#2A6BC4"', seq, div)),
+    // 按顺序取色时前 n 个颜色会同框，不相邻的两色也要分得开。
+    'apart.md': userSeed('apart', palette('"#2A6BC4", "#C9581A", "#13906A", "#8257C9", "#A67A1E"', seq, div)),
+    'order.md': userSeed('order', palette(cat, '"#598AD0", "#CEDFF8", "#00368B"', div)),
+    'even.md': userSeed('even', palette(cat, seq, '"#00489E", "#7393C0", "#BA8168", "#8E1E00"')),
+    'hue.md': userSeed('hue', palette(cat, seq, '"#00489E", "#7393C0", "#E0C040", "#BA8168", "#8E1E00"')),
+    'style.md': dataTemplate('good.md'),
+    'bare.md': userSeed('bare', 'pairs:\n  - [ink, paper, body]'),
+    'no-palette.md': dataTemplate('bare.md'),
+  });
+  try {
+    assert.equal(run('check', join(dir, 'style.md')).status, 0, run('check', join(dir, 'style.md')).stdout);
+    assert.match(cli('resolve', join(dir, 'style.md'), '--scene', 'data'), /--data-div-3: #DEDBD3;/);
+    const expect = { 'pale.md': /#F0C8A0 对纸面只有 1\.\d+:1/, 'twins.md': /#2A6BC4 与 #2D6EC8 太接近/,
+      'cvd.md': /#C2457E 与 #16936A 在色盲模拟下太接近/, 'apart.md': /#C9581A 与 #A67A1E 在色盲模拟下太接近/, 'order.md': /sequential 必须由浅到深/,
+      'even.md': /diverging 必须是奇数个颜色/, 'hue.md': /diverging 的中点必须是中性色/,
+      'no-palette.md': /声明了 data 场景，但颜色 Seed bare 没有数据色板/ };
+    for (const [file, pattern] of Object.entries(expect)) {
+      const result = run('check', join(dir, file));
+      assert.equal(result.status, 1, file);
+      assert.match(result.stdout, pattern, file);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('scene overrides carry breakpoints, derived column width and text pairs into style.md', () => {
   const web = cli('resolve', 'neo-swiss', '--scene', 'web');
   const meta = parse(/^---\n([\s\S]*?)\n---/.exec(web)[1]);
@@ -436,6 +486,12 @@ test('search is scene-aware and says when nothing matches', () => {
   assert.match(found, /graphic 适配：有/);
   assert.match(cli('search', '--scene', 'slides', 'swiss'), /slides 适配：缺失/);
   assert.match(cli('search', 'no-such-style-847261'), /无命中/);
+  // 气质词表是封闭的：无命中时给出本场景能用的词，而不是让 Agent 盲猜近义词。
+  const miss = cli('search', '--scene', 'data', '温和');
+  assert.match(miss, /无命中/);
+  assert.match(miss, /data 场景可用的气质词：.*理性/);
+  assert.match(miss, /data 场景可用的气质词：.*人文/);
+  assert.doesNotMatch(miss, /安静/);
   assert.match(cli('search', '--seeds', '网格'), /grid\/asymmetric-modular/);
 });
 

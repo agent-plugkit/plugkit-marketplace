@@ -1,14 +1,14 @@
 {
   "name": "musekit",
   "version": "1.0.0",
-  "description": "设计风格库与场景制作工作流：按设计元素分类的 Seed、组合成风格的 Template，以及网页、平面、图解、学术图和文章配图。",
+  "description": "设计风格库与场景制作工作流：按设计元素分类的 Seed、组合成风格的 Template，以及网页、平面、图解、数据图和文章配图。",
   "author": {
     "name": "Agent Plugkit"
   },
   "interface": {
     "displayName": "Musekit",
     "shortDescription": "从设计风格到场景作品",
-    "longDescription": "Musepool 把按设计元素分类的 Seed 组合成风格 Template，按场景解析成 style.md；网页、平面、图解或学术图工作流用它完成制作与评审。文章配图由 article-illustration 编排后交给对应场景。用户的品牌规范或既有设计系统会被整理成同形的风格。",
+    "longDescription": "Musepool 把按设计元素分类的 Seed 组合成风格 Template，按场景解析成 style.md；网页、平面、图解或数据图工作流用它完成制作与评审。文章配图由 article-illustration 编排后交给对应场景。用户的品牌规范或既有设计系统会被整理成同形的风格。",
     "category": "General",
     "developerName": "Agent Plugkit",
     "capabilities": [

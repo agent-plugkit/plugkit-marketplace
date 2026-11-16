@@ -1,6 +1,6 @@
 ---
 name: diagram-design
-description: 把 Mermaid 或关系说明制作成图解：架构、流程、决策、时序、状态、数据流和科学过程示意。写 Brief，从 musepool 取风格，选图型结构，用随 Skill 提供的运行时做成可编辑的离线 HTML 与 PNG 并评审。位置由数值决定的数据图交给 scientific-figure，插画式表达交给 graphic-design。
+description: 把 Mermaid 或关系说明制作成图解：架构、流程、决策、时序、状态、数据流和科学过程示意。写 Brief，从 musepool 取风格，选图型结构，用随 Skill 提供的运行时做成可编辑的离线 HTML 与 PNG 并评审。位置由数值决定的数据图交给 data-figure，插画式表达交给 graphic-design。
 ---
 
 # Diagram Design
@@ -10,7 +10,7 @@ description: 把 Mermaid 或关系说明制作成图解：架构、流程、决�
 ## 什么归这里
 
 - 位置表达关系、顺序或流程的图：系统架构、部署边界、流程与决策、交互时序、状态迁移、数据流与事件流，以及科学过程示意（实验步骤、装置流程、分流与汇合）。
-- 位置由数值决定的图（柱、线、散点、分布）交给 `scientific-figure`。一张图里既有数据面板又有示意面板时，由它拼版，示意面板在这里做。
+- 位置由数值决定的图（柱、线、散点、分布）交给 `data-figure`。一张图里既有数据面板又有示意面板时，由它拼版，示意面板在这里做。
 - 需要插画、物件隐喻或摄影质感来表达的请求交给 `graphic-design`。本 Skill 不生成整图图像。
 
 ## Brief → 风格 → 结构 → 制作 → 评审

@@ -28,6 +28,10 @@ variants:
     accent: "#E1251B"
   cobalt:
     accent: "#2F62E8"
+data:
+  categorical: ["#2A6BC4", "#C9581A", "#13906A", "#70318A", "#97182B"]
+  sequential: ["#CEDFF8", "#93B5E5", "#598AD0", "#1D5FB7", "#00368B"]
+  diverging: ["#00489E", "#7393C0", "#DEDBD3", "#BA8168", "#8E1E00"]
 pairs:
   - [ink, paper, body]
   - [ink-muted, paper, body]

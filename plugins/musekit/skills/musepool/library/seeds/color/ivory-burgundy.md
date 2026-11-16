@@ -28,6 +28,10 @@ variants:
     accent: "#8C1D18"
   forest:
     accent: "#22553D"
+data:
+  categorical: ["#30609F", "#B8621C", "#0A846A", "#842A64", "#8B87D8"]
+  sequential: ["#D2DFF1", "#9BB5D8", "#658BBE", "#3262A1", "#083B77"]
+  diverging: ["#1C4C8A", "#7E96B8", "#E8E2D8", "#B68A6D", "#823000"]
 pairs:
   - [ink, paper, body]
   - [ink-muted, paper, body]
