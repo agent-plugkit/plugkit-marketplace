@@ -6,7 +6,7 @@ name: 偏心留白网格
 status: draft
 scenes: [graphic, web, slides]
 affinity: [japanese-ma]
-conflicts: [stacked-blocks]
+conflicts: [panel-wall]
 tokens:
   canvas-width:
     value: 1440px

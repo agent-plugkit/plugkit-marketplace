@@ -20,7 +20,7 @@ const precedentIds = [
   'pu9ToBED', 'G26LBSOO', 'C4aZtWoH', 'haYCh1wI', 'H9aLYT6s',
   'pibXRzsG', 'rVQmfOqR', 'Nv0J2QBT', 'FpA0MHDV', 'tTceao0M',
   't2Q6D5JR', '1JlUSoIP', 'Yoiov5EL', 'upXsOXv8', 'lC4BpOAk',
-  'o0W3sQmk', 'tVghVsn2', 'GzPJkoac',
+  'o0W3sQmk', 'tVghVsn2', 'GzPJkoac', 'nB7kQ2mX',
 ];
 
 function walk(dir) {
@@ -126,6 +126,29 @@ test('precedents survive as exemplars and the template links real ones', () => {
   const swiss = frontmatter(join(library, 'templates/neo-swiss.md'));
   for (const id of swiss.exemplars) assert.ok(precedentIds.includes(id));
   assert.equal(cli('show', 'LjwyQI6U'), readFileSync(join(library, 'precedents/graphic/sustainability-manifesto-ljwyqi6u.md'), 'utf8'));
+});
+
+test('neo-brutalism lays out a zero-gap panel wall with checkable layout rules', () => {
+  const graphic = cli('resolve', 'neo-brutalism', '--scene', 'graphic');
+  assert.match(graphic, /### 拼板墙（grid）/);
+  assert.match(graphic, /panel-gap: "0px"/);
+  assert.match(graphic, /dominant-ratio: 2/);
+  assert.match(graphic, /fill-ratio: 0\.9/);
+  assert.match(graphic, /sticker-tilt: "6deg"/);
+  assert.match(graphic, /radius: "0px"/);
+  assert.doesNotMatch(graphic, /堆叠块面/);
+  for (const scene of ['graphic', 'web']) {
+    const adaptation = cli('resolve', 'neo-brutalism', '--scene', scene).split('## 本场景适配')[1].split('## Seed 要点')[0];
+    assert.doesNotMatch(adaptation, /卡片/, scene);
+  }
+  const brutal = frontmatter(join(library, 'templates/neo-brutalism.md'));
+  assert.equal(brutal.seeds.grid, 'panel-wall');
+  assert.ok(brutal.exemplars.includes('nB7kQ2mX'));
+  const swiss = 'paper-ink-signal,grotesk-cjk,baseline-8';
+  for (const clash of ['ma-interval', 'zero-radius-hairline']) {
+    assert.equal(run('compose', '--id', 'x', '--name', 'x', '--family', 'neo-brutalism',
+      '--seeds', `${swiss},panel-wall,${clash}`).status, 3, clash);
+  }
 });
 
 test('resolve applies variants, scene overrides and reports missing adaptations', () => {

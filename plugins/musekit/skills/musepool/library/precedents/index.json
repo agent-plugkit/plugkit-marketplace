@@ -2038,5 +2038,65 @@
         "custom-font"
       ]
     }
+  },
+  {
+    "id": "nB7kQ2mX",
+    "file": "ui/neobrutalism-components-nb7kq2mx.md",
+    "scenario": "ui",
+    "category": "neobrutalism component library",
+    "gist": "An open-source collection of neobrutalism-styled React components built on shadcn/ui, presented on a documentation site with a centered landing hero, scattered star shapes and a single call to action. Its purpose is to give developers a ready vocabulary for the style at the component level: buttons,",
+    "core_dimensions": [
+      "color",
+      "typography",
+      "craft"
+    ],
+    "scores": {
+      "anti_slop_value": 0.6,
+      "code_value": 0.8,
+      "density": 0.5,
+      "motion_intensity": 0.3,
+      "novelty": 0.5,
+      "visual_value": 0.6
+    },
+    "tags": {
+      "color": [
+        "multi-accent",
+        "saturated",
+        "black-outline"
+      ],
+      "domain": [
+        "developer-tools",
+        "design-system"
+      ],
+      "imagery": [
+        "no-imagery",
+        "svg-led"
+      ],
+      "layout": [
+        "centered",
+        "card-grid"
+      ],
+      "material": [
+        "no-material"
+      ],
+      "motion": [
+        "marquee",
+        "hover-reveal"
+      ],
+      "style": [
+        "bold",
+        "playful",
+        "brutalist"
+      ],
+      "tech": [
+        "react",
+        "tailwind",
+        "shadcn-ui"
+      ],
+      "typography": [
+        "sans-serif",
+        "grotesque"
+      ]
+    }
   }
 ]
