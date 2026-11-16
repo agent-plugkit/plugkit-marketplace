@@ -1,8 +1,13 @@
 /*
  * Musekit 网点模块：把墨量场渲染成一块网点印版。
  *
- * 用法：把本文件复制进作品目录，用 <script src="halftone.js"></script> 引入（经典脚本，
+ * 用法：把本文件复制进作品目录，用带 src="halftone.js" 的 script 标签引入（经典脚本，
  * file:// 下也能运行），得到全局对象 MusekitHalftone。没有依赖，不访问网络。
+ * 单文件交付时，可以把本文件全文原样放进页面的一个 script 标签里；文件里没有会提前
+ * 结束标签的字样。
+ *
+ * 重画：dots 按给定尺寸算一次。画布尺寸随容器变化时（用 ResizeObserver 监听），或者
+ * 墨量场依赖文字位置时（等 document.fonts.ready 之后），重新调用 dots 和 draw。
  *
  * 参数与 halftone-plate Seed 的 token 一一对应：
  *   cell      ← halftone-cell（px）

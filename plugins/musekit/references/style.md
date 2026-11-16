@@ -23,6 +23,7 @@ Brief 写完后调用 `musepool`，带上场景（`graphic`、`web`、`slides`�
 
 ## 状态
 
+- 风格的状态以 Template 为准；它引用的 Seed 是 `draft` 只表示库内维护进度，交付时不另行说明。
 - `draft`：风格尚未经过人工确认，交付时写明。
 - `user`：用户自己的规范优先；与 style.md 中其他建议冲突时，以用户规范为准。
 - `composed`：混搭风格，交付时说明它由哪些 Seed 组成。

@@ -302,6 +302,14 @@ def em(value) -> float | None:
     return float(match.group(1)) if match else None
 
 
+def padding_pair(raw) -> tuple[float, float]:
+    parts = [part.strip() for part in str(raw).split(",")]
+    if len(parts) not in (1, 2):
+        raise MuseError("--padding 写一个值，或者 左,右 两个值")
+    left, right = (float(parts[0]), float(parts[-1]))
+    return left, right
+
+
 def default_tracking(values) -> float:
     """fit 按全角汉字计算，所以优先取中文展示字距。"""
     for name in ("tracking-display-cjk", "tracking-display"):
@@ -627,12 +635,15 @@ def cmd_fit(args, lib: Library):
     # 字块长度 = 字号 × (字数 + (字数 - 1) × 字距)，字距以 em 计。
     tracking = args.tracking if args.tracking is not None else default_tracking(values)
     units = args.chars + (args.chars - 1) * tracking
-    note = f"字数 {args.chars}，字距 {tracking:g}em，内边距 {args.padding:g}px（按全角汉字等宽计算；西文需要在浏览器里实测宽度）"
+    left, right = padding_pair(args.padding)
+    pads = left + right
+    padding_note = f"内边距 {left:g}px" if left == right else f"内边距左 {left:g}px、右 {right:g}px"
+    note = f"字数 {args.chars}，字距 {tracking:g}em，{padding_note}（按全角汉字等宽计算；西文需要在浏览器里实测宽度）"
     if args.vertical:
         height = px(values.get("canvas-height"))
         if height is None:
             raise MuseError("竖排需要 canvas-height token")
-        length = height - 2 * margin - 2 * args.padding
+        length = height - 2 * margin - pads
         print(f"{note}，竖排")
         print(f"参照画布高 {height:g}px：可用长度 {length:g}px，展示字号 {length / units:.1f}px（参照值 {values.get('size-display')}）")
         print("竖排字块的长度通常取可用长度的一半到三分之二，按构图把结果乘以相应比例。")
@@ -640,18 +651,30 @@ def cmd_fit(args, lib: Library):
     if not 1 <= args.span <= columns:
         raise MuseError(f"--span 必须在 1 到 {columns} 之间")
     print(f"{note}，跨 {args.span}/{columns} 栏")
+
+    def span_width(viewport: float) -> float:
+        if args.span == columns:
+            return viewport - 2 * margin - pads
+        return (viewport - 2 * margin - (columns - 1) * gutter) / columns * args.span + (args.span - 1) * gutter - pads
+
     canvas = px(values.get("canvas-width"))
     if canvas is not None and not args.breakpoint:
-        width = args.span * column_width(values) + (args.span - 1) * gutter - 2 * args.padding
+        width = span_width(canvas)
         print(f"参照画布 {canvas:g}px：可用宽度 {round(width, 1):g}px，展示字号 {width / units:.1f}px（参照值 {values.get('size-display')}）")
-    viewport = f"min(100vw, {canvas:g}px)" if canvas is not None and not args.breakpoint else "100vw"
+    # 100cqi 是根容器的内容宽度，不含滚动条；100vw 含滚动条，会让顶满的标题溢出。
+    viewport = f"min(100cqi, {canvas:g}px)" if canvas is not None and not args.breakpoint else "100cqi"
     if args.span == columns:
         span = f"{viewport} - {2 * margin:g}px"
     else:
         span = f"({viewport} - {2 * margin:g}px - {columns - 1} * {gutter:g}px) / {columns} * {args.span} + {args.span - 1} * {gutter:g}px"
-    if args.padding:
-        span = f"{span} - {2 * args.padding:g}px"
+    if pads:
+        span = f"{span} - {pads:g}px"
     print(f"流式表达式：calc(({span}) / {units:g})")
+    print("表达式里的 100cqi 需要在标题的祖先上（通常是 body）声明 container-type: inline-size。")
+    if args.breakpoint:
+        edge = px(scene_breakpoints(template, args.scene, values)[args.breakpoint]["max-width"])
+        print(f"这个断点的流式字号在断点上沿 {edge:g}px 时为 {span_width(edge) / units:.1f}px，是它的最大值。"
+              "它不应大于断点以上的版面在同一宽度的标题字号；大于时用 min(流式表达式, 那个字号) 封顶，避免窗口变窄时标题反而变大。")
     print("适配要求跨满栏时以这个结果为准，它可以超过参照值；标题设为不换行；汉字墨迹比字身略窄，对齐强左轴时按浏览器实测的墨迹边界微调。")
 
 
@@ -963,7 +986,8 @@ def main(argv=None) -> int:
     p.add_argument("--span", type=int, default=0, help="横排时跨几栏")
     p.add_argument("--tracking", type=float, default=None,
                    help="字距，单位 em；默认取 tracking-display-cjk，没有时取 tracking-display")
-    p.add_argument("--padding", type=float, default=0.0, help="字块所在容器的左右（竖排时为上下）内边距，单位 px")
+    p.add_argument("--padding", default="0",
+                   help="字块到所跨栏位外沿的距离，单位 px，边框宽度算在内；两侧不同时写成 左,右（竖排时为 上,下）")
     p.add_argument("--vertical", action="store_true", help="竖排：按画布高度推导")
     p.add_argument("--breakpoint")
     p = sub.add_parser("specimen", help="生成样张 HTML")

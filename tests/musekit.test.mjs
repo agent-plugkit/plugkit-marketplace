@@ -220,6 +220,41 @@ test('seeds declare shared production tools and resolve says to copy them into t
   }
 });
 
+test('tablet breakpoints narrow the margins that blocked line length, and narrow walls relax the area ratio', () => {
+  // 768 宽时原来的 128px / 96px 外边距让正文栏放不下规定的行长。
+  for (const [id, margin] of [['japanese-ma', '64px'], ['editorial-serif', '48px'], ['mono-print', '64px']]) {
+    const meta = parse(/^---\n([\s\S]*?)\n---/.exec(cli('resolve', id, '--scene', 'web'))[1]);
+    assert.equal(meta.breakpoints.tablet.margin, margin, id);
+  }
+  const nb = parse(/^---\n([\s\S]*?)\n---/.exec(cli('resolve', 'neo-brutalism', '--scene', 'web'))[1]);
+  assert.equal(nb.breakpoints.mobile['dominant-ratio'], 1.5);
+  assert.match(cli('resolve', 'neo-brutalism', '--scene', 'web'), /`min\(\)` 封顶/);
+});
+
+test('rules that collided across styles in the tracer rerun are settled in the resolved text', () => {
+  // 等宽字体不排中文和长破折号。
+  for (const id of ['mono-print', 'neo-brutalism', 'editorial-serif', 'neo-swiss']) {
+    assert.match(cli('resolve', id, '--scene', 'web'), /含中文或长破折号「—」的值改用正文字体/, id);
+  }
+  // 状态反馈不占强调色的次数；没有后端时不盖「已登记」。
+  assert.match(cli('resolve', 'editorial-serif', '--scene', 'web'), /出错说明只在出错时出现、改正后消失，不计入这个次数/);
+  assert.match(cli('resolve', 'japanese-ma', '--scene', 'web'), /导航的当前态用细下划线、出错说明用墨色，都不用朱色/);
+  const mono = cli('resolve', 'mono-print', '--scene', 'web');
+  assert.match(mono, /只做了本地校验时写「已核对」/);
+  assert.match(mono, /印刷面积（有墨的面积，不算露出的纸）/);
+  // 海报上的关键事实不用 size-meta。
+  for (const id of ['japanese-ma', 'mono-print', 'editorial-serif']) {
+    assert.match(cli('resolve', id, '--scene', 'graphic'), /`size-body`/, id);
+  }
+  const shared = (path) => readFileSync(join(plugin, path), 'utf8');
+  assert.match(shared('references/critique.md'), /声明和「示例」小标是制作附注，不算风格元素/);
+  assert.match(shared('skills/graphic-design/SKILL.md'), /约按 0\.25 倍显示/);
+  for (const skill of ['graphic-design', 'web-design']) {
+    assert.match(shared(`skills/${skill}/SKILL.md`), /Brief 写完后再取，用户点名了风格也一样/);
+  }
+  assert.match(shared('skills/web-design/references/methods.md'), /行长优先于栏数/);
+});
+
 test('resolve applies variants, scene overrides and reports missing adaptations', () => {
   const graphic = cli('resolve', 'neo-swiss', '--scene', 'graphic');
   assert.match(graphic, /^adaptation: provided$/m);
@@ -259,8 +294,21 @@ test('scene overrides carry breakpoints, derived column width and text pairs int
 
 test('fit derives display size from character count and span', () => {
   assert.match(cli('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '12'), /展示字号 190\.4px/);
-  assert.match(cli('fit', 'neo-swiss', '--scene', 'web', '--chars', '5', '--span', '4', '--breakpoint', 'mobile'),
-    /calc\(\(100vw - 48px\) \/ 5\)/);
+  // 流式表达式用容器宽度，不含滚动条；输出提醒在根容器上声明 container-type。
+  const mobile = cli('fit', 'neo-swiss', '--scene', 'web', '--chars', '5', '--span', '4', '--breakpoint', 'mobile');
+  assert.match(mobile, /calc\(\(100cqi - 48px\) \/ 5\)/);
+  assert.match(mobile, /container-type: inline-size/);
+  assert.doesNotMatch(mobile, /100vw/);
+  // 内边距可以左右不同；靠接缝一侧和靠视口一侧常常不一样。
+  const uneven = cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '48,24');
+  assert.match(uneven, /内边距左 48px、右 24px/);
+  assert.match(uneven, /可用宽度 912px，展示字号 235\.1px/);
+  assert.match(uneven, / - 72px\) \/ 3\.88\)/);
+  assert.equal(run('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '1,2,3').status, 2);
+  // 断点版面的流式字号在断点上沿最大，输出这个值，避免窄一档的标题比宽一档还大。
+  const tablet = cli('fit', 'neo-brutalism', '--scene', 'web', '--chars', '4', '--span', '12', '--breakpoint', 'tablet');
+  assert.match(tablet, /断点上沿 1100px 时为 258\.8px/);
+  assert.match(tablet, /min\(/);
   assert.equal(run('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '13').status, 2);
   // 默认字距取 tracking-display-cjk，缺省时取 tracking-display；--tracking 显式覆盖。
   assert.match(cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '32'), /字距 -0\.04em.*\n.*可用宽度 920px，展示字号 237\.1px/);

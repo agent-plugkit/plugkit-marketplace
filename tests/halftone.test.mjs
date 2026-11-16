@@ -27,6 +27,8 @@ test('the module is a dependency-free classic script', () => {
   assert.equal(typeof H.fieldFromImage, 'function');
   assert.doesNotMatch(source, /^\s*(import|export)\s/m);
   assert.doesNotMatch(source, /\b(fetch|XMLHttpRequest|require)\s*\(|https?:\/\//);
+  // Single-file pages inline the module, so nothing in it may close the script element early.
+  assert.doesNotMatch(source, /<\/script/i);
 });
 
 test('the same input and seed give the same dots; another seed changes only the texture', () => {
