@@ -520,6 +520,8 @@ def cmd_resolve(args, lib: Library):
         boundary = sections(seed["_body"]).get("适用与边界")
         if boundary:
             out += ["**适用与边界**：" + boundary.replace("\n", " "), ""]
+        for tool in seed.get("tools") or []:
+            out += [f"制作工具：插件内的 `{tool}`，用法写在文件开头。复制进作品目录使用，不要在成品里引用插件路径。", ""]
     out += ["## 常见误用", "", parts.get("常见误用", "无。"), "", "## 范例", ""]
     if parts.get("范例"):
         out += [parts["范例"], ""]
@@ -723,6 +725,15 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
         errors.append(f"{where}：文件应位于 seeds/{category}/{seed.get('id')}.md")
     if "要点" not in sections(seed.get("_body", "")):
         errors.append(f"{where}：正文缺少「## 要点」")
+    tools = seed.get("tools") or []
+    if not isinstance(tools, list):
+        errors.append(f"{where}：tools 必须是插件 assets/ 内的路径列表")
+        tools = []
+    assets = (PLUGIN / "assets").resolve()
+    for tool in tools:
+        target = (PLUGIN / str(tool)).resolve()
+        if assets not in target.parents or not target.is_file():
+            errors.append(f"{where}：制作工具 {tool} 不是插件 assets/ 里存在的文件")
     tokens = seed.get("tokens") or {}
     for name, token in tokens.items():
         if not isinstance(token, dict) or "value" not in token:

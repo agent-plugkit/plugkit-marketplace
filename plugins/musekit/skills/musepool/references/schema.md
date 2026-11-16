@@ -17,6 +17,15 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 | `affinity` | 与之相配的风格族，例如 `neo-swiss` |
 | `conflicts` | 不能同时使用的 Seed id 或风格族 |
 | `tokens` | 每个 token 是一个映射：`value` 必填，`role` 说明用途 |
+| `tools` | 可选。这个 Seed 要用到的共享制作工具，是路径列表，路径相对插件根，例如 `[assets/halftone.js]`。文件必须在插件的 `assets/` 里。`resolve` 会在这个 Seed 的要点之后写明工具的位置 |
+
+制作工具放在哪一层：
+
+- 风格库只描述做法，不放可执行代码。
+- 只有一个 Workflow 用的工具放在那个 Workflow 里，例如 diagram-design 的运行时。
+- 两个以上 Workflow 共用的工具放在插件级的 `assets/`，由 Seed 用 `tools` 声明。
+- 共享工具都是单文件，没有依赖，不访问网络，不需要构建；能在浏览器里直接运行，`file://` 下也能用。
+- 制作时把工具复制进作品目录，成品不引用插件路径。
 
 类别专属字段：
 

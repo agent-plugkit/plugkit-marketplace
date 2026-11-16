@@ -186,6 +186,40 @@ test('templates link workflow examples per scene and resolve points to the curre
   }
 });
 
+test('seeds declare shared production tools and resolve says to copy them into the work', () => {
+  const { tools, tokens } = frontmatter(join(library, 'seeds/texture/halftone-plate.md'));
+  assert.deepEqual(tools, ['assets/halftone.js']);
+  assert.ok(existsSync(join(plugin, 'assets/halftone.js')));
+  for (const name of ['halftone-cell', 'halftone-angle', 'halftone-angle-accent', 'ink-drift', 'dry-break', 'registration-offset']) {
+    assert.ok(tokens[name], name);
+  }
+  for (const scene of ['graphic', 'web']) {
+    const style = cli('resolve', 'mono-print', '--scene', scene);
+    const section = style.split('### 网点与套印')[1].split('\n### ')[0];
+    assert.match(section, /制作工具：插件内的 `assets\/halftone\.js`/);
+    assert.match(section, /复制进作品目录/);
+    assert.match(style, /^  halftone-angle: "45deg"$/m);
+  }
+  assert.doesNotMatch(cli('resolve', 'neo-swiss', '--scene', 'web'), /制作工具：/);
+  const withTools = (tools) => userSeed('brand', `tools: ${tools}`);
+  const dir = scratch({
+    'ok.md': withTools('[assets/halftone.js]'),
+    'missing.md': withTools('[assets/none.js]'),
+    'outside.md': withTools('[skills/musepool/scripts/muse.py]'),
+    'escape.md': withTools('[../../package.json]'),
+    'shape.md': withTools('assets/halftone.js'),
+  });
+  try {
+    assert.equal(run('check', join(dir, 'ok.md')).status, 0);
+    assert.match(run('check', join(dir, 'missing.md')).stdout, /制作工具 assets\/none\.js 不是插件 assets\/ 里存在的文件/);
+    assert.match(run('check', join(dir, 'outside.md')).stdout, /制作工具 skills\/musepool\/scripts\/muse\.py 不是插件 assets\/ 里/);
+    assert.match(run('check', join(dir, 'escape.md')).stdout, /制作工具 \.\.\/\.\.\/package\.json 不是/);
+    assert.match(run('check', join(dir, 'shape.md')).stdout, /tools 必须是插件 assets\/ 内的路径列表/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('resolve applies variants, scene overrides and reports missing adaptations', () => {
   const graphic = cli('resolve', 'neo-swiss', '--scene', 'graphic');
   assert.match(graphic, /^adaptation: provided$/m);
