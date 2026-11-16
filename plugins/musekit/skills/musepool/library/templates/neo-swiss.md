@@ -4,7 +4,7 @@ kind: template
 name: 新瑞士国际主义
 name_en: Neo-Swiss International Style
 family: neo-swiss
-status: draft
+status: verified
 source: library
 scenes: [graphic, web, slides, diagram, data]
 mood: [理性, 秩序, 锋利, 克制, 当代, 机构感, swiss, grid, minimal, bold]

@@ -4,7 +4,7 @@ kind: template
 name: 编辑衬线
 name_en: Editorial Serif
 family: editorial-serif
-status: draft
+status: verified
 source: library
 scenes: [graphic, web, slides, data]
 mood: [文学, 阅读, 出版, 优雅, 人文, 温暖, 杂志, 书, 慢读, 文化, serif, editorial, magazine, literary]

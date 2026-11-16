@@ -4,7 +4,7 @@ kind: template
 name: 日式留白（间）
 name_en: Japanese Ma
 family: japanese-ma
-status: draft
+status: verified
 source: library
 scenes: [graphic, web, slides]
 mood: [安静, 留白, 内省, 克制, 文学, 慢, 手作, 东方, 诗意, quiet, minimal, ma, zen]
