@@ -19,7 +19,7 @@ tokens:
   gutter:
     value: 32px
   margin:
-    value: 80px
+    value: 96px
 ---
 
 # 编辑栏与旁注

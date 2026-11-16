@@ -6,7 +6,7 @@
   python3 scripts/muse.py show <template|seed|precedent id 或字体名>
   python3 scripts/muse.py resolve <template id|路径> --scene S [--variant V] [--out style.md]
   python3 scripts/muse.py compose --id ID --name 名称 --family F --seeds a,b,c [--out 路径]
-  python3 scripts/muse.py fit <template> --scene S --chars N --span K [--breakpoint B]
+  python3 scripts/muse.py fit <template> --scene S --chars N (--span K | --vertical) [--tracking EM] [--padding PX] [--breakpoint B]
   python3 scripts/muse.py specimen <template id|路径> [--variant V] --out specimen.html
   python3 scripts/muse.py check [路径...] [--links]
   python3 scripts/muse.py frontmatter <路径>          # 以 JSON 打印 frontmatter，供调试
@@ -265,7 +265,7 @@ def template_tokens(lib: Library, template, scene: str | None, variant: str | No
             values[name] = value
     derived = column_width(values)
     if derived is not None:
-        values["column-width"] = f"{derived:g}px"
+        values["column-width"] = f"{round(derived, 2):g}px"
         roles["column-width"] = "推导值：参照画布下单栏的宽度"
         owner["column-width"] = "grid"
     return values, roles, owner, variant
@@ -299,7 +299,7 @@ def column_width(values) -> float | None:
     columns = values.get("columns")
     if None in (canvas, margin, gutter) or not isinstance(columns, int) or columns < 1:
         return None
-    return round((canvas - 2 * margin - (columns - 1) * gutter) / columns, 2)
+    return (canvas - 2 * margin - (columns - 1) * gutter) / columns
 
 
 def ratio_problems(values, label: str) -> list[str]:
@@ -314,6 +314,18 @@ def ratio_problems(values, label: str) -> list[str]:
     if isinstance(display, (int, float)) and sizes["display"] and sizes["body"]:
         if sizes["display"] / sizes["body"] < display - 1e-9:
             problems.append(f"{label}：size-display/size-body = {sizes['display'] / sizes['body']:.2f}，低于 ratio-display {display}")
+    return problems
+
+
+def spacing_problems(values, label: str) -> list[str]:
+    scale = values.get("space-scale")
+    if not isinstance(scale, list):
+        return []
+    problems = []
+    for name in ("margin", "gutter"):
+        size = px(values.get(name))
+        if size is not None and size not in scale:
+            problems.append(f"{label}：{name} {values.get(name)} 不在间距阶梯 {scale} 中")
     return problems
 
 
@@ -346,7 +358,7 @@ def css_variables(lib: Library, values, owner) -> list[str]:
     cjk = values.get("font-cjk")
     for name, value in values.items():
         if name.startswith("font-"):
-            stack = font_stack(lib, value, None if name in ("font-cjk", "font-mono") else cjk)
+            stack = font_stack(lib, value, None if name == "font-cjk" else cjk)
             rendered = ", ".join(item if item in ("sans-serif", "serif", "monospace") else f'"{item}"' for item in stack)
             lines.append(f"  --{name}: {rendered};")
         elif isinstance(value, list):
@@ -486,6 +498,9 @@ def cmd_resolve(args, lib: Library):
     for category, seed_id in template["seeds"].items():
         seed = lib.seed(seed_id, template)
         out += [f"### {seed['name']}（{category}）", "", seed_points(seed), ""]
+        boundary = sections(seed["_body"]).get("适用与边界")
+        if boundary:
+            out += ["**适用与边界**：" + boundary.replace("\n", " "), ""]
     out += ["## 常见误用", "", parts.get("常见误用", "无。"), "", "## 范例", ""]
     for exemplar in template.get("exemplars") or []:
         entry = lib.precedents.get(exemplar)
@@ -582,22 +597,36 @@ def cmd_fit(args, lib: Library):
     columns, margin, gutter = values.get("columns"), px(values.get("margin")), px(values.get("gutter"))
     if not isinstance(columns, int) or margin is None or gutter is None:
         raise MuseError("需要 columns、margin、gutter 三个 token")
-    if not 1 <= args.span <= columns:
-        raise MuseError(f"--span 必须在 1 到 {columns} 之间")
     if args.chars < 1:
         raise MuseError("--chars 必须大于 0")
-    print(f"字数 {args.chars}，跨 {args.span}/{columns} 栏（按全角汉字等宽计算；西文需要在浏览器里实测宽度）")
+    # 字块长度 = 字号 × (字数 + (字数 - 1) × 字距)，字距以 em 计。
+    units = args.chars + (args.chars - 1) * args.tracking
+    note = f"字数 {args.chars}，字距 {args.tracking:g}em，内边距 {args.padding:g}px（按全角汉字等宽计算；西文需要在浏览器里实测宽度）"
+    if args.vertical:
+        height = px(values.get("canvas-height"))
+        if height is None:
+            raise MuseError("竖排需要 canvas-height token")
+        length = height - 2 * margin - 2 * args.padding
+        print(f"{note}，竖排")
+        print(f"参照画布高 {height:g}px：可用长度 {length:g}px，展示字号 {length / units:.1f}px（参照值 {values.get('size-display')}）")
+        print("竖排字块的长度通常取可用长度的一半到三分之二，按构图把结果乘以相应比例。")
+        return
+    if not 1 <= args.span <= columns:
+        raise MuseError(f"--span 必须在 1 到 {columns} 之间")
+    print(f"{note}，跨 {args.span}/{columns} 栏")
     canvas = px(values.get("canvas-width"))
     if canvas is not None and not args.breakpoint:
-        width = args.span * column_width(values) + (args.span - 1) * gutter
-        print(f"参照画布 {canvas:g}px：字块宽 {width:g}px，展示字号 {width / args.chars:.1f}px（参照值 {values.get('size-display')}）")
+        width = args.span * column_width(values) + (args.span - 1) * gutter - 2 * args.padding
+        print(f"参照画布 {canvas:g}px：可用宽度 {round(width, 1):g}px，展示字号 {width / units:.1f}px（参照值 {values.get('size-display')}）")
     viewport = f"min(100vw, {canvas:g}px)" if canvas is not None and not args.breakpoint else "100vw"
     if args.span == columns:
         span = f"{viewport} - {2 * margin:g}px"
     else:
         span = f"({viewport} - {2 * margin:g}px - {columns - 1} * {gutter:g}px) / {columns} * {args.span} + {args.span - 1} * {gutter:g}px"
-    print(f"流式表达式：calc(({span}) / {args.chars})")
-    print("标题设为不换行；汉字墨迹比字身略窄，对齐强左轴时按浏览器实测的墨迹边界微调。")
+    if args.padding:
+        span = f"{span} - {2 * args.padding:g}px"
+    print(f"流式表达式：calc(({span}) / {units:g})")
+    print("适配要求跨满栏时以这个结果为准，它可以超过参照值；标题设为不换行；汉字墨迹比字身略窄，对齐强左轴时按浏览器实测的墨迹边界微调。")
 
 
 def cmd_specimen(args, lib: Library):
@@ -787,8 +816,11 @@ def check_template(lib: Library, template, errors: list[str]):
                     values = template_tokens(lib, template, scene, variant)[0]
                     if variant == (variants.get("options") or [None])[0]:
                         errors += [f"{where}：{p}" for p in ratio_problems(values, scene or "基础值")]
+                        errors += [f"{where}：{p}" for p in spacing_problems(values, scene or "基础值")]
                         for name, entry in scene_breakpoints(template, scene, values).items():
-                            errors += [f"{where}：{p}" for p in ratio_problems({**values, **entry["tokens"]}, f"{scene}/{name}")]
+                            merged = {**values, **entry["tokens"]}
+                            errors += [f"{where}：{p}" for p in ratio_problems(merged, f"{scene}/{name}")]
+                            errors += [f"{where}：{p}" for p in spacing_problems(merged, f"{scene}/{name}")]
         except MuseError as error:
             errors.append(f"{where}：{error}")
     if template.get("status") == "verified" and template.get("source", "library") == "library":
@@ -883,7 +915,10 @@ def main(argv=None) -> int:
     p.add_argument("template")
     p.add_argument("--scene", required=True, choices=SCENES)
     p.add_argument("--chars", type=int, required=True)
-    p.add_argument("--span", type=int, required=True)
+    p.add_argument("--span", type=int, default=0, help="横排时跨几栏")
+    p.add_argument("--tracking", type=float, default=0.0, help="字距，单位 em")
+    p.add_argument("--padding", type=float, default=0.0, help="字块所在容器的左右（竖排时为上下）内边距，单位 px")
+    p.add_argument("--vertical", action="store_true", help="竖排：按画布高度推导")
     p.add_argument("--breakpoint")
     p = sub.add_parser("specimen", help="生成样张 HTML")
     p.add_argument("template")

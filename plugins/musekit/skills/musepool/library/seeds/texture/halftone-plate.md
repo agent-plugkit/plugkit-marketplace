@@ -12,8 +12,8 @@ tokens:
     value: 6px
     role: 网点格距：近看能看见网点，缩略图里主体仍可辨
   registration-offset:
-    value: 2px
-    role: 两块大面积印版之间的套印偏移
+    value: 4px
+    role: 两块大面积印版之间的套印偏移，在 1080px 宽的画面上约相当于印刷品的 1–3mm
 ---
 
 # 网点与套印

@@ -19,7 +19,7 @@ tokens:
   gutter:
     value: 24px
   margin:
-    value: 40px
+    value: 48px
 ---
 
 # 堆叠块面

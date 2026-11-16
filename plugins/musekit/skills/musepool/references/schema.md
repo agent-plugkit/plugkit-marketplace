@@ -23,7 +23,7 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 - `color`：必须有 `paper`（背景）、`ink`（正文）、`accent`（强调）三个 token。`variants` 按变体名改写部分 token。`pairs` 列出需要满足对比度的配对 `[前景, 背景, body|large]`，`body` 要求 4.5:1，`large` 要求 3:1，每个变体都要满足。
 - `typography`：必须有 `font-display`、`font-text`、`font-cjk`、`size-body`。字体值必须是注册表里的开源字体，`font-cjk` 必须覆盖汉字。可选的 `archetype` 记录风格原型字体（可以是版权字体，但必须已登记）。
 
-正文必须有 `## 要点`：每条一个短句，说明怎样用、用多少。它会原样进入 `style.md`。可以再加 `## 适用与边界`。
+正文必须有 `## 要点`：每条一个短句，说明怎样用、用多少。可以再加 `## 适用与边界`，写限制条件与缺少素材时的退路。两节都会原样进入 `style.md`。
 
 token 名在一个 Template 内不能重复。通用名称：颜色用角色名（`paper`、`ink`、`ink-muted`、`accent`、`on-accent`）；字体用 `font-*`、`weight-*`、`size-*`（展示层级依次为 `display`、`headline`、`title`，文字层级为 `body`、`meta`）、`leading-*`、`tracking-*`；网格用 `canvas-width`、`canvas-height`、`columns`、`gutter`、`margin`；间距用 `space-unit`、`space-scale`；形态用 `radius`、`rule-width`、`rule-state`、`rule-heavy`、`shadow`。颜色 token 导出为 `--color-<名>`，`space-scale` 导出为 `--space-1…n`，其余导出为 `--<名>`。
 
@@ -41,7 +41,7 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 | `overrides` | 按场景覆盖 token 值，见下方「场景覆盖」 |
 | `exemplars` | Precedent id 列表 |
 
-正文章节依次为：`## 精神`（必填，一段话说明这个风格要解决什么阅读问题）、`## 文法`（必填：网格、对齐、层级、留白、色彩、装置、图像）、`## 场景适配`（每个场景一个 `### <场景>` 小节，可缺）、`## 常见误用`、`## 范例`。
+正文章节依次为：`## 精神`（必填，一段话说明这个风格要解决什么阅读问题）、`## 文法`（必填：网格、对齐、层级、留白、色彩、装置、图像，以及选中、出错、完成等状态）、`## 场景适配`（每个场景一个 `### <场景>` 小节，可缺）、`## 常见误用`、`## 范例`。
 
 库内 `verified` 的 Template 必须附同名样张 `<id>.png`。
 
@@ -54,8 +54,9 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 几类值不是写死的，由脚本推导或检查：
 
 - `column-width`：由 `canvas-width`、`columns`、`gutter`、`margin` 算出参照画布下的单栏宽度。
-- 展示字号：随标题字数变化，不写成 token；`size-display` 只是参照值。制作时用 `muse.py fit <template> --scene <场景> --chars <字数> --span <栏数> [--breakpoint <名称>]` 推导；它按全角汉字等宽计算，西文要在浏览器里实测。
+- 展示字号：随标题字数变化，不写成 token；`size-display` 只是参照值。适配要求标题跨满栏或竖排到某个长度时，用 `muse.py fit <template> --scene <场景> --chars <字数> (--span <栏数> | --vertical) [--tracking <em>] [--padding <px>] [--breakpoint <名称>]` 推导；它按全角汉字等宽计算，西文要在浏览器里实测。
 - 文字配对：`resolve` 根据颜色 Seed 的 `pairs` 生成「文字配对」表，列出每种文字色可以放在哪种背景上、可用多大字号。
+- 间距：用了带 `space-scale` 的间距 Seed 时，每个场景和断点的 `margin`、`gutter` 都必须取自阶梯。
 - 字重：Typography Seed 用到的字重必须出现在对应字体加载地址的 `wght@` 列表里（等宽字体只要求 `weight-text`）。
 - 字号比例：Template 用了带 `ratio-adjacent`、`ratio-display` 的 Seed 时，`check` 会对每个场景和每个断点检查 display/headline、headline/title 不低于 `ratio-adjacent`，display/body 不低于 `ratio-display`。
 

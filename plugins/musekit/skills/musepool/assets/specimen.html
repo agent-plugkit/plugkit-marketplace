@@ -41,7 +41,7 @@ section > .head h2 { grid-column: 2 / span 11; font-family: var(--font-display);
 .pairs .row > :nth-child(3) { grid-column: span 4; }
 .type .row { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); align-items: baseline; padding: 16px 0; border-bottom: var(--rule-width, 1px) solid var(--color-ink); }
 .type .row .meta { grid-column: span 2; }
-.type .row .sample { grid-column: span 10; font-family: var(--font-display); white-space: nowrap; overflow: hidden; }
+.type .row .sample { grid-column: span 10; font-family: var(--font-display); overflow-wrap: anywhere; }
 .fonts { margin-top: 24px; }
 .columns { position: relative; height: 320px; }
 .columns .col { background: color-mix(in srgb, var(--color-accent) 10%, transparent); border-left: var(--rule-width, 1px) solid var(--color-accent); border-right: var(--rule-width, 1px) solid var(--color-accent); }
@@ -68,6 +68,12 @@ section > .head h2 { grid-column: 2 / span 11; font-family: var(--font-display);
 <script type="application/json" id="spec">__SPEC__</script>
 <script>
 const spec = JSON.parse(document.getElementById('spec').textContent);
+// 每个字号使用自己层级的行距 token；示例文字按栏宽自然换行，不做裁切。
+const leading = {
+  'size-display': 'var(--leading-display-cjk, var(--leading-display, 1.05))',
+  'size-headline': 'var(--leading-headline, 1.15)',
+  'size-title': 'var(--leading-title, 1.25)',
+};
 const page = document.getElementById('page');
 const el = (tag, attrs = {}, ...children) => {
   const node = document.createElement(tag);
@@ -112,7 +118,7 @@ page.append(section('01', '色彩',
 page.append(section('02', '字体',
   el('div', { class: 'type' }, spec.type.map((t) => el('div', { class: 'row' },
     el('span', { class: 'meta' }, `${t.name}  ${t.value}`),
-    el('span', { class: 'sample', style: `font-size:${t.value};line-height:${t.name === 'size-display' ? 'var(--leading-display-cjk,1.05)' : '1.25'};${t.name === 'size-display' || t.name === 'size-headline' ? 'font-weight:var(--weight-display);' : ''}` }, '城市设计周 Design Week 2027')))),
+    el('span', { class: 'sample', style: `font-size:${t.value};line-height:${leading[t.name] || 'var(--leading-body, 1.5)'};${t.name === 'size-display' || t.name === 'size-headline' ? 'font-weight:var(--weight-display);' : ''}` }, '城市设计周 Design Week 2027')))),
   el('div', { class: 'fonts meta' }, spec.fonts.map((f) => el('p', {}, `${f.family} · ${f.license}`)))));
 
 const columns = el('div', { class: 'grid columns' }, Array.from({ length: spec.columns }, () => el('div', { class: 'col' })));

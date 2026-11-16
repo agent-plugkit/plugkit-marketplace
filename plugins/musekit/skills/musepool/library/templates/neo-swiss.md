@@ -30,7 +30,7 @@ overrides:
     size-body: 22px
     size-meta: 16px
     gutter: 16px
-    margin: 56px
+    margin: 64px
   web:
     size-display: 176px
     breakpoints:
@@ -40,7 +40,7 @@ overrides:
         max-width: 767px
         columns: 4
         gutter: 16px
-        margin: 20px
+        margin: 24px
         size-display: 64px
         size-headline: 36px
         size-title: 22px

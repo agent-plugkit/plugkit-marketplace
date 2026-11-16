@@ -27,6 +27,26 @@ try {
     const missing = await page.evaluate(() =>
       [...new Set([...document.fonts].filter((font) => font.status === "error").map((font) => font.family))]);
     if (missing.length) console.warn(`${id}: fonts failed to load, fallback used: ${missing.join(", ")}`);
+    // 样张必须完整呈现每一段文字：任何元素被裁切或撑出页面都视为失败。
+    const clipped = await page.evaluate(() => {
+      const found = [];
+      const pageWidth = document.documentElement.clientWidth;
+      for (const el of document.querySelectorAll('body *')) {
+        const style = getComputedStyle(el);
+        const box = el.getBoundingClientRect();
+        if (box.width === 0) continue;
+        if (box.right > pageWidth + 1) found.push(`${el.tagName.toLowerCase()}.${el.className} 超出页面 ${Math.round(box.right - pageWidth)}px`);
+        if (style.overflow !== 'visible' && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)) {
+          found.push(`${el.tagName.toLowerCase()}.${el.className} 内容被裁切`);
+        }
+      }
+      return found;
+    });
+    if (clipped.length) {
+      process.exitCode = 1;
+      console.error(`${id}: 样张有被裁切或溢出的内容：\n  ${clipped.join('\n  ')}`);
+      continue;
+    }
     await page.screenshot({ path: join(templates, `${id}.png`), fullPage: true });
     console.log(`Rendered ${id}.png`);
   }

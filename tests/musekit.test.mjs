@@ -158,16 +158,21 @@ test('scene overrides carry breakpoints, derived column width and text pairs int
   assert.match(web, /\| `ink` \| `paper` \| 16\.58:1 \| 任意字号 \|/);
   assert.match(web, /\| `paper` \| `ink` \| 16\.58:1 \| 任意字号 \|/);
   const graphic = cli('resolve', 'neo-swiss', '--scene', 'graphic');
-  assert.match(graphic, /--column-width: 66px;/);
+  assert.match(graphic, /--column-width: 64\.67px;/);
   assert.match(graphic, /--canvas-width: 1080px;/);
+  assert.match(graphic, /\*\*适用与边界\*\*：/);
+  assert.match(cli('resolve', 'editorial-serif', '--scene', 'web'), /--font-mono: "IBM Plex Mono", "Noto Serif SC"/);
   assert.doesNotMatch(graphic, /@media/);
 });
 
 test('fit derives display size from character count and span', () => {
-  assert.match(cli('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '12'), /展示字号 193\.6px/);
+  assert.match(cli('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '12'), /展示字号 190\.4px/);
   assert.match(cli('fit', 'neo-swiss', '--scene', 'web', '--chars', '5', '--span', '4', '--breakpoint', 'mobile'),
-    /calc\(\(100vw - 40px\) \/ 5\)/);
+    /calc\(\(100vw - 48px\) \/ 5\)/);
   assert.equal(run('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '13').status, 2);
+  assert.match(cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '32'), /可用宽度 920px，展示字号 230\.0px/);
+  assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--tracking', '0.12'), /可用长度 1248px，展示字号 385\.2px/);
+  assert.match(cli('fit', 'japanese-ma', '--scene', 'web', '--chars', '3', '--span', '6', '--tracking', '0.12'), /\/ 3\.24\)/);
 });
 
 test('check enforces type-scale ratios and breakpoint tokens', () => {
@@ -204,6 +209,7 @@ ${overrides}
     'narrow.md': base('    breakpoints:\n      mobile:\n        max-width: 767px\n        size-display: 40px'),
     'unknown.md': base('    breakpoints:\n      mobile:\n        max-width: 767px\n        size-huge: 300px'),
     'width.md': base('    breakpoints:\n      mobile:\n        size-display: 64px'),
+    'gutter.md': base('    gutter: 20px'),
   });
   try {
     assert.equal(run('check', join(dir, 'ok.md')).status, 0, run('check', join(dir, 'ok.md')).stdout);
@@ -211,6 +217,7 @@ ${overrides}
     assert.match(run('check', join(dir, 'narrow.md')).stdout, /web\/mobile：size-display\/size-body = 2\.35/);
     assert.match(run('check', join(dir, 'unknown.md')).stdout, /size-huge 不对应任何 token/);
     assert.match(run('check', join(dir, 'width.md')).stdout, /max-width/);
+    assert.match(run('check', join(dir, 'gutter.md')).stdout, /gutter 20px 不在间距阶梯/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

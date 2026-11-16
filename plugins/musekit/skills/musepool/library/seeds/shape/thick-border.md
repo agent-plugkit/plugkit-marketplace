@@ -15,8 +15,11 @@ tokens:
     value: 3px
     role: 块面、按钮、输入框的边框
   rule-state:
-    value: 3px
-    role: 焦点框与出错字段
+    value: 4px
+    role: 焦点框与出错字段，比边框更粗
+  focus-offset:
+    value: 4px
+    role: 焦点框与元素边框之间的间隙
   rule-heavy:
     value: 6px
     role: 分区的粗分隔线
@@ -28,7 +31,7 @@ tokens:
 
 - 所有块面、按钮、输入框、图片都有 3px 黑色实线边框；边框是风格的骨架。
 - 圆角要么统一的小圆角，要么全部直角，不混用；不用胶囊形按钮。
-- 焦点框与边框同宽，用黑色外加一圈间隙，保证在色块上也清楚可见。
+- 焦点框用 `rule-state` 黑线，与元素边框隔开 `focus-offset`，保证在色块上也清楚可见；出错字段的边框同样加粗到 `rule-state`。
 
 ## 适用与边界
 

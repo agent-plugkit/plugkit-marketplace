@@ -19,7 +19,7 @@ tokens:
   gutter:
     value: 24px
   margin:
-    value: 120px
+    value: 128px
 ---
 
 # 偏心留白网格
