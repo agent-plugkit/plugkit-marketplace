@@ -51,6 +51,10 @@ tokens:
     value: 1.55
   tracking-display:
     value: "-0.035em"
+    role: 西文展示字的字距
+  tracking-display-cjk:
+    value: 0em
+    role: 中文展示字的字距：保持 0
   tracking-meta:
     value: "0.04em"
 ---

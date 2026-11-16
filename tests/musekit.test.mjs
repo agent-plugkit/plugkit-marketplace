@@ -193,7 +193,11 @@ test('fit derives display size from character count and span', () => {
   assert.match(cli('fit', 'neo-swiss', '--scene', 'web', '--chars', '5', '--span', '4', '--breakpoint', 'mobile'),
     /calc\(\(100vw - 48px\) \/ 5\)/);
   assert.equal(run('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '13').status, 2);
-  assert.match(cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '32'), /可用宽度 920px，展示字号 230\.0px/);
+  // 默认字距取 tracking-display-cjk，缺省时取 tracking-display；--tracking 显式覆盖。
+  assert.match(cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '32'), /字距 -0\.04em.*\n.*可用宽度 920px，展示字号 237\.1px/);
+  assert.match(cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '32', '--tracking', '0'), /展示字号 230\.0px/);
+  assert.match(cli('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '12'), /字距 0em/);
+  assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical'), /可用长度 1248px，展示字号 385\.2px/);
   assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--tracking', '0.12'), /可用长度 1248px，展示字号 385\.2px/);
   assert.match(cli('fit', 'japanese-ma', '--scene', 'web', '--chars', '3', '--span', '6', '--tracking', '0.12'), /\/ 3\.24\)/);
 });

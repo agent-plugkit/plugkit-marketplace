@@ -294,6 +294,24 @@ def px(value) -> float | None:
     return float(match.group(1)) if match else None
 
 
+def em(value) -> float | None:
+    if isinstance(value, (int, float)):
+        return float(value)
+    match = re.fullmatch(r"(-?\d+(?:\.\d+)?)(?:em)?", str(value))
+    return float(match.group(1)) if match else None
+
+
+def default_tracking(values) -> float:
+    """fit 按全角汉字计算，所以优先取中文展示字距。"""
+    for name in ("tracking-display-cjk", "tracking-display"):
+        if name in values:
+            value = em(values[name])
+            if value is None:
+                raise MuseError(f"{name} 必须以 em 为单位：{values[name]}")
+            return value
+    return 0.0
+
+
 def column_width(values) -> float | None:
     canvas, margin, gutter = px(values.get("canvas-width")), px(values.get("margin")), px(values.get("gutter"))
     columns = values.get("columns")
@@ -600,8 +618,9 @@ def cmd_fit(args, lib: Library):
     if args.chars < 1:
         raise MuseError("--chars 必须大于 0")
     # 字块长度 = 字号 × (字数 + (字数 - 1) × 字距)，字距以 em 计。
-    units = args.chars + (args.chars - 1) * args.tracking
-    note = f"字数 {args.chars}，字距 {args.tracking:g}em，内边距 {args.padding:g}px（按全角汉字等宽计算；西文需要在浏览器里实测宽度）"
+    tracking = args.tracking if args.tracking is not None else default_tracking(values)
+    units = args.chars + (args.chars - 1) * tracking
+    note = f"字数 {args.chars}，字距 {tracking:g}em，内边距 {args.padding:g}px（按全角汉字等宽计算；西文需要在浏览器里实测宽度）"
     if args.vertical:
         height = px(values.get("canvas-height"))
         if height is None:
@@ -916,7 +935,8 @@ def main(argv=None) -> int:
     p.add_argument("--scene", required=True, choices=SCENES)
     p.add_argument("--chars", type=int, required=True)
     p.add_argument("--span", type=int, default=0, help="横排时跨几栏")
-    p.add_argument("--tracking", type=float, default=0.0, help="字距，单位 em")
+    p.add_argument("--tracking", type=float, default=None,
+                   help="字距，单位 em；默认取 tracking-display-cjk，没有时取 tracking-display")
     p.add_argument("--padding", type=float, default=0.0, help="字块所在容器的左右（竖排时为上下）内边距，单位 px")
     p.add_argument("--vertical", action="store_true", help="竖排：按画布高度推导")
     p.add_argument("--breakpoint")

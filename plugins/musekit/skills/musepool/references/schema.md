@@ -25,7 +25,7 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 
 正文必须有 `## 要点`：每条一个短句，说明怎样用、用多少。可以再加 `## 适用与边界`，写限制条件与缺少素材时的退路。两节都会原样进入 `style.md`。
 
-token 名在一个 Template 内不能重复。通用名称：颜色用角色名（`paper`、`ink`、`ink-muted`、`accent`、`on-accent`）；字体用 `font-*`、`weight-*`、`size-*`（展示层级依次为 `display`、`headline`、`title`，文字层级为 `body`、`meta`）、`leading-*`、`tracking-*`；网格用 `canvas-width`、`canvas-height`、`columns`、`gutter`、`margin`；间距用 `space-unit`、`space-scale`；形态用 `radius`、`rule-width`、`rule-state`、`rule-heavy`、`shadow`。颜色 token 导出为 `--color-<名>`，`space-scale` 导出为 `--space-1…n`，其余导出为 `--<名>`。
+token 名在一个 Template 内不能重复。通用名称：颜色用角色名（`paper`、`ink`、`ink-muted`、`accent`、`on-accent`）；字体用 `font-*`、`weight-*`、`size-*`（展示层级依次为 `display`、`headline`、`title`，文字层级为 `body`、`meta`）、`leading-*`、`tracking-*`（中文与西文不同时，加 `-cjk` 后缀给中文单独的值，如 `leading-display-cjk`）；网格用 `canvas-width`、`canvas-height`、`columns`、`gutter`、`margin`；间距用 `space-unit`、`space-scale`；形态用 `radius`、`rule-width`、`rule-state`、`rule-heavy`、`shadow`。颜色 token 导出为 `--color-<名>`，`space-scale` 导出为 `--space-1…n`，其余导出为 `--<名>`。
 
 ## Template
 
@@ -54,7 +54,7 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 几类值不是写死的，由脚本推导或检查：
 
 - `column-width`：由 `canvas-width`、`columns`、`gutter`、`margin` 算出参照画布下的单栏宽度。
-- 展示字号：随标题字数变化，不写成 token；`size-display` 只是参照值。适配要求标题跨满栏或竖排到某个长度时，用 `muse.py fit <template> --scene <场景> --chars <字数> (--span <栏数> | --vertical) [--tracking <em>] [--padding <px>] [--breakpoint <名称>]` 推导；它按全角汉字等宽计算，西文要在浏览器里实测。
+- 展示字号：随标题字数变化，不写成 token；`size-display` 只是参照值。适配要求标题跨满栏或竖排到某个长度时，用 `muse.py fit <template> --scene <场景> --chars <字数> (--span <栏数> | --vertical) [--tracking <em>] [--padding <px>] [--breakpoint <名称>]` 推导；它按全角汉字等宽计算，西文要在浏览器里实测。字距默认取 `tracking-display-cjk`，没有时取 `tracking-display`；`--tracking` 显式覆盖。
 - 文字配对：`resolve` 根据颜色 Seed 的 `pairs` 生成「文字配对」表，列出每种文字色可以放在哪种背景上、可用多大字号。
 - 间距：用了带 `space-scale` 的间距 Seed 时，每个场景和断点的 `margin`、`gutter` 都必须取自阶梯。
 - 字重：Typography Seed 用到的字重必须出现在对应字体加载地址的 `wght@` 列表里（等宽字体只要求 `weight-text`）。
