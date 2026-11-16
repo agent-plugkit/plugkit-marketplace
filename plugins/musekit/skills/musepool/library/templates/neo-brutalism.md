@@ -4,7 +4,7 @@ kind: template
 name: 新粗野主义
 name_en: Neo-Brutalism
 family: neo-brutalism
-status: draft
+status: verified
 source: library
 scenes: [graphic, web, slides]
 mood: [直接, 有力, 好玩, 年轻, 叛逆, 热闹, 活力, 创意, 工具, bold, playful, brutal, loud]
