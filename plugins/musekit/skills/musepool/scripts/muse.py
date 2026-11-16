@@ -448,12 +448,15 @@ def cmd_search(args, lib: Library):
             continue
         score = sum(3 if word in label else 1 for word in hits)
         verified = item.get("status") == "verified"
-        results.append((score, verified, item, hits))
-    results.sort(key=lambda row: (row[0], row[1]), reverse=True)
+        # 同分时，已经写了本场景适配的风格排在前面：「直接做取第一名」不该取到要推导的那个。
+        adapted = bool(args.scene and not args.seeds
+                       and args.scene in sections(sections(item["_body"]).get("场景适配", ""), 3))
+        results.append((score, adapted, verified, item, hits))
+    results.sort(key=lambda row: row[:3], reverse=True)
     if not results:
         print("无命中：换用风格名、气质词或去掉场景限制再试。")
         return
-    for count, _, item, hits in results[: args.n]:
+    for count, _, _, item, hits in results[: args.n]:
         label = f"{item['category']}/{item['id']}" if args.seeds else item["id"]
         line = f"{label}  {item['name']}  [{item.get('status')}]"
         if not args.seeds and args.scene:

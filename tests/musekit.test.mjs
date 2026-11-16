@@ -283,6 +283,29 @@ test('resolve applies variants, scene overrides and reports missing adaptations'
   assert.equal(run('resolve', 'neo-swiss', '--scene', 'web', '--variant', 'pink').status, 2);
 });
 
+test('every template resolves for diagrams, with adaptations only where a direction was translated', () => {
+  const translated = new Set(['neo-swiss', 'neo-brutalism', 'japanese-ma']);
+  for (const id of ['neo-swiss', 'neo-brutalism', 'japanese-ma', 'editorial-serif', 'mono-print']) {
+    assert.ok(frontmatter(join(library, `templates/${id}.md`)).scenes.includes('diagram'), id);
+    const style = cli('resolve', id, '--scene', 'diagram');
+    assert.match(style, new RegExp(`^adaptation: ${translated.has(id) ? 'provided' : 'missing'}$`, 'm'), id);
+    if (!translated.has(id)) assert.match(style, /未验证适配/, id);
+  }
+  // The editable runtime cannot measure rotated or skewed nodes.
+  const brutal = cli('resolve', 'neo-brutalism', '--scene', 'diagram').split('## 本场景适配')[1].split('## Seed 要点')[0];
+  assert.match(brutal, /不旋转/);
+  const diagram = join(plugin, 'skills/diagram-design');
+  for (const gone of ['references/image.md', 'references/styles.md', 'references/composition.md']) {
+    assert.ok(!existsSync(join(diagram, gone)), gone);
+  }
+  // Equal scores rank styles with a written adaptation first, so "take the first" is not alphabetical.
+  const ranked = cli('search', '--scene', 'diagram').split('\n').filter((line) => line && !line.startsWith(' '));
+  assert.deepEqual(ranked.slice(0, 3).map((line) => /适配：有/.test(line)), [true, true, true]);
+  const skill = readFileSync(join(diagram, 'SKILL.md'), 'utf8');
+  for (const command of ['prepare_diagram.py', 'inspect_diagram.mjs', 'deliver_diagram.mjs']) assert.match(skill, new RegExp(command));
+  assert.doesNotMatch(skill, /生图/);
+});
+
 test('scene overrides carry breakpoints, derived column width and text pairs into style.md', () => {
   const web = cli('resolve', 'neo-swiss', '--scene', 'web');
   const meta = parse(/^---\n([\s\S]*?)\n---/.exec(web)[1]);

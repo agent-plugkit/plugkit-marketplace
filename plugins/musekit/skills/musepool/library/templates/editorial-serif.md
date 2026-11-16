@@ -6,7 +6,7 @@ name_en: Editorial Serif
 family: editorial-serif
 status: verified
 source: library
-scenes: [graphic, web, slides, data]
+scenes: [graphic, web, slides, diagram, data]
 mood: [文学, 阅读, 出版, 优雅, 人文, 温暖, 杂志, 书, 慢读, 文化, serif, editorial, magazine, literary]
 seeds:
   color: ivory-burgundy

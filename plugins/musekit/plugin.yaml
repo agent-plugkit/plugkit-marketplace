@@ -26,7 +26,7 @@ components:
       description: "制作海报、封面、社媒图等单页平面作品，从 musepool 取风格，用排版或生图完成并评审。"
     - name: diagram-design
       path: skills/diagram-design
-      description: "把 Mermaid 或关系说明制作成可直接微调的图解，内置尺寸测量、端点对齐与分散、构图整理、诊断修复提示、节点查找、布局编辑与验证后离线交付。"
+      description: "把 Mermaid 或关系说明制作成可直接微调的图解（含科学过程示意），从 musepool 取风格，内置尺寸测量、走线、构图整理、布局编辑与验证后离线交付。"
     - name: scientific-figure
       path: skills/scientific-figure
       description: "基于原始资料制作学术数据图与科学示意图，核对数据编码、标注和出版尺寸。"

@@ -34,7 +34,7 @@ Musekit `1.0.0` 重做了风格层：`ui-design` 改名为 `web-design`；musepo
 
 Musekit `0.1.0` 整体替换 `musepool`、`design-compile` 和 `mermaid-render` 三个插件。安装新插件后使用上面的 Skill 名称；旧的已安装副本不会由仓库变更自动迁移，请在所用客户端移除或停用旧副本，避免重复触发。
 
-`musepool-export` 已合并到 `musepool` 的 Markdown seed 简报；旧 JSON reference bundle、编译 manifest 和 `design-compile` 状态契约不再提供。已有材料可提取为普通设计参考，不需要转换器。`render` 的图解制作入口改为 `diagram-design`，整图生图仍可由用户明确选择。
+`musepool-export` 已合并到 `musepool` 的 Markdown seed 简报；旧 JSON reference bundle、编译 manifest 和 `design-compile` 状态契约不再提供。已有材料可提取为普通设计参考，不需要转换器。`render` 的图解制作入口改为 `diagram-design`。1.0 起图解不再提供整图生图，插画式表达交给 `graphic-design`。
 
 ## Install
 

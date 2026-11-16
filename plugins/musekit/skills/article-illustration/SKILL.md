@@ -23,7 +23,7 @@ description: 为一整篇文章编排配图。识别已有 Mermaid 和确实帮�
 3. **确定视觉方向。** 用户已给参考或品牌就使用它。缺方向时才由 `musepool` 解析一份全篇共用的 `style.md`，用法见[使用 style.md](../../references/style.md)。全篇只用这一份方向；各场景仍按自己的方法重做版面。
 4. **列出图位并路由。** 用 [plan_article.py](scripts/plan_article.py) 抽出 Mermaid 围栏和结构信号。脚本不改原文，也不发明散文图位或插画。再按 [图位](references/slots.md) 补上散文里的关系图，并默认建议题图和示意插画。关系图按 [密度](references/density.md) 决定路径。题图和示意插画不套这张密度清单。建议可以在确认前改掉。
 5. **写方案并确认。** 把方案写入 `outline.md`。每个图位包含种类、插入位置、目的、场景 Skill、密度路径或平面路径、必须保留的原文标签和状态。题图和示意插画写进同一份大纲，不另附隐藏清单。然后停下来等确认。只有当前请求写了「直接做」或等价说法才继续，并先声明假定的图位，包括将要做的题图和示意插画。用户说不要题图、不要封面或不要插画时去掉它们。已有目录未回答重入问题时，不能靠「直接做」跳过。
-6. **逐张制作。** 按大纲调用 `diagram-design`、`graphic-design` 或 `scientific-figure`，并读取该 Skill 的方法。不复制它们的运行时，也不改用另一种生图方式顶替。低密度关系图的「尝试生图」就是明确选择 `diagram-design` 的图像方式。核对失败时改回可编辑图解，不插入那张位图。
+6. **逐张制作。** 按大纲调用 `diagram-design`、`graphic-design` 或 `scientific-figure`，并读取该 Skill 的方法。不复制它们的运行时，也不改用另一种生图方式顶替。低密度关系图的「尝试生图」交给 `graphic-design` 的生图路线，必须保留的标签和方向写进它的 Brief。核对失败时改由 `diagram-design` 做可编辑图解，不插入那张位图。
 7. **写入副本。** 按 [交付](references/delivery.md) 保存 PNG、来源和 illustrated Markdown。成功的图写入副本；失败的图位留在大纲中并写明原因。
 
 ## 守住的边界
