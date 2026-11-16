@@ -520,10 +520,11 @@ def cmd_resolve(args, lib: Library):
         if boundary:
             out += ["**适用与边界**：" + boundary.replace("\n", " "), ""]
     out += ["## 常见误用", "", parts.get("常见误用", "无。"), "", "## 范例", ""]
-    for exemplar in template.get("exemplars") or []:
-        entry = lib.precedents.get(exemplar)
-        if entry:
-            out.append(f"- `{exemplar}` {entry['category']}：用 `muse.py show {exemplar}` 查看原始记录。")
+    if parts.get("范例"):
+        out += [parts["范例"], ""]
+    shown = [e for e in template.get("exemplars") or [] if e in lib.precedents]
+    if shown:
+        out.append("原始记录：" + "、".join(f"`muse.py show {e}`" for e in shown) + "。只借方法，不搬运内容、文案、品牌和图片。")
     text = "\n".join(out).rstrip() + "\n"
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")

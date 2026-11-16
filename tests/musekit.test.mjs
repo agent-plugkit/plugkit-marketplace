@@ -151,6 +151,13 @@ test('neo-brutalism lays out a zero-gap panel wall with checkable layout rules',
   }
 });
 
+test('resolve keeps what each exemplar is borrowed for', () => {
+  const style = cli('resolve', 'neo-swiss', '--scene', 'web');
+  const examples = style.split('## 范例')[1];
+  assert.match(examples, /`LjwyQI6U` 可持续设计宣言：.*看它怎样让细线本身成为结构/);
+  assert.match(examples, /muse\.py show LjwyQI6U/);
+});
+
 test('resolve applies variants, scene overrides and reports missing adaptations', () => {
   const graphic = cli('resolve', 'neo-swiss', '--scene', 'graphic');
   assert.match(graphic, /^adaptation: provided$/m);
