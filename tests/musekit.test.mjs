@@ -236,6 +236,15 @@ test('rules that collided across styles in the tracer rerun are settled in the r
   for (const id of ['mono-print', 'neo-brutalism', 'editorial-serif', 'neo-swiss']) {
     assert.match(cli('resolve', id, '--scene', 'web'), /含中文或长破折号「—」的值改用正文字体/, id);
   }
+  // 同一份 style.md 里不能再留「中文回退到等宽栈是预期的」这类相反说法。
+  assert.doesNotMatch(cli('resolve', 'editorial-serif', '--scene', 'graphic'), /中文回退到宋体，这是预期的|书眉放一行等宽小字/);
+  // 日式留白的 Seed 与 Template 对朱色、章节间隔说法一致。
+  const ma = cli('resolve', 'japanese-ma', '--scene', 'web');
+  assert.doesNotMatch(ma, /交互的当前与选中状态|例如半屏或一屏/);
+  // 新粗野主义的平板首屏封顶后不再要求顶满，--padding 写明从栏位外沿量起。
+  const nbWeb = cli('resolve', 'neo-brutalism', '--scene', 'web');
+  assert.match(nbWeb, /封顶后标题不再要求顶满/);
+  assert.doesNotMatch(nbWeb, /--padding <板内边距>/);
   // 状态反馈不占强调色的次数；没有后端时不盖「已登记」。
   assert.match(cli('resolve', 'editorial-serif', '--scene', 'web'), /出错说明只在出错时出现、改正后消失，不计入这个次数/);
   assert.match(cli('resolve', 'japanese-ma', '--scene', 'web'), /导航的当前态用细下划线、出错说明用墨色，都不用朱色/);
@@ -304,7 +313,12 @@ test('fit derives display size from character count and span', () => {
   assert.match(uneven, /内边距左 48px、右 24px/);
   assert.match(uneven, /可用宽度 912px，展示字号 235\.1px/);
   assert.match(uneven, / - 72px\) \/ 3\.88\)/);
-  assert.equal(run('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '1,2,3').status, 2);
+  for (const bad of ['1,2,3', 'abc', '-20,10', 'nan']) {
+    const result = run('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', `--padding=${bad}`);
+    assert.equal(result.status, 2, bad);
+    assert.match(result.stderr, /--padding/, bad);
+  }
+  assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--padding', '40,0'), /内边距上 40px、下 0px/);
   // 断点版面的流式字号在断点上沿最大，输出这个值，避免窄一档的标题比宽一档还大。
   const tablet = cli('fit', 'neo-brutalism', '--scene', 'web', '--chars', '4', '--span', '12', '--breakpoint', 'tablet');
   assert.match(tablet, /断点上沿 1100px 时为 258\.8px/);

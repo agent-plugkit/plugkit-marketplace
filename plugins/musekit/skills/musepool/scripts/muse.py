@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 import urllib.error
@@ -306,7 +307,12 @@ def padding_pair(raw) -> tuple[float, float]:
     parts = [part.strip() for part in str(raw).split(",")]
     if len(parts) not in (1, 2):
         raise MuseError("--padding 写一个值，或者 左,右 两个值")
-    left, right = (float(parts[0]), float(parts[-1]))
+    try:
+        left, right = float(parts[0]), float(parts[-1])
+    except ValueError:
+        raise MuseError(f"--padding 不是数字：{raw}") from None
+    if not all(math.isfinite(v) and v >= 0 for v in (left, right)):
+        raise MuseError("--padding 必须是不小于 0 的数")
     return left, right
 
 
@@ -637,7 +643,8 @@ def cmd_fit(args, lib: Library):
     units = args.chars + (args.chars - 1) * tracking
     left, right = padding_pair(args.padding)
     pads = left + right
-    padding_note = f"内边距 {left:g}px" if left == right else f"内边距左 {left:g}px、右 {right:g}px"
+    sides = ("上", "下") if args.vertical else ("左", "右")
+    padding_note = f"内边距 {left:g}px" if left == right else f"内边距{sides[0]} {left:g}px、{sides[1]} {right:g}px"
     note = f"字数 {args.chars}，字距 {tracking:g}em，{padding_note}（按全角汉字等宽计算；西文需要在浏览器里实测宽度）"
     if args.vertical:
         height = px(values.get("canvas-height"))
@@ -670,7 +677,7 @@ def cmd_fit(args, lib: Library):
     if pads:
         span = f"{span} - {pads:g}px"
     print(f"流式表达式：calc(({span}) / {units:g})")
-    print("表达式里的 100cqi 需要在标题的祖先上（通常是 body）声明 container-type: inline-size。")
+    print("表达式里的 100cqi 需要在标题的祖先上声明 container-type: inline-size；这个祖先要和视口同宽、没有左右内边距（通常是 body，并把 body 的 margin 设为 0），否则外边距会被扣两次。")
     if args.breakpoint:
         edge = px(scene_breakpoints(template, args.scene, values)[args.breakpoint]["max-width"])
         print(f"这个断点的流式字号在断点上沿 {edge:g}px 时为 {span_width(edge) / units:.1f}px，是它的最大值。"
