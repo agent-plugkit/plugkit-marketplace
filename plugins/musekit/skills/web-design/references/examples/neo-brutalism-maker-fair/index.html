@@ -281,10 +281,8 @@ button, input, textarea { font: inherit; color: inherit; }
   padding: var(--space-3) 0;
   white-space: nowrap;
 }
-.strip-track { display: inline-flex; animation: strip 80s linear infinite; }
+.strip-track { display: inline-flex; }
 .strip-track span { padding-right: var(--space-5); }
-@keyframes strip { to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .strip-track { animation: none; } }
 
 .gap { height: var(--space-8); }
 
