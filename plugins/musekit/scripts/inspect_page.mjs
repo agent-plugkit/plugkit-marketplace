@@ -603,7 +603,7 @@ function keyboardStop() {
   const sig = (el) => {
     if (!el) return "";
     const cs = getComputedStyle(el);
-    return [cs.outlineStyle, cs.outlineWidth, cs.outlineColor, cs.boxShadow, cs.backgroundColor, cs.borderColor, cs.color, cs.textDecorationLine].join("|");
+    return [cs.outlineStyle, cs.outlineWidth, cs.outlineColor, cs.boxShadow, cs.backgroundColor, cs.borderColor, cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth, cs.color, cs.textDecorationLine].join("|");
   };
   const near = [a, a.nextElementSibling, a.closest("label"), a.parentElement];
   const on = near.map(sig).join("#");

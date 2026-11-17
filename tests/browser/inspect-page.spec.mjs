@@ -45,6 +45,7 @@ body{margin:0;background:#fff;color:#111;font-family:"Missing Webfont",serif}
 .spin{display:inline-block;animation:spin 2s linear infinite}
 @keyframes spin{to{transform:rotate(1turn)}}
 button:focus{outline:none}
+.field{border:1px solid #111;outline:none}.field:focus{border-width:2px}
 </style>
 <div id="topmark" style="height:40px;background:#ff0000"></div>
 <a href="#x">第一个链接</a>
@@ -56,6 +57,7 @@ button:focus{outline:none}
 <p>城市里的植物，<br>南门书房二楼</p>
 <span class="spin">✱</span>
 <button id="go">报名</button>
+<input class="field" aria-label="邮箱">
 <div id="msg" hidden>完成</div>
 <div style="height:3000px"></div>
 <script>document.getElementById("go").onclick=()=>{document.getElementById("msg").hidden=false}</script>`,
@@ -204,7 +206,7 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   expect(report.problems.some((p) => /^sweep (\d+–)?699px: overflow/.test(p))).toBe(true);
 
   expect(report.fonts.some((f) => f.stack.includes("Missing Webfont") && f.fallback.length)).toBe(true);
-  expect(report.keyboard.stops.map((s) => [s.label, s.visibleFocus])).toEqual([["第一个链接", true], ["报名", false]]);
+  expect(report.keyboard.stops.map((s) => [s.label, s.visibleFocus])).toEqual([["第一个链接", true], ["报名", false], ["邮箱", true]]);
   expect(report.reducedMotion.running.some((r) => r.includes("spin") && r.includes("infinite"))).toBe(true);
 
   const flow = report.flow["1024x700"];

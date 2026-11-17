@@ -29,6 +29,9 @@ tokens:
     value: 400
   weight-strong:
     value: 600
+  size-masthead:
+    value: 64px
+    role: 报头里的刊名，不超过头条主题
   size-display:
     value: 88px
   size-headline:
@@ -66,4 +69,4 @@ tokens:
 
 ## 适用与边界
 
-窄栏（每行少于约 12 个汉字）里两端对齐会被避头尾的标点和长西文单词撑出大空隙：这样的栏里正文改为齐左，宽栏保持两端对齐；西文段落另开 `hyphens: auto` 并设 `lang`。宋体在 12px 以下发虚，`size-meta` 只给期号、图片署名这类短标注。
+每行少于 10 个汉字的窄栏里，两端对齐会被避头尾的标点和长西文单词撑出大空隙：这样的栏里正文改为齐左，10 个汉字及以上保持两端对齐；西文段落另开 `hyphens: auto` 并设 `lang`。宋体在 12px 以下发虚，`size-meta` 只给期号、图片署名和网页上的示例声明这类短标注。
