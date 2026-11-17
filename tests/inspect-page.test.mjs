@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   environmentFailure,
   parseArgs,
+  pdfPages,
   readFacts,
   readStyle,
   sweepSizes,
@@ -20,6 +21,10 @@ test('a canvas run and a web run take different options', () => {
   assert.equal(poster.viewports, undefined);
   assert.equal(poster.scale, 1);
 
+  const deck = parseArgs(['deck.html', '--canvas', '1920x1080', '--slides', '.slide']);
+  assert.equal(deck.slides, '.slide');
+  assert.deepEqual(deck.canvas, { width: 1920, height: 1080 });
+
   const web = parseArgs(['index.html']);
   assert.deepEqual(web.viewports.map((v) => `${v.width}x${v.height}`), ['1440x900', '768x1024', '375x812']);
   assert.equal(parseArgs(['index.html', '--viewports', '1280x800, 390x844']).viewports[1].height, 844);
@@ -30,12 +35,13 @@ test('a canvas run and a web run take different options', () => {
     ['p.html', '--canvas', '1080'],
     ['p.html', '--canvas', '10x10', '--viewports', '10x10'],
     ['p.html', '--canvas', '10x10', '--flow', 'f.mjs'],
+    ['p.html', '--slides', '.slide'],
     ['p.html', '--scale', '3'],
     ['p.html', '--browser', 'firefox'],
     ['p.html', '--unknown', 'x'],
     ['p.html', '--out'],
   ])
-    assert.throws(() => parseArgs(bad), /Usage|expects|--scale|--flow|not both|Unknown/, bad.join(' '));
+    assert.throws(() => parseArgs(bad), /Usage|expects|--scale|--flow|--slides|not both|Unknown/, bad.join(' '));
 });
 
 test('style.md gives breakpoint edges and the palette', () => {
@@ -56,6 +62,12 @@ test('the sweep covers fixed widths, breakpoint edges, the requested viewports a
   assert.equal(new Set(tall).size, tall.length);
   const short = sizes.filter((s) => s.height !== 900).map((s) => `${s.width}x${s.height}`);
   assert.deepEqual(short, ['1366x768', '1280x720', '1024x768', '375x667']);
+});
+
+test('a PDF is read for its page count and page sizes in CSS px', () => {
+  const page = (w, h) => `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] >>`;
+  const pdf = Buffer.from(`%PDF-1.4\n<< /Type /Pages /Count 3 >>\n${page(1440, 810)}\n${page(1440, 810)}\n${page(612, 792)}\n`, 'latin1');
+  assert.deepEqual(pdfPages(pdf), { pages: 3, sizes: ['1920x1080', '816x1056'] });
 });
 
 test('facts are one per line, trimmed, blank lines dropped', () => {

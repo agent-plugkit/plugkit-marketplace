@@ -13,7 +13,7 @@ const plugin = join(root, 'plugins/musekit');
 const musepool = join(plugin, 'skills/musepool');
 const library = join(musepool, 'library');
 const script = join(musepool, 'scripts/muse.py');
-const skillNames = ['musepool', 'web-design', 'graphic-design', 'diagram-design', 'data-figure', 'article-illustration'];
+const skillNames = ['musepool', 'web-design', 'graphic-design', 'slides-design', 'diagram-design', 'data-figure', 'article-illustration'];
 const precedentIds = [
   'vEj9F5om', 'rvYJrbZh', 'weZM545X', 'x1BNQPTi', 'swwKiFDe',
   'JiAIwOJv', 'LjwyQI6U', 'Vy3KTWAC', 'AT5oq8hX', 'B3LYgTWe', 'mC1nkP2t',
@@ -255,7 +255,7 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  // Templates: undeclared roles, unknown tokens and scenes outside graphic and web are refused.
+  // Templates: undeclared roles, unknown tokens and scenes the page inspector does not serve are refused.
   const template = readFileSync(join(library, 'templates/neo-brutalism.md'), 'utf8');
   const bad = scratch({
     'role.md': template.replace('than: hero', 'than: banner'),
@@ -265,10 +265,32 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
   try {
     assert.match(run('check', join(bad, 'role.md')).stdout, /web 的 max-size 规则用了没有声明的角色 banner/);
     assert.match(run('check', join(bad, 'token.md')).stdout, /web 的 fill 规则引用了不存在的 token fill-ratoi/);
-    assert.match(run('check', join(bad, 'scene.md')).stdout, /checks 的场景 diagram 必须是 graphic、web 之一/);
+    assert.match(run('check', join(bad, 'scene.md')).stdout, /checks 的场景 diagram 必须是 graphic、web、slides 之一/);
   } finally {
     rmSync(bad, { recursive: true, force: true });
   }
+});
+
+test('every template has a slides adaptation on a 1920 × 1080 canvas, and its layout rules reach slides', () => {
+  const block = (style) => JSON.parse(/```json musekit-checks\n([\s\S]*?)```/.exec(style)[1]).rules;
+  for (const id of ['neo-swiss', 'neo-brutalism', 'editorial-serif', 'japanese-ma', 'mono-print']) {
+    const out = cli('resolve', id, '--scene', 'slides');
+    assert.match(out, /^adaptation: provided$/m, id);
+    const { tokens } = parse(/^---\n([\s\S]*?)\n---/.exec(out)[1]);
+    assert.equal(tokens['canvas-width'], '1920px', id);
+    assert.equal(tokens['canvas-height'], '1080px', id);
+    // Projected text: what must be read is at least 36px, notes at least 24px on a 1920 canvas.
+    assert.ok(parseFloat(tokens['size-body']) >= 36, id);
+    assert.ok(parseFloat(tokens['size-meta']) >= 24, id);
+    const adaptation = out.split('## 本场景适配')[1].split('## Seed 要点')[0];
+    for (const page of ['封面', '章节页', '要点页', '数据页', '引文页', '对比页', '结尾页']) assert.match(adaptation, new RegExp(page), `${id} ${page}`);
+  }
+  assert.deepEqual(block(cli('resolve', 'neo-brutalism', '--scene', 'slides')).map((r) => r.kind), ['seams', 'dominant', 'fill', 'covers']);
+  assert.deepEqual(block(cli('resolve', 'editorial-serif', '--scene', 'slides')).map((r) => r.kind), ['axis']);
+  assert.match(cli('resolve', 'neo-brutalism', '--scene', 'slides'), /演示文稿每页一面/);
+  assert.match(cli('resolve', 'mono-print', '--scene', 'slides'), /制作工具：插件内的 `assets\/halftone\.js`/);
+  assert.match(cli('fit', 'neo-swiss', '--scene', 'slides', '--chars', '6', '--span', '12'), /参照画布 1920px/);
+  assert.match(cli('fit', 'japanese-ma', '--scene', 'slides', '--chars', '4', '--vertical'), /参照画布高 1080px/);
 });
 
 test('tablet breakpoints narrow the margins that blocked line length, and narrow walls relax the area ratio', () => {
@@ -309,7 +331,7 @@ test('rules that collided across styles in the tracer rerun are settled in the r
   const shared = (path) => readFileSync(join(plugin, path), 'utf8');
   assert.match(shared('references/critique.md'), /声明和「示例」小标是制作附注，不算风格元素/);
   assert.match(shared('skills/graphic-design/SKILL.md'), /约按 0\.25 倍显示/);
-  for (const skill of ['graphic-design', 'web-design']) {
+  for (const skill of ['graphic-design', 'web-design', 'slides-design']) {
     assert.match(shared(`skills/${skill}/SKILL.md`), /Brief 写完后再取，用户点名了风格也一样/);
   }
   assert.match(shared('skills/web-design/references/methods.md'), /行长优先于栏数/);
@@ -324,11 +346,11 @@ test('resolve applies variants, scene overrides and reports missing adaptations'
   assert.match(graphic, /### graphic|## 本场景适配\n\n单页平面/);
   const web = cli('resolve', 'neo-swiss', '--scene', 'web', '--variant', 'cobalt');
   assert.match(web, /size-display: "176px"/);
-  assert.match(cli('resolve', 'neo-swiss', '--scene', 'slides'), /size-display: "120px"/);
+  assert.match(cli('resolve', 'neo-swiss', '--scene', 'slides'), /size-display: "240px"/);
   assert.match(web, /--color-accent: #2F62E8;/);
-  const slides = cli('resolve', 'neo-swiss', '--scene', 'slides');
-  assert.match(slides, /^adaptation: missing$/m);
-  assert.match(slides, /未验证适配/);
+  const missing = cli('resolve', 'editorial-serif', '--scene', 'diagram');
+  assert.match(missing, /^adaptation: missing$/m);
+  assert.match(missing, /未验证适配/);
   const parsed = parse(/^---\n([\s\S]*?)\n---/.exec(web)[1]);
   assert.equal(parsed.tokens.accent, '#2F62E8');
   assert.equal(run('resolve', 'neo-swiss', '--scene', 'web', '--variant', 'pink').status, 2);
@@ -535,7 +557,8 @@ test('search is scene-aware and says when nothing matches', () => {
   const found = cli('search', '--scene', 'graphic', '理性', '海报');
   assert.match(found, /neo-swiss/);
   assert.match(found, /graphic 适配：有/);
-  assert.match(cli('search', '--scene', 'slides', 'swiss'), /slides 适配：缺失/);
+  assert.match(cli('search', '--scene', 'diagram', 'serif'), /diagram 适配：缺失/);
+  assert.match(cli('search', '--scene', 'slides', 'swiss'), /slides 适配：有/);
   assert.match(cli('search', 'no-such-style-847261'), /无命中/);
   // 气质词表是封闭的：无命中时给出本场景能用的词，而不是让 Agent 盲猜近义词。
   const miss = cli('search', '--scene', 'data', '温和');

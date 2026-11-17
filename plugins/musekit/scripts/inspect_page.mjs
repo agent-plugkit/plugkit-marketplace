@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Shared render-and-check script for page-shaped artwork (posters, covers, web pages).
+// Shared render-and-check script for page-shaped artwork (posters, covers, slide decks, web pages).
 // It exports and screenshots the real page, then reports what a machine can measure.
 // It never judges the design: every finding is a lead for the visual review.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -10,9 +10,13 @@ import { pathToFileURL } from "node:url";
 
 export const usage = `Usage: node inspect_page.mjs <page.html|URL> [options]
 
-Poster, cover or slide (fixed canvas):
+Poster or cover (fixed canvas):
   --canvas WxH          viewport equals the canvas; exports <name>.png next to the HTML
   --scale 1|2           pixel ratio of the exported PNG (default 1)
+Slide deck (one HTML, every slide a fixed canvas):
+  --canvas WxH --slides SELECTOR
+                        checks each element matching SELECTOR (e.g. .slide) on its own, in the print layout;
+                        exports <name>-slides/01.png…, <name>.pdf and an overview sheet in colour and grey
 Web page:
   --viewports LIST      e.g. 1440x900,768x1024,375x812 (the default)
   --flow FILE.mjs       optional task path; default export async ({ page, viewport, shot, check, log })
@@ -48,7 +52,7 @@ export function parseArgs(argv) {
   const input = args.shift();
   if (!input || input.startsWith("--")) throw new Error(usage);
   const opts = { input, browser: "chromium", scale: 1 };
-  const known = ["--canvas", "--scale", "--viewports", "--flow", "--out", "--facts", "--style", "--ready", "--browser"];
+  const known = ["--canvas", "--slides", "--scale", "--viewports", "--flow", "--out", "--facts", "--style", "--ready", "--browser"];
   while (args.length) {
     const key = args.shift();
     if (!known.includes(key) || !args.length) throw new Error(`Unknown or incomplete option ${key}\n\n${usage}`);
@@ -56,6 +60,7 @@ export function parseArgs(argv) {
   }
   if (opts.canvas && opts.viewports) throw new Error(`Use --canvas or --viewports, not both\n\n${usage}`);
   if (opts.canvas && opts.flow) throw new Error(`--flow is for web pages\n\n${usage}`);
+  if (opts.slides && !opts.canvas) throw new Error(`--slides needs --canvas WxH\n\n${usage}`);
   if (!["chromium", "chrome", "msedge"].includes(opts.browser)) throw new Error(usage);
   opts.scale = Number(opts.scale);
   if (![1, 2].includes(opts.scale)) throw new Error(`--scale must be 1 or 2\n\n${usage}`);
@@ -126,6 +131,15 @@ export function sweepSizes(viewports, breakpoints) {
   const all = new Set([...SWEEP_BASE, ...breakpoints, ...viewports.map((v) => v.width)]);
   const widths = [...all].filter((w) => w >= 280 && w <= 2560).sort((a, b) => a - b);
   return [...widths.map((width) => ({ width, height: SWEEP_HEIGHT })), ...SHORT_VIEWPORTS.map(([width, height]) => ({ width, height }))];
+}
+
+// Pages and page sizes of a PDF written by Chromium, read from its page objects. Sizes are in CSS px.
+export function pdfPages(buffer) {
+  const text = Buffer.from(buffer).toString("latin1");
+  const pages = (text.match(/\/Type\s*\/Page(?![A-Za-z])/g) || []).length;
+  const sizes = [...text.matchAll(/\/MediaBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*\]/g)]
+    .map((m) => `${Math.round((m[3] - m[1]) / 0.75)}x${Math.round((m[4] - m[2]) / 0.75)}`);
+  return { pages, sizes: [...new Set(sizes)] };
 }
 
 export function readFacts(text) {
@@ -650,6 +664,8 @@ async function openPage(browser, url, viewport, opts, extra = {}) {
   const self = (text) => text.includes(url) && /Unsafe attempt to load URL|origin/.test(text);
   page.on("console", (m) => { if (m.type() === "error" && !self(m.text())) errors.push(m.text()); });
   page.on("requestfailed", (r) => { if (r.url() !== url) errors.push(`request failed: ${r.url()} ${r.failure()?.errorText || ""}`); });
+  // A deck is checked in its print layout; scripts that measure at load see that layout too.
+  if (opts.slides) await page.emulateMedia({ media: "print" });
   await page.goto(url, { waitUntil: "load" });
   if (opts.ready) await page.waitForFunction(opts.ready, null, { timeout: 15000 });
   await page.evaluate(prepare);
@@ -682,15 +698,20 @@ function ruleDetail(r, failingOnly = false) {
 
 function summarize(report) {
   const p = [];
-  const at = (v) => (report.mode === "canvas" ? "" : ` @${v.viewport}`);
+  const at = (v) => (report.mode === "canvas" ? "" : report.mode === "slides" ? ` @slide ${v.slide}` : ` @${v.viewport}`);
+  const slides = report.mode === "slides";
   for (const v of report.views) {
+    if (v.frame && (v.frame.x || v.frame.y || v.frame.width !== report.canvas.width || v.frame.height !== report.canvas.height))
+      p.push(`slide ${v.slide} sits at ${v.frame.x},${v.frame.y} as ${v.frame.width}x${v.frame.height} in the print layout, not at 0,0 as ${report.canvas.width}x${report.canvas.height}`);
+    for (const f of v.small || []) p.push(`text below size-meta (${report.minSize}px)${at(v)}: ${f.value} ×${f.count} (e.g. ${f.sample})`);
     if (v.overflowX) p.push(`horizontal overflow ${v.overflowX}px${at(v)}`);
     if (v.overflowCanvas && (v.overflowCanvas.right || v.overflowCanvas.bottom)) p.push(`content runs past the canvas (right ${v.overflowCanvas.right}px, bottom ${v.overflowCanvas.bottom}px)`);
     for (const o of v.occlusions) p.push(`text covered${at(v)}: "${o.text}" (${o.element}) under ${o.by}, ${o.points} points`);
     for (const c of v.clipped) p.push(`text clipped${at(v)}: "${c.text}" (${c.element}) by ${c.by}`);
-    for (const c of v.outside) p.push(`text outside the ${report.mode === "canvas" ? "canvas" : "viewport"}${at(v)}: "${c.text}" (${c.element})`);
+    for (const c of v.outside) p.push(`text outside the ${report.mode === "web" ? "viewport" : "canvas"}${at(v)}: "${c.text}" (${c.element})`);
     for (const r of v.rules || []) {
-      if (r.status === "unmarked" || r.status === "error") p.push(`layout rule ${r.kind} not measured${at(v)}: ${r.note}`);
+      // A deck carries a device on some slides only; a role is missing when no slide has it.
+      if (r.status === "error" || (r.status === "unmarked" && !slides)) p.push(`layout rule ${r.kind} not measured${at(v)}: ${r.note}`);
       if (r.status === "fail") for (const item of r.items.filter((x) => !x.ok)) p.push(`layout rule ${r.kind} fails${at(v)}: ${item.where} ${itemDetail(r, item)}`);
     }
     for (const f of v.facts) {
@@ -716,6 +737,21 @@ function summarize(report) {
     if (s.overflowX || counts) run = { id: key, key: counts, height: s.height, from: s.width, to: s.width, overflow: s.overflowX, example: (s.ruleFails || [])[0] || s.examples[0] };
   }
   flush();
+  if (slides) {
+    report.views[0]?.rules?.forEach((r, i) => {
+      const notes = report.views.map((v) => v.rules[i]);
+      if (notes.every((x) => x.status === "unmarked")) p.push(`layout rule ${r.kind} not measured on any slide: ${notes.reduce((a, b) => (b.note.length < a.note.length ? b : a)).note}`);
+    });
+    for (const f of report.facts) {
+      if (!f.count) p.push(`fact missing from every slide: "${f.text}"`);
+      for (const a of (f.at || []).filter((x) => x.lines > 1)) p.push(`fact breaks across ${a.lines} lines @slide ${a.slide}: "${f.text}" (fine only at a semantic boundary)`);
+    }
+    if (report.pdf.pages !== report.views.length) p.push(`PDF has ${report.pdf.pages} pages for ${report.views.length} slides: give each slide break-after: page and @page the canvas size`);
+    // PDF sizes are whole points, so a canvas side can read 1px off.
+    const want = `${report.canvas.width}x${report.canvas.height}`;
+    const near = (size) => size.split("x").every((v, i) => Math.abs(v - [report.canvas.width, report.canvas.height][i]) <= 1);
+    for (const s of report.pdf.sizes) if (!near(s)) p.push(`PDF page size ${s} is not the canvas ${want}: set @page { size: ${report.canvas.width}px ${report.canvas.height}px; margin: 0 }`);
+  }
   for (const f of report.fonts) if (f.fallback.length) p.push(`font fallback: ${f.stack} ${f.weight} rendered with ${f.fallback.join(", ")}`);
   for (const o of report.offPalette) p.push(`colour not in style.md: ${o.value} (${o.count}×, e.g. ${o.sample})`);
   for (const k of report.keyboard?.stops || []) if (!k.visibleFocus) p.push(`no visible focus change: ${k.element} "${k.label}"`);
@@ -730,6 +766,95 @@ const strip = (v) => {
   return rest;
 };
 
+// A deck is checked one slide at a time in its print layout, where the slides stack in normal flow
+// at the canvas size. With the other slides hidden, the current one sits at the top-left of a
+// canvas-sized viewport, so the poster checks apply unchanged. Facts are counted over the deck.
+async function inspectSlides({ browser, url, opts, out, at, name, facts, style, report, file }) {
+  const { page, context, errors } = await openPage(browser, url, opts.canvas, opts);
+  const count = await page.evaluate((selector) => {
+    const all = [...document.querySelectorAll(selector)];
+    all.forEach((el, i) => el.setAttribute("data-inspect-slide", String(i + 1)));
+    const css = document.createElement("style");
+    css.textContent = "[data-inspect-off]{display:none!important}";
+    document.head.append(css);
+    return all.length;
+  }, opts.slides);
+  if (!count) throw new Error(`--slides ${opts.slides} matches no element`);
+  const { width, height } = opts.canvas;
+  const clip = { x: 0, y: 0, width, height };
+  const dir = at(`${name}-slides`);
+  await mkdir(dir, { recursive: true });
+  const rules = style.rules.length ? resolveRules(style.rules, style.tokens, width) : [];
+  const meta = parseFloat(tokensAt(style.tokens, width)["size-meta"]);
+  if (Number.isFinite(meta)) report.minSize = meta;
+  const fonts = new Map(), offPalette = new Map(), pngs = [];
+  report.facts = facts.map((text) => ({ text, count: 0, slides: [] }));
+  for (let n = 1; n <= count; n++) {
+    await page.evaluate((k) => {
+      for (const el of document.querySelectorAll("[data-inspect-slide]")) el.toggleAttribute("data-inspect-off", el.dataset.inspectSlide !== String(k));
+      scrollTo(0, 0);
+    }, n);
+    await page.evaluate(settle, false);
+    const view = await page.evaluate(audit, { facts, palette: style.palette, canvas: opts.canvas, scroll: false });
+    view.slide = n;
+    view.frame = await page.evaluate((k) => {
+      const r = document.querySelector(`[data-inspect-slide="${k}"]`).getBoundingClientRect();
+      return { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
+    }, n);
+    if (rules.length) view.rules = await page.evaluate(measureRules, { rules, judgeFill: true, canvas: opts.canvas });
+    if (report.minSize) view.small = view.fontSizes.filter((f) => parseFloat(f.value) < report.minSize - 0.5);
+    for (const f of await renderedFonts(page, view.fontSamples)) {
+      const key = `${f.stack}|${f.weight}|${f.style}`;
+      const seen = fonts.get(key) || { ...f, rendered: [], fallback: [] };
+      for (const r of f.rendered) if (!seen.rendered.some((x) => x.name === r.name)) seen.rendered.push(r);
+      seen.fallback = [...new Set([...seen.fallback, ...f.fallback])];
+      fonts.set(key, seen);
+    }
+    // Detaching the font query's CDP session drops the emulated media; put print back.
+    await page.emulateMedia({ media: "print" });
+    for (const o of view.offPalette) {
+      const seen = offPalette.get(o.value) || { ...o, count: 0 };
+      seen.count += o.count;
+      offPalette.set(o.value, seen);
+    }
+    view.facts.forEach((f, i) => {
+      if (!f.count) return;
+      const total = report.facts[i];
+      total.count += f.count;
+      total.slides.push(n);
+      total.exact = total.exact || f.exact;
+      // Each slide keeps its own reading: a fact can be a broken title on one slide and a footer on the next.
+      (total.at ||= []).push({ slide: n, lines: f.lines, fontSize: f.fontSize });
+    });
+    view.facts = [];
+    const png = file(`slide-${n}`, join(dir, `${String(n).padStart(2, "0")}.png`));
+    await page.screenshot({ path: png, clip });
+    pngs.push(png);
+    report.views.push(strip(view));
+  }
+  report.fonts = [...fonts.values()];
+  report.offPalette = [...offPalette.values()].sort((a, b) => b.count - a.count);
+
+  // The PDF is printed from the same layout, so what was checked is what ships.
+  await page.evaluate(() => document.querySelectorAll("[data-inspect-off]").forEach((el) => el.removeAttribute("data-inspect-off")));
+  const pdf = await page.pdf({ path: file("pdf", at(`${name}.pdf`)), width: `${width}px`, height: `${height}px`, printBackground: true, preferCSSPageSize: true });
+  report.pdf = pdfPages(pdf);
+
+  // Overview sheet: every slide at a quarter size, for the rhythm of the deck and the grey check.
+  const k = 0.25, gap = 16, w = Math.round(width * k), h = Math.round(height * k);
+  const cols = count <= 4 ? count : count <= 9 ? 3 : 4;
+  const tiles = (await Promise.all(pngs.map((path) => readFile(path))))
+    .map((b, i) => `<figure><img src="data:image/png;base64,${b.toString("base64")}"><figcaption>${i + 1}</figcaption></figure>`).join("");
+  const sheet = await context.newPage();
+  await sheet.setViewportSize({ width: cols * w + (cols + 1) * gap, height: h + 2 * gap });
+  await sheet.setContent(`<style>body{margin:0;padding:${gap}px;background:#808080;display:grid;grid-template-columns:repeat(${cols},${w}px);gap:${gap}px;font:14px/20px sans-serif;color:#fff}figure{margin:0}img{display:block;width:${w}px;height:${h}px}</style>${tiles}`);
+  await sheet.screenshot({ path: file("sheet", join(out, `${name}-sheet.png`)), fullPage: true });
+  await sheet.addStyleTag({ content: "img{filter:grayscale(1)}" });
+  await sheet.screenshot({ path: file("sheet-gray", join(out, `${name}-sheet-gray.png`)), fullPage: true });
+  report.errors.push(...errors);
+  await context.close();
+}
+
 export async function inspectPage(opts) {
   const remote = /^https?:\/\//.test(opts.input);
   const source = remote ? opts.input : resolve(opts.input);
@@ -739,7 +864,7 @@ export async function inspectPage(opts) {
   const out = resolve(opts.out || join(base, "review"));
   await mkdir(out, { recursive: true });
 
-  let style = { breakpoints: [], palette: [] }, stylePath = opts.style ? resolve(opts.style) : join(base, "style.md");
+  let style = { breakpoints: [], palette: [], tokens: [], rules: [] }, stylePath = opts.style ? resolve(opts.style) : join(base, "style.md");
   try { style = readStyle(await readFile(stylePath, "utf8")); } catch { if (opts.style) throw new Error(`Cannot read --style ${opts.style}`); stylePath = null; }
   const facts = opts.facts ? readFacts(await readFile(resolve(opts.facts), "utf8")) : [];
 
@@ -751,7 +876,8 @@ export async function inspectPage(opts) {
   const report = {
     schemaVersion: 1,
     input: source,
-    mode: opts.canvas ? "canvas" : "web",
+    mode: opts.slides ? "slides" : opts.canvas ? "canvas" : "web",
+    canvas: opts.canvas,
     style: stylePath,
     visualReview: "not-performed",
     files: {},
@@ -764,7 +890,9 @@ export async function inspectPage(opts) {
   const auditArgs = (canvas, scroll) => ({ facts, palette: style.palette, canvas, scroll });
 
   try {
-    if (opts.canvas) {
+    if (opts.slides) {
+      await inspectSlides({ browser, url, opts, out, at: (f) => (remote ? join(out, f) : join(base, f)), name, facts, style, report, file });
+    } else if (opts.canvas) {
       const { page, context, errors } = await openPage(browser, url, opts.canvas, opts);
       const view = await page.evaluate(audit, auditArgs(opts.canvas, false));
       if (style.rules.length) view.rules = await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, opts.canvas.width), judgeFill: true, canvas: opts.canvas });
@@ -898,15 +1026,22 @@ export async function inspectPage(opts) {
 
 function printSummary(report) {
   const lines = [`report: ${report.files.report}`];
-  for (const [k, v] of Object.entries(report.files)) if (k !== "report") lines.push(`${k}: ${v}`);
+  for (const [k, v] of Object.entries(report.files)) if (k !== "report" && !k.startsWith("slide-")) lines.push(`${k}: ${v}`);
+  if (report.mode === "slides") lines.push(`slides: ${report.views.length} PNG in ${dirname(report.files["slide-1"])}; PDF ${report.pdf.pages} pages`);
   // A variable webfont reports the name of its default instance (e.g. "… ExtraLight"); the weight is still applied.
   lines.push(`fonts (requested → rendered): ${report.fonts.map((f) => `${f.stack.split(",")[0]} ${f.weight} → ${f.rendered.map((r) => `${r.name}${r.custom ? " [webfont]" : " [system]"}`).join(" + ") || "none"}`).join("; ")}`);
   if (report.fonts.some((f) => f.rendered.some((r) => r.custom && /(Thin|Light|Medium|SemiBold|Bold|Black)$/.test(r.name))))
     lines.push("note: a variable webfont is listed by its default instance name (e.g. \"… ExtraLight\"); the requested weight is still applied");
-  const facts = report.views[0]?.facts || [];
-  if (facts.length) lines.push(`facts: ${facts.map((f) => `"${f.text}" ×${f.count}${f.fontSize ? ` ${f.fontSize}px` : ""}${f.shownAt ? ` (${f.shownAt["0.35"]}px at 0.35)` : ""}`).join("; ")}`);
-  for (const v of report.views) if (v.rules?.length)
-    lines.push(`layout rules${report.mode === "canvas" ? "" : ` @${v.viewport}`}: ${v.rules.map((r) => `${r.kind} ${ruleDetail(r)}`).join("; ")}`);
+  const facts = report.facts || report.views[0]?.facts || [];
+  // On a deck each slide where a fact appears is listed with its size there.
+  const where = (f) => (f.at ? ` on ${f.at.map((a) => `${a.slide} (${a.fontSize}px)`).join(", ")}` : f.fontSize ? ` ${f.fontSize}px` : "");
+  if (facts.length) lines.push(`facts: ${facts.map((f) => `"${f.text}" ×${f.count}${where(f)}${f.shownAt ? ` (${f.shownAt["0.35"]}px at 0.35)` : ""}`).join("; ")}`);
+  for (const v of report.views) {
+    // On a deck, a rule whose roles are not on this slide is left out of the slide's line.
+    const rules = (v.rules || []).filter((r) => report.mode !== "slides" || r.status !== "unmarked");
+    const label = report.mode === "canvas" ? "" : report.mode === "slides" ? ` @slide ${v.slide}` : ` @${v.viewport}`;
+    if (rules.length) lines.push(`layout rules${label}: ${rules.map((r) => `${r.kind} ${ruleDetail(r)}`).join("; ")}`);
+  }
   const shown = report.problems.slice(0, 40);
   lines.push(report.problems.length ? `findings (${report.problems.length}, leads for review, not verdicts):` : "findings: none");
   for (const p of shown) lines.push(`- ${p}`);

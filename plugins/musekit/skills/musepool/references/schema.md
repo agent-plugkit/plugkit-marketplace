@@ -30,7 +30,7 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 
 检查脚本和制作工具不是一类：它不进成品，只在制作方的机器上运行，检查渲染出来的作品。
 
-- 两个以上 Workflow 共用的检查脚本放在插件级的 `scripts/`，例如平面和网页共用的 `inspect_page.mjs`；由 Workflow 的 SKILL.md 引用，不由 Seed 声明，也不复制进作品目录。
+- 两个以上 Workflow 共用的检查脚本放在插件级的 `scripts/`，例如平面、演示文稿和网页共用的 `inspect_page.mjs`；由 Workflow 的 SKILL.md 引用，不由 Seed 声明，也不复制进作品目录。
 - 只有一个 Workflow 用的检查脚本放在那个 Workflow 里，例如 diagram-design 的 `inspect_diagram.mjs`。
 - 检查脚本可以依赖 Node.js 和 Playwright。Playwright 从当前工作目录解析；缺失时给出安装命令，并说明作品本身不受影响。脚本里不写机器路径。
 - 报告只列程序能量出的发现，不替目视评审下结论。
@@ -58,7 +58,7 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 | `overrides` | 按场景覆盖 token 值，见下方「场景覆盖」 |
 | `exemplars` | Precedent id 列表 |
 | `examples` | 可选。场景到 Workflow 制作示例的映射，路径相对插件根，例如 `web: skills/web-design/references/examples/<名称>.md`；场景必须在 `scenes` 里，文件必须存在。`resolve` 只输出当前场景那一条 |
-| `checks` | 可选。场景到机检规则的映射（`graphic`、`web`），放只写在本场景适配里的规则，格式同 Seed 的 `checks` |
+| `checks` | 可选。场景到机检规则的映射（`graphic`、`web`、`slides`），放只写在本场景适配里的规则，格式同 Seed 的 `checks` |
 
 正文章节依次为：`## 精神`（必填，一段话说明这个风格要解决什么阅读问题）、`## 文法`（必填：网格、对齐、层级、留白、色彩、装置、图像，以及选中、出错、完成等状态）、`## 场景适配`（每个场景一个 `### <场景>` 小节，可缺）、`## 常见误用`、`## 范例`（每条写明 Precedent id、借什么、不借什么；`resolve` 会把这一节原样写进 `style.md`）。
 
@@ -124,7 +124,7 @@ checks:
 | --- | --- | --- |
 | `seams` | `group` `item` `max` | 每个 group 里相邻两个 item 的间隙 |
 | `dominant` | `group` `item` `main` `min`，可选 `exclude` | main 的面积与其余最大一个 item 之比；exclude 的不参与 |
-| `fill` | `text` `box` `min` | text 最宽一行与所在 box 内宽之比；只在海报和第一个视口上判定 |
+| `fill` | `text` `box` `min` | text 最宽一行与所在 box 内宽之比；在海报、演示文稿的每一页和网页的第一个视口上判定 |
 | `covers` | `item` `over` `count`，可选 `avoid` | 每个 item 压住几个 over（按 item 实际在最上层的点取样）；avoid 是颜色 token，压在这种底色上也算不合格 |
 | `axis` | `item` `tolerance`，可选 `field` | item 每一行中点离中轴的偏差，按版面宽度计；在 field 里时以 field 的中线为轴 |
 | `max-size` | `item` `than` | item 的字号不大于 than |
@@ -132,6 +132,6 @@ checks:
 - 阈值写 token 名或数字。token 名在检查时按视口宽度取 style.md 里对应断点的值，所以手机上用手机断点的值；不为阈值另造数字。
 - 只写要点或本场景适配里明文规定的规则。「约三分之一」这类没有 token 的说法不写成规则。
 - `check` 校验种类、参数、角色是否在同一 Template 的 Seed 或场景规则里声明过，以及阈值 token 是否存在。
-- `resolve` 只在 `graphic` 和 `web` 场景输出「机检」一节：角色说明、规则的中文描述和一段 `json musekit-checks` 机读块。
-- 检查脚本对没有标记的角色报「not measured」，不当作通过。
+- `resolve` 只在 `graphic`、`web` 和 `slides` 场景输出「机检」一节：角色说明、规则的中文描述和一段 `json musekit-checks` 机读块。
+- 检查脚本对没有标记的角色报「not measured」，不当作通过。演示文稿逐页测量：某个角色只在部分页面出现时，没有它的页面不报，整份都没有才报。
 

@@ -241,7 +241,7 @@ def seed_points(seed) -> str:
 
 # 机检：Seed 和 Template 用 checks 声明可量的版式规则，inspect_page.mjs 按声明测量。
 # 每种规则：必填的角色参数、可选的角色参数、阈值参数（token 名或数字）、整数参数、可选的颜色 token。
-CHECK_SCENES = ("graphic", "web")
+CHECK_SCENES = ("graphic", "web", "slides")
 CHECK_KINDS = {
     "seams": {"roles": ("group", "item"), "thresholds": ("max",)},
     "dominant": {"roles": ("group", "item", "main"), "optional_roles": ("exclude",), "thresholds": ("min",)},
@@ -253,7 +253,7 @@ CHECK_KINDS = {
 CHECK_TEXT = {
     "seams": "每面 `{group}` 里相邻两块 `{item}` 的间隙不超过 `{max}`",
     "dominant": "每面 `{group}` 里 `{main}` 的面积至少是其余最大一块 `{item}` 的 `{min}` 倍{exclude}",
-    "fill": "`{text}` 的字宽至少是所在 `{box}` 内宽的 `{min}`；只在海报画布和第一个视口上判定，其他宽度只报数值",
+    "fill": "`{text}` 的字宽至少是所在 `{box}` 内宽的 `{min}`；在海报、演示文稿的每一页和网页的第一个视口上判定，网页的其他宽度只报数值",
     "covers": "每张 `{item}` 压住 {count} 块 `{over}`{avoid}",
     "axis": "每个 `{item}` 的每一行，中点离中轴不超过版面宽度的 `{tolerance}`{field}",
     "max-size": "`{item}` 的字号不大于 `{than}`",

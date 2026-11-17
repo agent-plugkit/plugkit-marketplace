@@ -4,7 +4,7 @@ category: texture
 nature: rule
 name: 网点与套印
 status: draft
-scenes: [graphic, web]
+scenes: [graphic, web, slides]
 affinity: [mono-print]
 conflicts: []
 tools: [assets/halftone.js]

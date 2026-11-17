@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { inspectPage, parseArgs } from "../../plugins/musekit/scripts/inspect_page.mjs";
 
 // Each page carries known problems; the report must name each of them and nothing intended.
@@ -245,3 +246,107 @@ test("layout rules from style.md: each broken rule is named with its reading, th
   expect(report.problems.some((p) => /^sweep .*rule seams fails/.test(p))).toBe(true);
 });
 
+
+// Decks are built on the slides-design starter, shrunk to an 800 × 450 canvas to keep the run short.
+const starter = readFileSync(new URL("../../plugins/musekit/skills/slides-design/assets/deck.html", import.meta.url), "utf8")
+  .replaceAll("1920px", "800px").replaceAll("1080px", "450px");
+const deck = (slides, css = "") => {
+  const head = starter.replace("/* 3. 版式：", `${css}\n.slide{font-family:Arial,sans-serif}\n/* 3. 版式：`);
+  if (head === starter) throw new Error("starter deck no longer has the layout section marker");
+  const a = head.indexOf("<body>") + "<body>".length;
+  return `${head.slice(0, a)}\n${slides}\n${head.slice(head.indexOf("<script>"))}`;
+};
+const deckSlides = `
+<section class="slide"><div data-mk="wall" style="position:absolute;left:20px;top:20px;display:grid;grid-template-columns:2fr 1fr">
+  <div data-mk="panel" style="height:200px;border:3px solid #111"><h1 style="margin:0;font-size:48px">城市里的植物</h1></div>
+  <div data-mk="panel" style="height:200px;border:3px solid #111;border-left:0"></div>
+  <p data-mk="sticker" style="position:absolute;left:calc(66% - 40px);top:120px;margin:0;width:80px;height:30px;background:#cc2200;transform:rotate(-6deg)"></p>
+</div></section>
+<section class="slide"><p style="position:absolute;left:40px;top:200px;margin:0;font-size:24px">2027.03.06 14:30</p><div style="position:absolute;left:30px;top:195px;width:120px;height:40px;background:#cc2200"></div></section>
+<section class="slide"><p style="position:absolute;left:700px;top:100px;margin:0;font-size:24px;white-space:nowrap">出画布的一行字很长</p><p style="position:absolute;left:40px;top:400px;margin:0;font-size:12px">来源：小字</p></section>
+<section class="slide"><h2 style="margin:40px;font-size:32px">第四页</h2><p style="margin:40px;width:70px;font-size:20px">城市里的植物</p></section>`;
+const deckStyle = `\`\`\`css
+:root {
+  --color-paper: #ffffff;
+  --color-ink: #111111;
+  --color-accent: #cc2200;
+  --size-meta: 16px;
+  --rule-width: 3px;
+}
+\`\`\`
+
+\`\`\`json musekit-checks
+${JSON.stringify({ rules: [
+  { kind: "seams", group: "wall", item: "panel", max: "rule-width" },
+  { kind: "covers", item: "sticker", over: "panel", count: 2 },
+  { kind: "max-size", item: "ghost", than: "hero" },
+] })}
+\`\`\`
+`;
+
+test("a deck run checks each slide alone, counts facts over the deck and exports PNG, PDF and the overview", async () => {
+  test.setTimeout(90000);
+  write("deck.html", deck(deckSlides));
+  write("deck-style.md", deckStyle);
+  write("deck-facts.txt", "城市里的植物\n2027.03.06 14:30\n南门书房\n");
+  const report = await inspectPage(parseArgs([join(work, "deck.html"), "--canvas", "800x450", "--slides", ".slide", "--style", join(work, "deck-style.md"), "--facts", join(work, "deck-facts.txt"), "--out", join(work, "deck-review")]));
+  expect(report.mode).toBe("slides");
+  expect(report.views.map((v) => v.slide)).toEqual([1, 2, 3, 4]);
+  for (let n = 1; n <= 4; n++) expect(png(report.files[`slide-${n}`])).toEqual({ width: 800, height: 450 });
+  expect(report.files["slide-1"]).toBe(join(work, "deck-slides", "01.png"));
+  expect(report.files.pdf).toBe(join(work, "deck.pdf"));
+  expect(report.pdf.pages).toBe(4);
+  // 450px is 337.5pt; the PDF stores whole points, so the height can read 451px.
+  expect(report.pdf.sizes.length).toBe(1);
+  expect(report.pdf.sizes[0]).toMatch(/^800x45[01]$/);
+  for (const k of ["sheet", "sheet-gray", "report"]) expect(existsSync(report.files[k])).toBe(true);
+  // Every slide sits alone at the top-left of the canvas in the print layout.
+  expect(report.problems.some((p) => /sits at|PDF/.test(p))).toBe(false);
+
+  expect(report.facts.map((f) => [f.text, f.count, f.slides])).toEqual([["城市里的植物", 2, [1, 4]], ["2027.03.06 14:30", 1, [2]], ["南门书房", 0, []]]);
+  // Each slide keeps its own reading: broken over two lines in the 20px column on slide 4 only.
+  expect(report.facts[0].at).toEqual([{ slide: 1, lines: 1, fontSize: 48 }, { slide: 4, lines: 2, fontSize: 20 }]);
+  expect(report.problems.some((p) => p.startsWith('fact breaks across 2 lines @slide 4: "城市里的植物"'))).toBe(true);
+  expect(report.problems.some((p) => /breaks across .* @slide 1:/.test(p))).toBe(false);
+  expect(report.problems).toContain('fact missing from every slide: "南门书房"');
+  expect(report.problems.some((p) => p.startsWith('text covered @slide 2: "2027.03.06 14:30"'))).toBe(true);
+  expect(report.problems.some((p) => p.startsWith('text clipped @slide 3: "出画布的一行字很长"'))).toBe(true);
+  expect(report.problems.some((p) => p.startsWith("text below size-meta (16px) @slide 3: 12px"))).toBe(true);
+  // Rules measured where their roles are; a role on no slide at all is reported once.
+  expect(report.views[0].rules.map((r) => r.status)).toEqual(["pass", "pass", "unmarked"]);
+  expect(report.problems).toContain('layout rule max-size not measured on any slide: no element marked data-mk="ghost", "hero"');
+  expect(report.problems.some((p) => /seams|covers/.test(p))).toBe(false);
+});
+
+test("a deck whose print layout is off is told so: slide offset and PDF page size", async () => {
+  test.setTimeout(60000);
+  const broken = deck(deckSlides.split("</section>").slice(0, 2).join("</section>") + "</section>", "body{padding:12px}").replace(/@page \{[^}]*\}/, "@page { size: A4; margin: 0; }");
+  write("broken.html", broken);
+  write("deck-style.md", deckStyle);
+  const report = await inspectPage(parseArgs([join(work, "broken.html"), "--canvas", "800x450", "--slides", ".slide", "--style", join(work, "deck-style.md"), "--out", join(work, "broken-review")]));
+  expect(report.problems.some((p) => p.startsWith("slide 1 sits at 12,12 as 800x450"))).toBe(true);
+  expect(report.problems.some((p) => /^PDF page size \d+x\d+ is not the canvas 800x450/.test(p))).toBe(true);
+});
+
+test("the starter deck shows one slide at a time, scaled to the window, and turns pages by key and address", async ({ page }) => {
+  write("present.html", deck(deckSlides));
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.goto(pathToFileURL(join(work, "present.html")).href);
+  const shown = () => page.evaluate(() => [...document.querySelectorAll(".slide")].map((s, i) => [i + 1, getComputedStyle(s).visibility]).filter(([, v]) => v === "visible").map(([n]) => n));
+  expect(await shown()).toEqual([1]);
+  // Hidden slides keep their layout, so a script that sizes a canvas at load measures every slide.
+  expect(await page.evaluate(() => [...document.querySelectorAll(".slide")].map((s) => s.offsetWidth))).toEqual([800, 800, 800, 800]);
+  // 800 × 450 scaled into 1000 × 700 is limited by the width.
+  expect(await page.evaluate(() => Math.round(document.querySelector(".slide").getBoundingClientRect().width))).toBe(1000);
+  await page.keyboard.press("ArrowRight");
+  expect(await shown()).toEqual([2]);
+  expect(new URL(page.url()).hash).toBe("#2");
+  await page.keyboard.press("End");
+  expect(await shown()).toEqual([4]);
+  await page.keyboard.press("ArrowRight");
+  expect(await shown()).toEqual([4]);
+  await page.goto(pathToFileURL(join(work, "present.html")).href + "#3");
+  expect(await shown()).toEqual([3]);
+  await page.keyboard.press("Home");
+  expect(await shown()).toEqual([1]);
+});
