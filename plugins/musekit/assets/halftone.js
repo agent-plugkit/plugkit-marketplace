@@ -6,8 +6,9 @@
  * 单文件交付时，可以把本文件全文原样放进页面的一个 script 标签里；文件里没有会提前
  * 结束标签的字样。
  *
- * 重画：dots 按给定尺寸算一次。画布尺寸随容器变化时（用 ResizeObserver 监听），或者
- * 墨量场依赖文字位置时（等 document.fonts.ready 之后），重新调用 dots 和 draw。
+ * 重画：dots 按给定尺寸算一次。画布尺寸随容器变化，或者墨量场依赖文字位置时，用
+ * watch(容器, render) 包住 dots 和 draw：它等 document.fonts.ready 之后调用一次
+ * render({ width, height, dpr })，此后容器尺寸变化时防抖重调；返回的函数用来停止监听。
  *
  * 参数与 halftone-plate Seed 的 token 一一对应：
  *   cell      ← halftone-cell（px）
@@ -141,5 +142,35 @@
     return fieldFromPixels(ctx.getImageData(0, 0, iw, ih), opts);
   }
 
-  root.MusekitHalftone = { dots, draw, fieldFromPixels, fieldFromImage };
+  /**
+   * 浏览器端：字体就绪后按容器的内容尺寸调用 render，尺寸变化时防抖后再调用。
+   * render 收到 { width, height, dpr }，单位为 CSS 像素，dpr 不超过 2。
+   * opts.delay 是防抖毫秒数，默认 100。返回停止监听的函数。
+   */
+  function watch(element, render, opts) {
+    const delay = (opts && opts.delay) ?? 100;
+    let ready = false, timer = 0, last = '', stopped = false;
+    const run = () => {
+      const width = element.clientWidth, height = element.clientHeight;
+      const key = width + 'x' + height;
+      if (stopped || key === last) return;
+      last = key;
+      render({ width, height, dpr: Math.min(root.devicePixelRatio || 1, 2) });
+    };
+    const schedule = () => {
+      if (!ready || stopped) return;
+      clearTimeout(timer);
+      timer = setTimeout(run, delay);
+    };
+    const observer = new ResizeObserver(schedule);
+    observer.observe(element);
+    document.fonts.ready.then(() => { ready = true; schedule(); });
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }
+
+  root.MusekitHalftone = { dots, draw, fieldFromPixels, fieldFromImage, watch };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -51,3 +51,26 @@ test("halftone plates render from file:// and the registration offset moves the 
   expect(result.shifted.minX - result.plain.minX).toBe(8);
   expect(result.shifted.minY - result.plain.minY).toBe(6);
 });
+
+test("watch renders once fonts are ready, redraws when the container resizes and stops on request", async ({ page }) => {
+  await page.goto(pathToFileURL(join(work, "index.html")).href);
+  const calls = await page.evaluate(async () => {
+    const box = document.createElement("div");
+    box.style.cssText = "width:200px;height:100px";
+    document.body.append(box);
+    const seen = [];
+    const settle = () => new Promise((done) => setTimeout(done, 250));
+    const stop = window.MusekitHalftone.watch(box, (size) => seen.push(size), { delay: 50 });
+    await settle();
+    box.style.width = "300px";
+    await settle();
+    stop();
+    box.style.width = "400px";
+    await settle();
+    return seen;
+  });
+  expect(calls.map((c) => c.width)).toEqual([200, 300]);
+  expect(calls[0]).toMatchObject({ height: 100 });
+  expect(calls[0].dpr).toBeGreaterThan(0);
+  expect(calls[0].dpr).toBeLessThanOrEqual(2);
+});
