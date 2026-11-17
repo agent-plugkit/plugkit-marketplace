@@ -27,6 +27,13 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 - 共享工具都是单文件，没有依赖，不访问网络，不需要构建；能在浏览器里直接运行，`file://` 下也能用。
 - 制作时把工具复制进作品目录，成品不引用插件路径；要求单文件交付时可以把工具全文内联，所以工具文件里不能出现 `</script>` 字样。
 
+检查脚本和制作工具不是一类：它不进成品，只在制作方的机器上运行，检查渲染出来的作品。
+
+- 两个以上 Workflow 共用的检查脚本放在插件级的 `scripts/`，例如平面和网页共用的 `inspect_page.mjs`；由 Workflow 的 SKILL.md 引用，不由 Seed 声明，也不复制进作品目录。
+- 只有一个 Workflow 用的检查脚本放在那个 Workflow 里，例如 diagram-design 的 `inspect_diagram.mjs`。
+- 检查脚本可以依赖 Node.js 和 Playwright。Playwright 从当前工作目录解析；缺失时给出安装命令，并说明作品本身不受影响。脚本里不写机器路径。
+- 报告只列程序能量出的发现，不替目视评审下结论。
+
 类别专属字段：
 
 - `color`：必须有 `paper`（背景）、`ink`（正文）、`accent`（强调）三个 token。`variants` 按变体名改写部分 token。`pairs` 列出需要满足对比度的配对 `[前景, 背景, body|large]`，`body` 要求 4.5:1，`large` 要求 3:1，每个变体都要满足。可选的 `data` 给数据图色板，三组都写：`categorical`（3–6 色，每色对纸面至少 3:1，任意两色 OKLab ΔE×100 至少 15，红色盲和绿色盲模拟下至少 8）、`sequential`（3–9 色，由浅到深，最深一色对纸面至少 3:1）、`diverging`（奇数个、至少 5 色，中点是中性色，两臂向两端逐级变深，两端对纸面至少 3:1）。声明了 `data` 场景的 Template，它的颜色 Seed 必须有 `data`。

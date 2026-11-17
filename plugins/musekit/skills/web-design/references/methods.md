@@ -29,3 +29,22 @@ style.md 的本场景适配主要按桌面和手机写。两者之间和高度�
 先执行主任务，再看目标窄屏与内容极值。确认键盘能到达操作、焦点可见、状态说明可读取，尺寸变化没有藏起关键信息。若动效承载状态转换，检查 reduced-motion 下仍可理解。
 
 对照实际页面判断是否完成：层级是否清楚、密度是否适合工作、视觉重点是否服务任务。检查清单不能替代观看和使用。
+
+## 任务路径脚本
+
+检查脚本的 `--flow` 接收一个 ES 模块，默认导出一个异步函数，参数是 `{ page, viewport, shot, check, log }`。`page` 是已经加载好、字体就绪的 Playwright 页面；`viewport.tag` 形如 `375x812`，桌面和手机的操作不同时按它分支。`shot(名字, { fullPage, selector })` 把截图存成 `review/flow-<视口>-<名字>.png`；`check(名字)` 在当前状态下重做遮挡、裁切和溢出检查，结果进报告；`log(...)` 记一行文字。脚本出错时，报告记下错误，其他检查照常完成。
+
+```js
+export default async ({ page, shot, check, log }) => {
+  await page.click("#signup button[type=submit]");          // 空提交
+  log("focus after error", await page.evaluate(() => document.activeElement.id));
+  await shot("error", { selector: "#signup" });
+  await page.fill("#name", "林");
+  await page.fill("#email", "lin@example.com");
+  await page.click("#signup button[type=submit]");
+  await shot("done", { selector: "#signup" });
+  await check("done");
+};
+```
+
+只写本页面独有的操作：打开页面、等字体、截首屏和整页、扫描宽度都由检查脚本完成。截图前要先把状态滚进视口，比如吸顶导航可能挡住出错的字段。有意裁切或纯装饰的文字（比如跑马灯条带）加上 `data-inspect-ignore`，它就不再出现在裁切的发现里。贴片这类压在别的内容上的元素不要加：加了以后，它盖住文字也不会再报。贴片压住的是板而不是字时，本来就不会有发现。
