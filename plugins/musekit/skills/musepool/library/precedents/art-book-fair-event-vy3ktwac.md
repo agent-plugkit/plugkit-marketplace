@@ -1,7 +1,5 @@
 ---
-id: Vy3KTWAC
-scenario: graphic
-scenario_name: 平面
+id: vy3ktwac
 category: art book fair event
 modality: web
 view_type: landing
@@ -60,7 +58,7 @@ tags:
 dimensions_with_reference: []
 ---
 
-> 借鉴范围：可借鉴字体、图像、色彩和视觉焦点；根据内容与交付尺寸重新构图。原参考中的交互可转化为静态节奏。 下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
+> 借鉴范围：只借方法；原作品的文案、数据、品牌、照片和身份不进入新作品。下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
 
 # Narrative
 
@@ -92,7 +90,7 @@ Navigation cards are the core component: positioned relative containers with fou
 
 # Motion
 
-SmoothState page transitions: 350ms fade-in on load, fade-out on exit. Exhibitor list uses `slideToggle` for accordion expand/collapse. List toggle buttons animate between `+` and `–`. All transitions use `ease-out` or `ease-in` timing. See references/motion.md for transition implementation.
+SmoothState page transitions: 350ms fade-in on load, fade-out on exit. Exhibitor list uses `slideToggle` for accordion expand/collapse. List toggle buttons animate between `+` and `–`. All transitions use `ease-out` or `ease-in` timing.
 
 # Algorithms
 

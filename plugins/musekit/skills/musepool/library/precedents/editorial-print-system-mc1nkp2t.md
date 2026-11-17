@@ -1,7 +1,5 @@
 ---
-id: mC1nkP2t
-scenario: graphic
-scenario_name: 平面
+id: mc1nkp2t
 category: one/two-ink editorial print system
 modality: design-system
 view_type: visual-system
@@ -77,7 +75,7 @@ dimensions_with_reference:
 - craft
 ---
 
-> 借鉴范围：可借鉴字体、图像、色彩和视觉焦点；根据内容与交付尺寸重新构图。原参考中的交互可转化为静态节奏。 下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
+> 借鉴范围：只借方法；原作品的文案、数据、品牌、照片和身份不进入新作品。下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
 
 # Narrative
 
@@ -87,7 +85,7 @@ A reusable one- and two-ink editorial print system for posters, zines, covers, p
 
 The source system is expressed as machine-readable design catalogs plus a structured decision manifest. This Musepool entry keeps that system as a discoverable style reference; it does not add a renderer, a new CLI command, or a plugin-wide recipe contract. In an image-generation workflow, turn the selected constraints into the final prompt. In code-rendered work, use CSS custom properties for paper and ink tokens, SVG masks or Canvas for plate separation and halftone screening, and `mix-blend-mode: multiply` only where two physical plates are meant to overlap. A plain CSS monochrome filter is not an equivalent implementation because it does not create separate ink coverage or exposed substrate.
 
-No visual examples from the source project are bundled in this seed. System rules and implementation guidance are adapted from the MIT-licensed source at the revision recorded in frontmatter; see `references/third-party-notices.md`.
+No visual examples from the source project are bundled in this precedent. System rules and implementation guidance are adapted from the MIT-licensed source at the revision recorded in frontmatter; see `references/third-party-notices.md`.
 
 # Layout
 

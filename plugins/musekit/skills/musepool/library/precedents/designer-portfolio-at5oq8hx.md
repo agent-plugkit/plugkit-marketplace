@@ -1,7 +1,5 @@
 ---
-id: AT5oq8hX
-scenario: graphic
-scenario_name: 平面
+id: at5oq8hx
 category: designer portfolio
 modality: web
 view_type: portfolio
@@ -59,7 +57,7 @@ tags:
 dimensions_with_reference: []
 ---
 
-> 借鉴范围：可借鉴字体、图像、色彩和视觉焦点；根据内容与交付尺寸重新构图。原参考中的交互可转化为静态节奏。 下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
+> 借鉴范围：只借方法；原作品的文案、数据、品牌、照片和身份不进入新作品。下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
 
 # Narrative
 
@@ -91,7 +89,7 @@ Minimal component system. Navigation is just a centered SVG logo mark. Links use
 
 # Motion
 
-Horizontal auto-scrolling marquee for work gallery (infinite loop, multiple project strips). Kinetic type treatment in orange section — oversized words animate/scroll into view. Smooth scroll behavior site-wide. See references/motion.md for timing parameters.
+Horizontal auto-scrolling marquee for work gallery (infinite loop, multiple project strips). Kinetic type treatment in orange section — oversized words animate/scroll into view. Smooth scroll behavior site-wide.
 
 # Algorithms
 

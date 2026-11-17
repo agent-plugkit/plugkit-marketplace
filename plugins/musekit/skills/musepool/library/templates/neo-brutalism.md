@@ -60,7 +60,7 @@ overrides:
     size-title: 56px
     size-body: 40px
     size-meta: 24px
-exemplars: [pibXRzsG, AT5oq8hX, nB7kQ2mX]
+exemplars: [pibxrzsg, at5oq8hx, nb7kq2mx]
 examples:
   graphic: skills/graphic-design/references/examples/neo-brutalism-maker-fair.md
   web: skills/web-design/references/examples/neo-brutalism-maker-fair.md
@@ -155,6 +155,6 @@ checks:
 
 ## 范例
 
-- `pibXRzsG` 活动设计机构：满幅色块分区、一块占满视口高的巨大色块和一条横向滚动条带。借它的主板压倒和条带，不借它的胶囊按钮和居中构图。
-- `AT5oq8hX` 品牌设计师作品集：黑底上的超大标题和橙色动态文字段落，标签为 brutalist。借它直接、不讨好的标题处理。
-- `nB7kQ2mX` 新粗野主义组件库：粗边框、硬阴影和满宽条带的组件级做法。借它的条带和状态细节；它的悬停是平移进阴影、阴影归零，这里改为阴影加长。它的页面是卡片网格，版式不从它借。
+- `pibxrzsg` 活动设计机构：满幅色块分区、一块占满视口高的巨大色块和一条横向滚动条带。借它的主板压倒和条带，不借它的胶囊按钮和居中构图。
+- `at5oq8hx` 品牌设计师作品集：黑底上的超大标题和橙色动态文字段落，标签为 brutalist。借它直接、不讨好的标题处理。
+- `nb7kq2mx` 新粗野主义组件库：粗边框、硬阴影和满宽条带的组件级做法。借它的条带和状态细节；它的悬停是平移进阴影、阴影归零，这里改为阴影加长。它的页面是卡片网格，版式不从它借。

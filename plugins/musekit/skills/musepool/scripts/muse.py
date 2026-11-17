@@ -32,6 +32,7 @@ SEEDS = LIBRARY / "seeds"
 TEMPLATES = LIBRARY / "templates"
 PRECEDENTS = LIBRARY / "precedents"
 FONTS = LIBRARY / "fonts.yaml"
+THIRD_PARTY = SKILL / "references" / "third-party-notices.md"
 SPECIMEN = SKILL / "assets" / "specimen.html"
 
 CATEGORIES = (
@@ -206,7 +207,11 @@ class Library:
         for path in sorted(TEMPLATES.glob("*.md")):
             self.templates[path.stem] = self.load_template(path)
         self.fonts = {font["family"]: font for font in (load_yaml(FONTS.read_text(encoding="utf-8")) or {}).get("fonts", [])}
-        self.precedents = {entry["id"]: entry for entry in json.loads((PRECEDENTS / "index.json").read_text(encoding="utf-8"))}
+        self.precedents = {}
+        for path in sorted(PRECEDENTS.glob("*.md")):
+            meta, body = frontmatter(path)
+            meta["_body"], meta["_path"] = body, path
+            self.precedents[meta.get("id")] = meta
 
     @staticmethod
     def load_template(path: Path):
@@ -514,7 +519,8 @@ def cmd_list(args, lib: Library):
             print(f"{font['family']}  [{font['kind']}]  {', '.join(font.get('scripts', []))}")
     else:
         for entry in lib.precedents.values():
-            print(f"{entry['id']}  {entry['category']}  —  {entry['gist'][:90]}")
+            gist = sections(entry["_body"], level=1).get("Narrative", "").replace("\n", " ")
+            print(f"{entry['id']}  {entry['category']}  —  {gist[:90]}")
 
 
 def cmd_search(args, lib: Library):
@@ -567,7 +573,7 @@ def cmd_show(args, lib: Library):
     elif ref in lib.seeds:
         print(lib.seed_paths[ref].read_text(encoding="utf-8"), end="")
     elif ref in lib.precedents:
-        print((PRECEDENTS / lib.precedents[ref]["file"]).read_text(encoding="utf-8"), end="")
+        print(lib.precedents[ref]["_path"].read_text(encoding="utf-8"), end="")
     elif ref in lib.fonts:
         print(json.dumps(lib.fonts[ref], ensure_ascii=False, indent=2))
     else:
@@ -1148,6 +1154,32 @@ def check_links(lib: Library) -> list[str]:
     return failures
 
 
+def check_precedent(entry, used: set[str], errors: list[str]):
+    pid = entry.get("id")
+    where = f"precedent {pid}"
+    for field in ("id", "category", "modality", "view_type"):
+        if not entry.get(field):
+            errors.append(f"{where}：缺少 {field}")
+    if not (isinstance(pid, str) and re.fullmatch(r"[a-z0-9]{8}", pid)):
+        errors.append(f"{where}：id 应为 8 位小写字母或数字")
+    if not entry["_path"].name.endswith(f"-{pid}.md"):
+        errors.append(f"{where}：文件名应为 <名称>-{pid}.md")
+    if pid not in used and not entry.get("retained_for"):
+        errors.append(f"{where}：没有 Template 引用，需要写 retained_for")
+    body = entry["_body"]
+    if bool(entry.get("dimensions_with_reference")) != ("# Dimensional References" in body):
+        errors.append(f"{where}：dimensions_with_reference 与正文的「# Dimensional References」一节对不上")
+    for ref in sorted(set(re.findall(r"references/[\w./-]*\w", body))):
+        if not (SKILL / ref).exists():
+            errors.append(f"{where}：正文引用了不存在的 {ref}")
+    if entry.get("source_url"):
+        for field in ("source_revision", "source_license"):
+            if not entry.get(field):
+                errors.append(f"{where}：有 source_url 时必须写 {field}")
+        if entry["_path"].relative_to(SKILL).as_posix() not in THIRD_PARTY.read_text(encoding="utf-8"):
+            errors.append(f"{where}：第三方来源没有登记在 references/third-party-notices.md")
+
+
 def cmd_check(args, lib: Library):
     errors: list[str] = []
     if args.paths:
@@ -1167,9 +1199,9 @@ def cmd_check(args, lib: Library):
             if template["_path"].stem != template.get("id"):
                 errors.append(f"template {template.get('id')}：文件名应为 {template.get('id')}.md")
             check_template(lib, template, errors)
+        used = {e for template in lib.templates.values() for e in template.get("exemplars") or []}
         for entry in lib.precedents.values():
-            if not (PRECEDENTS / entry["file"]).exists():
-                errors.append(f"precedent {entry['id']}：缺少文件 {entry['file']}")
+            check_precedent(entry, used, errors)
     if args.links:
         errors += check_links(lib)
     if errors:
@@ -1177,7 +1209,7 @@ def cmd_check(args, lib: Library):
         print("\n".join(f"- {error}" for error in errors))
         return 1
     scope = f"{len(args.paths)} 个文件" if args.paths else (
-        f"{len(lib.seeds)} 个 seed，{len(lib.templates)} 个 template，{len(lib.fonts)} 个字体")
+        f"{len(lib.seeds)} 个 seed，{len(lib.templates)} 个 template，{len(lib.precedents)} 个 precedent，{len(lib.fonts)} 个字体")
     print(f"检查通过：{scope}{'，链接均可访问' if args.links else ''}。")
     return 0
 

@@ -1,7 +1,5 @@
 ---
-id: Nv0J2QBT
-scenario: ui
-scenario_name: 界面
+id: nv0j2qbt
 category: generative music visualization
 modality: web
 view_type: landing
@@ -55,7 +53,7 @@ tags:
 dimensions_with_reference: []
 ---
 
-> 借鉴范围：可借鉴交互、导航、组件组织或界面层级；根据当前用户任务、已有设计系统和技术栈重新实现。 下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
+> 借鉴范围：只借方法；原作品的文案、数据、品牌、照片和身份不进入新作品。下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
 
 # Narrative
 

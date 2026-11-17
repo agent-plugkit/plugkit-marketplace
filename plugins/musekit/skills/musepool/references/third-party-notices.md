@@ -2,7 +2,7 @@
 
 ## mono-color-skill
 
-The `library/precedents/graphic/editorial-print-system-mc1nkp2t.md` precedent, the `mono-print` template and its `two-plate`, `plate-grotesk`, `print-asymmetric`, `halftone-plate` and `halftone-photo` seeds adapt system-level guidance from [yanliudesign/mono-color-skill](https://github.com/yanliudesign/mono-color-skill) at revision `de607fedfff647eaf5400e0aa43085787d7d1fca`.
+The `library/precedents/editorial-print-system-mc1nkp2t.md` precedent, the `mono-print` template and its `two-plate`, `plate-grotesk`, `print-asymmetric`, `halftone-plate` and `halftone-photo` seeds adapt system-level guidance from [yanliudesign/mono-color-skill](https://github.com/yanliudesign/mono-color-skill) at revision `de607fedfff647eaf5400e0aa43085787d7d1fca`.
 
 MIT License
 
@@ -18,7 +18,7 @@ The source repository's visual examples and artwork use a separate, more restric
 
 ## neobrutalism-components
 
-The `library/precedents/ui/neobrutalism-components-nb7kq2mx.md` precedent records component-level methods from [ekmas/neobrutalism-components](https://github.com/ekmas/neobrutalism-components) at revision `f3c4d42973819ab5cf18697d08d6bd46f384d335`.
+The `library/precedents/neobrutalism-components-nb7kq2mx.md` precedent records component-level methods from [ekmas/neobrutalism-components](https://github.com/ekmas/neobrutalism-components) at revision `f3c4d42973819ab5cf18697d08d6bd46f384d335`.
 
 MIT License
 

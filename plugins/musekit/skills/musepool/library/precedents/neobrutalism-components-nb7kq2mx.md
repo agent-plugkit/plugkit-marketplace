@@ -1,7 +1,5 @@
 ---
-id: nB7kQ2mX
-scenario: ui
-scenario_name: 界面
+id: nb7kq2mx
 category: neobrutalism component library
 modality: design-system
 view_type: component-library
@@ -50,8 +48,7 @@ tags:
   typography:
   - sans-serif
   - grotesque
-dimensions_with_reference:
-- craft
+dimensions_with_reference: []
 ---
 
 > 借鉴范围：只借组件层的状态与条带做法；它的页面是居中首屏加卡片网格，版式不作为参考。下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。

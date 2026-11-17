@@ -1,7 +1,5 @@
 ---
-id: C4aZtWoH
-scenario: graphic
-scenario_name: 平面
+id: c4aztwoh
 category: art school exhibition
 modality: web
 view_type: portfolio
@@ -62,7 +60,7 @@ tags:
 dimensions_with_reference: []
 ---
 
-> 借鉴范围：可借鉴字体、图像、色彩和视觉焦点；根据内容与交付尺寸重新构图。原参考中的交互可转化为静态节奏。 下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
+> 借鉴范围：只借方法；原作品的文案、数据、品牌、照片和身份不进入新作品。下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
 
 # Narrative
 
@@ -94,7 +92,7 @@ Header names are text links with hover state. Eye chart letters are individual f
 
 # Motion
 
-Loading screen animates "LOADING" letters with blur filter keyframes (0px → 5px → 0px). Eye chart images fade in/out on name hover. Smooth scroll behavior for anchor links. Scroll-triggered opacity changes on the eye chart container (blur filter transitions from 0px as user scrolles). See references/motion.md for animation specifics.
+Loading screen animates "LOADING" letters with blur filter keyframes (0px → 5px → 0px). Eye chart images fade in/out on name hover. Smooth scroll behavior for anchor links. Scroll-triggered opacity changes on the eye chart container (blur filter transitions from 0px as user scrolles).
 
 # Algorithms
 

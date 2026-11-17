@@ -55,7 +55,7 @@ overrides:
     size-title: 52px
     size-body: 40px
     size-meta: 24px
-exemplars: [C4aZtWoH, B3LYgTWe, rvYJrbZh, G26LBSOO]
+exemplars: [c4aztwoh, b3lygtwe, rvyjrbzh, g26lbsoo]
 examples:
   graphic: skills/graphic-design/references/examples/editorial-serif-long-river.md
   web: skills/web-design/references/examples/editorial-serif-long-river.md
@@ -129,7 +129,7 @@ examples:
 
 ## 范例
 
-- `C4aZtWoH` 艺术学院展览：视力表式的居中字号阶梯，配衬线正文和斜体标签。借它沿中轴递减的字号层级；它的展示字是无衬线，不借。
-- `B3LYgTWe` 艺术中心：暖奶油底色上的衬线大标题，8/4 栏的不对称主栏与侧栏。借它长文里正文栏与侧栏的关系；它的首屏是齐左构图，不借。
-- `rvYJrbZh` 艺术家作品集：粗斜体标题加正文的连续文字流，像在读一份宣言。借它只靠排印建立层级的做法。
-- `G26LBSOO` 研究报告：Didone 衬线展示字、编号章节和整块的强调色。借它把编辑排版用于研究内容的章节组织；整块强调色不借。
+- `c4aztwoh` 摄影毕业展：视力表式的居中字号阶梯，配衬线正文和斜体标签。借它沿中轴递减的字号层级；它的展示字是无衬线，不借。
+- `b3lygtwe` 艺术中心：暖奶油底色上的衬线大标题，8/4 栏的不对称主栏与侧栏。借它长文里正文栏与侧栏的关系；它的首屏是齐左构图，不借。
+- `rvyjrbzh` 艺术家作品集：粗斜体标题加正文的连续文字流，像在读一份宣言。借它只靠排印建立层级的做法。
+- `g26lbsoo` 研究报告：Didone 衬线展示字、编号章节和整块的强调色。借它把编辑排版用于研究内容的章节组织；整块强调色不借。

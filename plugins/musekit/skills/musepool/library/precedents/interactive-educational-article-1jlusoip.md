@@ -1,10 +1,9 @@
 ---
-id: 1JlUSoIP
-scenario: information
-scenario_name: 信息表达
+id: 1jlusoip
+retained_for: diagram 与 data 场景的解释方法：语义配色区分正负量，交互图解与正文交替推进；库里没有其他同类记录。
 category: interactive educational article
 modality: web
-view_type: landing
+view_type: article
 core_dimensions:
 - algorithms
 - imagery
@@ -55,7 +54,7 @@ tags:
 dimensions_with_reference: []
 ---
 
-> 借鉴范围：可借鉴信息层级、标注、阅读顺序或解释方法；事实、数据和科学结论必须来自当前任务的原始资料。 下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
+> 借鉴范围：只借方法；原作品的文案、数据、品牌、照片和身份不进入新作品。下文记录参考本身的方法，其参数、布局和技术栈不自动成为当前任务要求。
 
 # Narrative
 

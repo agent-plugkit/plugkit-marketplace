@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,12 +15,9 @@ const library = join(musepool, 'library');
 const script = join(musepool, 'scripts/muse.py');
 const skillNames = ['musepool', 'web-design', 'graphic-design', 'slides-design', 'diagram-design', 'data-figure', 'article-illustration'];
 const precedentIds = [
-  'vEj9F5om', 'rvYJrbZh', 'weZM545X', 'x1BNQPTi', 'swwKiFDe',
-  'JiAIwOJv', 'LjwyQI6U', 'Vy3KTWAC', 'AT5oq8hX', 'B3LYgTWe', 'mC1nkP2t',
-  'pu9ToBED', 'G26LBSOO', 'C4aZtWoH', 'haYCh1wI', 'H9aLYT6s',
-  'pibXRzsG', 'rVQmfOqR', 'Nv0J2QBT', 'FpA0MHDV', 'tTceao0M',
-  't2Q6D5JR', '1JlUSoIP', 'Yoiov5EL', 'upXsOXv8', 'lC4BpOAk',
-  'o0W3sQmk', 'tVghVsn2', 'GzPJkoac', 'nB7kQ2mX',
+  'rvyjrbzh', 'ljwyqi6u', 'vy3ktwac', 'at5oq8hx', 'b3lygtwe', 'mc1nkp2t',
+  'g26lbsoo', 'c4aztwoh', 'haych1wi', 'pibxrzsg', 'nv0j2qbt', '1jlusoip',
+  'yoiov5el', 'nb7kq2mx',
 ];
 
 function walk(dir) {
@@ -119,13 +116,43 @@ test('the library passes its own checks and every seed category matches its fold
   }
 });
 
-test('precedents survive as exemplars and the template links real ones', () => {
-  const index = JSON.parse(readFileSync(join(library, 'precedents/index.json'), 'utf8'));
-  assert.deepEqual(new Set(index.map((entry) => entry.id)), new Set(precedentIds));
-  for (const entry of index) assert.ok(existsSync(join(library, 'precedents', entry.file)), entry.file);
-  const swiss = frontmatter(join(library, 'templates/neo-swiss.md'));
-  for (const id of swiss.exemplars) assert.ok(precedentIds.includes(id));
-  assert.equal(cli('show', 'LjwyQI6U'), readFileSync(join(library, 'precedents/graphic/sustainability-manifesto-ljwyqi6u.md'), 'utf8'));
+test('precedents are flat lowercase records that a template uses or that say why they stay', () => {
+  const dir = join(library, 'precedents');
+  const files = readdirSync(dir);
+  assert.ok(!existsSync(join(dir, 'index.json')));
+  const records = files.map((name) => ({ name, meta: frontmatter(join(dir, name)) }));
+  assert.deepEqual(new Set(records.map(({ meta }) => meta.id)), new Set(precedentIds));
+  const used = new Set(readdirSync(join(library, 'templates')).filter((name) => name.endsWith('.md'))
+    .flatMap((name) => frontmatter(join(library, 'templates', name)).exemplars || []));
+  for (const { name, meta } of records) {
+    assert.match(meta.id, /^[a-z0-9]{8}$/, name);
+    assert.ok(name.endsWith(`-${meta.id}.md`), name);
+    assert.equal(meta.scenario, undefined, name);
+    assert.ok(used.has(meta.id) || meta.retained_for, name);
+  }
+  assert.equal(cli('show', 'ljwyqi6u'), readFileSync(join(dir, 'sustainability-manifesto-ljwyqi6u.md'), 'utf8'));
+  assert.match(cli('list', 'precedents'), /^haych1wi {2}fashion archive {2}— {2}A Swiss menswear/m);
+});
+
+test('check rejects a precedent with a dead reference, a broken id, or no reason to stay', () => {
+  const copy = mkdtempSync(join(tmpdir(), 'musepool-precedents-'));
+  try {
+    cpSync(plugin, copy, { recursive: true });
+    const dir = join(copy, 'skills/musepool/library/precedents');
+    const kept = join(dir, 'fashion-archive-haych1wi.md');
+    writeFileSync(kept, readFileSync(kept, 'utf8').replace(/^retained_for:.*\n/m, '')
+      .replace('# Layout', 'See references/motion.md for details.\n\n# Layout'));
+    const named = join(dir, 'art-book-fair-event-vy3ktwac.md');
+    writeFileSync(named, readFileSync(named, 'utf8').replace('id: vy3ktwac', 'id: Vy3KTWAC'));
+    const result = spawnSync('python3', [join(copy, 'skills/musepool/scripts/muse.py'), 'check'], { encoding: 'utf8' });
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stdout, /precedent haych1wi：正文引用了不存在的 references\/motion\.md/);
+    assert.match(result.stdout, /precedent haych1wi：没有 Template 引用，需要写 retained_for/);
+    assert.match(result.stdout, /precedent Vy3KTWAC：id 应为 8 位小写字母或数字/);
+    assert.match(result.stdout, /template neo-swiss：范例 vy3ktwac 不存在/);
+  } finally {
+    rmSync(copy, { recursive: true, force: true });
+  }
 });
 
 test('neo-brutalism lays out a zero-gap panel wall with checkable layout rules', () => {
@@ -143,7 +170,7 @@ test('neo-brutalism lays out a zero-gap panel wall with checkable layout rules',
   }
   const brutal = frontmatter(join(library, 'templates/neo-brutalism.md'));
   assert.equal(brutal.seeds.grid, 'panel-wall');
-  assert.ok(brutal.exemplars.includes('nB7kQ2mX'));
+  assert.ok(brutal.exemplars.includes('nb7kq2mx'));
   const swiss = 'paper-ink-signal,grotesk-cjk,baseline-8';
   for (const clash of ['ma-interval', 'zero-radius-hairline']) {
     assert.equal(run('compose', '--id', 'x', '--name', 'x', '--family', 'neo-brutalism',
@@ -154,8 +181,8 @@ test('neo-brutalism lays out a zero-gap panel wall with checkable layout rules',
 test('resolve keeps what each exemplar is borrowed for', () => {
   const style = cli('resolve', 'neo-swiss', '--scene', 'web');
   const examples = style.split('## 范例')[1];
-  assert.match(examples, /`LjwyQI6U` 可持续设计宣言：.*看它怎样让细线本身成为结构/);
-  assert.match(examples, /muse\.py show LjwyQI6U/);
+  assert.match(examples, /`ljwyqi6u` 可持续设计宣言：.*看它怎样让细线本身成为结构/);
+  assert.match(examples, /muse\.py show ljwyqi6u/);
 });
 
 test('templates link workflow examples per scene and resolve points to the current one', () => {

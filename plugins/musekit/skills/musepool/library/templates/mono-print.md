@@ -57,7 +57,7 @@ overrides:
     size-title: 56px
     size-body: 40px
     size-meta: 24px
-exemplars: [mC1nkP2t, C4aZtWoH]
+exemplars: [mc1nkp2t, c4aztwoh]
 ---
 
 # 单色编辑印刷
@@ -121,5 +121,5 @@ exemplars: [mC1nkP2t, C4aZtWoH]
 
 ## 范例
 
-- `mC1nkP2t` 单色／双色编辑印刷系统：本风格的主要来源（MIT 许可），包括印版分工、配方、网点流程与构图家族。
-- `C4aZtWoH` 摄影毕业展：单色高反差、像视力表一样递进的字号。看它怎样只用一种颜色建立强烈的尺度关系。
+- `mc1nkp2t` 单色／双色编辑印刷系统：本风格的主要来源（MIT 许可），包括印版分工、配方、网点流程与构图家族。
+- `c4aztwoh` 摄影毕业展：单色高反差、像视力表一样递进的字号。看它怎样只用一种颜色建立强烈的尺度关系。

@@ -83,6 +83,21 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 
 用户提供品牌规范或参考时，Agent 按 Template 的形状写一份 `source: user` 的文件。对于库里已有的同类 Seed，只要值与用户规范一致就直接引用；不一致时，在作品目录里另写一份用户 Seed，并通过 `check <路径>` 校验。精神与文法从用户规范和参考中归纳；看不出来的地方写明「沿用库内某风格的文法」或询问用户，不凭空编造。
 
+## Precedent
+
+文件位于 `library/precedents/<名称>-<id>.md`，不分子目录。`<名称>` 是概括原作品的小写短横线短语，例如 `art-book-fair-event`。正文按维度分节（`# Narrative`、`# Layout`、`# Typography` 等），开头用一句「借鉴范围」写明只借方法；`list precedents` 的摘要取自 `# Narrative`。
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 8 位小写字母或数字，与文件名末段一致，例如 `ljwyqi6u`。全是数字或可能被读成数字的 id 要加引号 |
+| `category` | 原作品是什么，英文短语，例如 `art book fair event` |
+| `modality`、`view_type` | 原作品的形态：`web` 或 `design-system`；`landing`、`portfolio`、`component-library` 等 |
+| `retained_for` | 没有 Template 在 `exemplars` 里引用它时必填，写明留在库里的理由 |
+| `dimensions_with_reference` | 正文 `# Dimensional References` 里有深度实现参考的维度；没有这一节就写 `[]` |
+| `source_url`、`source_revision`、`source_license` | 来自开源项目时三项都填，并在 `references/third-party-notices.md` 登记这份文件的路径与许可全文；`visual_assets_included` 说明有没有带入原项目的图像 |
+
+`core_dimensions`、`scores`、`tags` 是拆解时的描述，脚本不读。正文里引用的 `references/…` 文件必须存在。
+
 ## 字体注册表
 
 `library/fonts.yaml` 的 `fonts` 列表，每个字体一项：
