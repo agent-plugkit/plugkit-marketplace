@@ -52,7 +52,7 @@ section > .head h2 { grid-column: 2 / span 11; font-family: var(--font-display);
 .space .row .meta { grid-column: span 2; }
 .space .row .bar { grid-column: span 10; height: 16px; }
 .space .bar span { display: block; height: 100%; background: var(--color-ink); }
-.shape .heavy { border-top: var(--rule-heavy, 4px) solid var(--color-ink); margin-top: 32px; }
+.shape .heavy { border-top: var(--rule-heavy) solid var(--color-ink); margin-top: 32px; }
 .samples { display: flex; gap: 48px; align-items: flex-start; margin-top: 48px; }
 .sample-button { font: inherit; font-weight: var(--weight-strong, 600); padding: 12px 24px; background: var(--color-ink); color: var(--color-paper); border: var(--rule-width, 1px) solid var(--color-ink); border-radius: var(--radius, 0); box-shadow: var(--shadow, none); }
 .sample-card { width: 360px; padding: 24px; background: var(--color-paper); border: var(--rule-width, 1px) solid var(--color-ink); border-radius: var(--radius, 0); box-shadow: var(--shadow, none); }
@@ -130,9 +130,11 @@ page.append(section('03', `网格 · ${spec.columns} 栏`, columns));
 page.append(section('04', '间距', el('div', { class: 'space' }, spec.space.map((s) => el('div', { class: 'row' },
   el('span', { class: 'meta' }, `${s}px`), el('div', { class: 'bar' }, el('span', { style: `width:${s}px` })))))));
 
+// 风格没有定义 rule-heavy 时不画粗线，免得样张展示风格里没有的东西。
+const hasHeavy = getComputedStyle(document.documentElement).getPropertyValue('--rule-heavy').trim() !== '';
 page.append(section('05', '形态', el('div', { class: 'shape' },
   el('p', { class: 'meta rule', style: 'padding-top:8px' }, 'rule-width'),
-  el('div', { class: 'heavy' }), el('p', { class: 'meta', style: 'margin-top:8px' }, 'rule-heavy'),
+  hasHeavy ? [el('div', { class: 'heavy' }), el('p', { class: 'meta', style: 'margin-top:8px' }, 'rule-heavy')] : [],
   el('div', { class: 'samples' },
     el('button', { class: 'sample-button', type: 'button' }, '主操作按钮'),
     el('div', { class: 'sample-card' }, el('p', { class: 'meta' }, '卡片 · radius / rule-width / shadow'),
