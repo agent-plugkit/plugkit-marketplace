@@ -32,6 +32,7 @@ h1{position:absolute;left:20px;top:20px;margin:0;font-size:40px;white-space:nowr
   write(
     "index.html",
     `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+html{scroll-behavior:smooth}
 body{margin:0;background:#fff;color:#111;font-family:"Missing Webfont",serif}
 .wide{width:1000px;height:20px}
 @media (min-width:700px){.wide{width:auto}}
@@ -44,6 +45,7 @@ body{margin:0;background:#fff;color:#111;font-family:"Missing Webfont",serif}
 @keyframes spin{to{transform:rotate(1turn)}}
 button:focus{outline:none}
 </style>
+<div id="topmark" style="height:40px;background:#ff0000"></div>
 <a href="#x">第一个链接</a>
 <div class="wide">宽块</div>
 <div class="stack"><p>被盖住的一行说明文字</p><div class="cover"></div></div>
@@ -54,6 +56,7 @@ button:focus{outline:none}
 <span class="spin">✱</span>
 <button id="go">报名</button>
 <div id="msg" hidden>完成</div>
+<div style="height:3000px"></div>
 <script>document.getElementById("go").onclick=()=>{document.getElementById("msg").hidden=false}</script>`,
   );
   write(
@@ -152,7 +155,7 @@ test("a canvas run exports the PNG and reports what is covered, past the canvas 
   expect(report.offPalette).toEqual([]);
 });
 
-test("a web run screenshots each viewport, sweeps widths and walks keyboard, motion and the flow", async () => {
+test("a web run screenshots each viewport, sweeps widths and walks keyboard, motion and the flow", async ({ page }) => {
   test.setTimeout(90000);
   const out = join(work, "web-review");
   const report = await inspectPage(
@@ -161,6 +164,19 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   for (const tag of ["1024x700", "375x700"])
     for (const k of ["fold", "full", "full-gray"]) expect(existsSync(report.files[`${tag}-${k}`])).toBe(true);
   expect(png(report.files["375x700-fold"]).width).toBe(375);
+  // The page scrolls smoothly; the fold is still shot at the very top, not partway back.
+  const top = readFileSync(report.files["1024x700-fold"]).toString("base64");
+  await page.setContent(`<img id="i" src="data:image/png;base64,${top}">`);
+  const pixel = await page.evaluate(async () => {
+    const img = document.getElementById("i");
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    return [...g.getImageData(5, 5, 1, 1).data.slice(0, 3)];
+  });
+  expect(pixel).toEqual([255, 0, 0]);
 
   const [desk, phone] = report.views;
   // The overlay ignores the pointer, yet it still covers the text.

@@ -158,6 +158,14 @@ function prepare() {
   style.id = "__inspect_pe";
   style.textContent = "*{pointer-events:auto!important}";
   document.head.append(style);
+  // A page with scroll-behavior: smooth would still be gliding back to the top when the fold is
+  // shot. Scrolling is instant for the whole inspection, task-path flows included.
+  if (!document.getElementById("__inspect_scroll")) {
+    const scroll = document.createElement("style");
+    scroll.id = "__inspect_scroll";
+    scroll.textContent = "html,body,*{scroll-behavior:auto!important}";
+    document.head.append(scroll);
+  }
 }
 
 async function settle(fullReveal) {
