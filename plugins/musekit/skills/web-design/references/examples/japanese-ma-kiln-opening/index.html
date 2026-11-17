@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>窑开 · 北坡窑 2027 秋季柴烧开窑日</title>
+<meta name="description" content="窑开：北坡窑 2027 秋季柴烧开窑日，2027.10.23—10.24，青梅谷 · 北坡窑。虚构示例活动。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-paper: #F4F1EA;
+  --color-ink: #1E1D1A;
+  --color-ink-muted: #6B665D;
+  --color-accent: #B83A2E;
+  --color-on-accent: #F4F1EA;
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-text: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-cjk: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --weight-display: 400;
+  --weight-text: 400;
+  --weight-strong: 600;
+  --size-display: 88px;
+  --size-headline: 40px;
+  --size-title: 24px;
+  --size-body: 17px;
+  --size-meta: 13px;
+  --leading-display: 1.3;
+  --leading-display-cjk: 1.3;
+  --leading-headline: 1.45;
+  --leading-title: 1.6;
+  --leading-body: 1.95;
+  --tracking-display: 0.12em;
+  --tracking-meta: 0.2em;
+  --canvas-width: 1440px;
+  --canvas-height: 900px;
+  --columns: 12;
+  --gutter: 24px;
+  --margin: 128px;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --radius: 0;
+  --rule-width: 1px;
+  --rule-state: 2px;
+  --rule-heavy: 6px;
+  --shadow: none;
+  --seal-size: 40px;
+  --column-width: 76.67px;
+
+  /* 本作品的推导值 */
+  --nav-h: 80px;           /* 导航一行：size-body × leading-body ≈ 33px，上下各 24px，取 8 的倍数 */
+  --chapter-gap: 55svh;    /* 章节之间：半屏到四分之三屏之间取 55% */
+  /* 竖排标题：muse.py fit --scene web --chars 2 --vertical 给出 151.9–202.5px（按 900px 高首屏）。
+     取 184px，整列约占可用高度 644px 的六成；视口更矮时按 184 / 900 = 20.44svh 同比例封顶 */
+  --title-size: min(184px, 20.44svh);
+}
+/* tablet */
+@media (max-width: 1100px) {
+  :root {
+    --margin: 64px;
+  }
+}
+/* mobile */
+@media (max-width: 767px) {
+  :root {
+    --columns: 4;
+    --gutter: 16px;
+    --margin: 32px;
+    --size-display: 48px;
+    --size-headline: 28px;
+    --size-title: 20px;
+    --size-body: 16px;
+    --chapter-gap: 50svh;  /* 窄屏章节间隔约为半屏 */
+    /* 窄屏：竖排的首屏标题整列约占首屏高度的三分之一。两字竖排的墨迹约为 2.05 × 字号，
+       所以字号取 100svh / 3 / 2.05 ≈ 16svh（812 高约 130px，墨迹约 266px） */
+    --title-size: 16svh;
+    --nav-h: 64px;         /* 16 × 1.95 ≈ 31px，上下各 16px */
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  background: var(--color-paper);
+  scroll-padding-top: var(--nav-h);
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-text);
+  font-weight: var(--weight-text);
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+.nowrap { white-space: nowrap; }
+.muted { color: var(--color-ink-muted); }
+.vertical { writing-mode: vertical-rl; white-space: nowrap; }
+.tag {
+  font-size: var(--size-meta);
+  color: var(--color-ink-muted);
+  letter-spacing: var(--tracking-meta);
+  margin-left: var(--space-2);
+  white-space: nowrap;
+}
+:focus-visible { outline: var(--rule-state) solid var(--color-ink); outline-offset: var(--space-1); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  column-gap: var(--gutter);
+  padding-inline: var(--margin);
+}
+
+/* 导航：一行淡墨字，放在左上角；当前章节用细下划线 */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--nav-h);
+  background: var(--color-paper);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding-inline: var(--margin);
+  letter-spacing: var(--tracking-meta);
+}
+.nav a {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  padding-bottom: var(--space-1);
+  border-bottom: var(--rule-state) solid transparent;
+}
+.nav a:hover { color: var(--color-ink); }
+.nav a[aria-current="true"] { color: var(--color-ink); border-bottom-color: var(--color-ink); }
+
+/* 首屏：竖排标题在右侧三分线上，导语与关键信息退到左下 */
+.hero {
+  min-height: calc(100svh - var(--nav-h));
+  grid-template-rows: 1fr;
+  padding-top: var(--space-7);
+  padding-bottom: var(--space-8);
+}
+.hero .mast {
+  grid-column: 1 / span 10;
+  grid-row: 1;
+  align-self: start;
+  justify-self: end;           /* 标题列右缘落在第 10 栏右缘，墨迹中线在右侧三分线右边约 40px */
+  display: flex;
+  flex-direction: row-reverse; /* 竖排从右往左读：标题在右，副题在左 */
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--title-size);
+  line-height: var(--leading-display);   /* 竖排时行高是列宽：取 1 时字形的上下伸部会伸出列外约 0.22em，窄屏会撑出横向滚动 */
+  letter-spacing: var(--tracking-display);
+}
+.hero .subtitle {
+  color: var(--color-ink-muted);   /* 竖排小字用淡墨（窄屏横排时改回墨色） */
+  margin-top: calc(var(--title-size) * 1.12);  /* 从标题第二个字的高度起 */
+  font-size: var(--size-title);
+  line-height: 1;   /* 单列竖排的小字：行高只决定列宽 */
+  letter-spacing: var(--tracking-display);
+}
+.hero .info {
+  grid-column: 1 / span 5;
+  grid-row: 1;
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.hero .lead { font-size: var(--size-title); line-height: var(--leading-title); }
+.hero .facts { margin-top: var(--space-6); }
+.hero .date { font-size: var(--size-title); line-height: var(--leading-title); font-weight: var(--weight-strong); }
+.hero .actions { margin-top: var(--space-6); }
+.host-row { display: flex; align-items: center; gap: var(--space-4); }   /* 朱印压在主办一行旁：印文是主办方的窑名 */
+.host-row .seal { margin-block: calc((var(--size-body) * var(--leading-body) - var(--seal-size)) / 2); }  /* 不撑高这一行 */
+.seal {
+  flex: none;
+  width: var(--seal-size);
+  height: var(--seal-size);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--size-meta);
+  line-height: 1;
+  writing-mode: vertical-rl;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;      /* 印文上下左右居中，四边各留约十分之一 */
+  gap: var(--space-1);
+}
+.seal span { display: block; }
+
+.button {
+  display: inline-block;
+  font: inherit;
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-meta);
+  padding: var(--space-2) var(--space-5);
+  border: var(--rule-width) solid var(--color-ink);
+  border-radius: var(--radius);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  text-decoration: none;
+  cursor: pointer;
+}
+.button.ghost { background: var(--color-paper); color: var(--color-ink); }
+
+/* 章节：停顿 → 一个焦点（竖排章节名）→ 一组信息 */
+.chapter { margin-top: var(--chapter-gap); }  /* 用外边距留停顿：锚点落在章节内容上，而不是落在停顿的空白里 */
+.chapter-name {
+  font-size: var(--size-headline);
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-display);
+  grid-row: 1 / span 3;
+  align-self: start;
+}
+.chapter .body { grid-column: 5 / span 6; }   /* 中间偏右：第 5–10 栏 */
+
+#sessions .chapter-name { grid-column: 2; }
+#signup .chapter-name { grid-column: 12; justify-self: end; }
+
+.days { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--gutter); }
+.day h3 {
+  font-size: var(--size-title);
+  line-height: var(--leading-title);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--rule-width) solid var(--color-ink-muted);
+}
+.day ul { list-style: none; }
+.day li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-bottom: var(--rule-width) solid var(--color-ink-muted);
+}
+.day li a { white-space: nowrap; font-size: var(--size-body); color: var(--color-ink-muted); letter-spacing: var(--tracking-meta); text-underline-offset: var(--space-1); }
+.day li a:hover { color: var(--color-ink); }
+.notes { margin-top: var(--space-6); }
+.notes dl { display: grid; grid-template-columns: auto 1fr; column-gap: var(--space-5); margin-top: var(--space-3); }
+.notes dt { color: var(--color-ink-muted); letter-spacing: var(--tracking-meta); }
+
+/* 报名表单：标签在上，输入框只有淡墨底线 */
+form { display: grid; row-gap: var(--space-6); }
+fieldset { border: 0; }
+legend, label.field-label {
+  display: block;
+  color: var(--color-ink-muted);
+  letter-spacing: var(--tracking-meta);
+  margin-bottom: var(--space-2);
+}
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.option { position: relative; }
+.option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.option label {
+  display: block;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6);
+  border: var(--rule-width) solid transparent;
+  border-bottom-color: var(--color-ink-muted);
+  cursor: pointer;
+  position: relative;
+}
+.option label:hover { border-bottom-color: var(--color-ink); }
+.option label .d { display: block; font-size: var(--size-body); letter-spacing: var(--tracking-display); }
+.option label::before {           /* 未选：淡墨空心小方框 */
+  content: "";
+  position: absolute;
+  left: var(--space-4);
+  top: calc(var(--space-3) + 0.98em - var(--space-1));
+  width: var(--space-2); height: var(--space-2);
+  border: var(--rule-width) solid var(--color-ink-muted);
+}
+.option input:checked + label { border-color: var(--color-ink); }
+.option input:checked + label .state { display: inline; }
+.option label .state { display: none; margin-left: var(--space-3); font-size: var(--size-body); color: var(--color-ink-muted); letter-spacing: var(--tracking-meta); }
+.option input:checked + label::before { background: var(--color-accent); border-color: var(--color-accent); }
+.option input:focus-visible + label { outline: var(--rule-state) solid var(--color-ink); outline-offset: var(--space-1); }
+.options-wrap.invalid .option input:focus-visible + label { outline-offset: 0; }   /* 出错且聚焦：框贴住加粗底线，不出现两道平行线 */
+.options-wrap.invalid .option label { border-bottom-width: var(--rule-state); border-bottom-color: var(--color-ink); }
+
+.text-field input {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: var(--size-body);
+  color: var(--color-ink);
+  background: var(--color-paper);
+  border: 0;
+  border-bottom: var(--rule-width) solid var(--color-ink-muted);
+  border-radius: 0;
+  padding: var(--space-2);   /* 左右也留 8px：聚焦框贴字段外缘时不碰到文字；标签、提示和说明同样缩进 8px 对齐 */
+  outline: none;
+}
+.text-field input:focus-visible { outline: var(--rule-state) solid var(--color-ink); outline-offset: 0; }  /* 聚焦：整框描边，框贴着字段，出错底线落在框内 */
+.text-field input[aria-invalid="true"] { border-bottom: var(--rule-state) solid var(--color-ink); }
+.text-field.short { max-width: 50%; }
+.error { margin-top: var(--space-2); color: var(--color-ink); }
+.text-field .field-label, .text-field .hint, .text-field .error, fieldset legend, fieldset .error { padding-inline: var(--space-2); }
+.hint { margin-top: var(--space-2); font-size: var(--size-meta); letter-spacing: var(--tracking-meta); }
+
+.submit-row { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.submit-row .note { font-size: var(--size-meta); color: var(--color-ink-muted); letter-spacing: var(--tracking-meta); }
+
+.done[hidden], form[hidden] { display: none; }
+.done { outline: none; animation: ink-in 600ms ease-out; }
+.done h3 { font-size: var(--size-title); line-height: var(--leading-title); font-weight: var(--weight-display); letter-spacing: var(--tracking-display); }
+.done p, .done .summary { margin-top: var(--space-4); }
+.summary { display: grid; grid-template-columns: auto 1fr; column-gap: var(--space-5); }
+.summary dt { color: var(--color-ink-muted); letter-spacing: var(--tracking-meta); }
+.summary dd { overflow-wrap: anywhere; }
+.done .button { margin-top: var(--space-6); }
+@keyframes ink-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .done { animation: none; } }
+
+.footer {
+  padding-top: var(--space-10);
+  padding-bottom: var(--space-8);
+}
+.footer .inner {
+  grid-column: 1 / -1;
+  padding-top: var(--space-4);
+  border-top: var(--rule-width) solid var(--color-ink-muted);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--size-meta);
+  color: var(--color-ink-muted);
+  letter-spacing: var(--tracking-meta);
+}
+
+/* 1100px 以下：外边距收窄；章节名缩到 size-title，占 1 栏，与正文隔 1 栏；正文约 7 栏 */
+@media (max-width: 1100px) {
+  .chapter-name { font-size: var(--size-title); }
+  #sessions .chapter-name { grid-column: 1; }
+  .chapter .body { grid-column: 3 / span 7; }
+  #signup .body { grid-column: 3 / span 7; }
+  #signup .chapter-name { grid-column: 11; }
+}
+@media (max-width: 900px) {
+  .chapter .body { grid-column: 3 / span 10; }
+  #signup .body { grid-column: 1 / span 10; }
+  #signup .chapter-name { grid-column: 12; }
+  .hero .mast { grid-column: 1 / span 11; gap: var(--space-4); }   /* 标题右移一栏，副题贴近标题，与左下信息组之间留出一栏以上的空 */
+  .days { grid-template-columns: 1fr; row-gap: var(--space-6); }
+  .hero .info { grid-column: 1 / span 8; }
+}
+
+/* 窄屏 4 栏：两字标题与栏目名仍竖排 */
+@media (max-width: 767px) {
+  .nav { gap: var(--space-5); }
+  .hero { padding-top: var(--space-5); padding-bottom: var(--space-6); }
+  /* 长标题改为横排：副题在窄屏横排，接在竖排标题下方，右对齐 */
+  .hero .mast { grid-column: 1 / -1; flex-direction: column; align-items: flex-end; gap: var(--space-3); }
+  .hero .subtitle { color: var(--color-ink); writing-mode: horizontal-tb; margin-top: 0; line-height: var(--leading-title); letter-spacing: 0; }
+  .hero { grid-template-rows: auto 1fr; }
+  .hero .info { grid-column: 1 / -1; grid-row: 2; }
+  /* 窄屏首屏：导语 → 日期、地点、主办 → 主操作；英文名排到主操作之后 */
+  .hero h1 { margin-right: calc(var(--title-size) * -0.15); }   /* 行高 1.3 的列框比墨迹宽，右移让墨迹右缘与副题右缘对齐 */
+  .hero .info { margin-top: var(--space-5); }
+  .hero .facts { display: contents; }          /* 事实各行直接参与排序 */
+  .hero .lead { order: 1; }
+  .hero .date, .hero .facts > p, .hero .host-row { order: 2; }
+  .hero .date { margin-top: var(--space-5); }
+  .hero .actions { order: 3; margin-top: var(--space-5); }
+  .hero .facts > .en { order: 4; margin-top: var(--space-4); }   /* 英文名紧跟主操作，和信息组算一组，不单独悬在停顿里 */
+  #sessions .chapter-name { grid-column: 1; justify-self: start; }  /* 竖排章节名与正文之间留出接近一栏的空 */
+  .chapter .body, #signup .body { grid-column: 2 / span 3; }
+  #signup .body { grid-column: 1 / span 3; }
+  #signup .chapter-name { grid-column: 4; }
+  .days { grid-template-columns: 1fr; row-gap: var(--space-6); }
+  .options { grid-template-columns: 1fr; }
+  .text-field.short { max-width: none; }
+  .day li { flex-wrap: wrap; }
+  .footer .inner { flex-direction: column; }
+  .foot-notes .sep { display: none; }
+  .foot-notes > .nowrap { display: block; }
+}
+/* 窄屏且高度不足约 800px：导语、日期和主操作仍留在首屏，组间距各收一级 */
+@media (max-width: 767px) and (max-height: 799px) {
+  .hero { padding-top: var(--space-3); }
+  .hero .mast { gap: var(--space-2); }
+  .hero .info { margin-top: var(--space-4); }
+  .hero .date, .hero .actions { margin-top: var(--space-4); }
+}
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="页内导航">
+  <a href="#sessions">场次</a>
+  <a href="#signup">报名</a>
+</nav>
+
+<main>
+  <header class="hero grid" id="top">
+    <div class="mast">
+      <h1 class="vertical">窑开</h1>
+      <p class="subtitle vertical">北坡窑 2027 秋季柴烧开窑日</p>
+    </div>
+    <div class="info">
+      <p class="lead">柴火停了，窑温落下，<br>门砖一块块拆开。<span class="tag">示例</span></p>
+      <div class="facts">
+        <p class="date nowrap">2027.10.23—10.24</p>
+        <p class="nowrap">青梅谷 · 北坡窑</p>
+        <div class="host-row"><p class="nowrap">北坡窑工作室<span class="tag">主办</span></p><div class="seal" aria-hidden="true"><span>北坡</span><span>窑</span></div></div>
+        <p class="en muted nowrap">Kiln Opening, North Slope 2027</p>
+      </div>
+      <p class="actions"><a class="button" href="#signup">报名一场</a></p>
+    </div>
+  </header>
+
+  <section class="chapter grid" id="sessions" aria-labelledby="sessions-name">
+    <h2 class="chapter-name vertical" id="sessions-name">场次</h2>
+    <div class="body">
+      <div class="days">
+        <div class="day">
+          <h3>10.23</h3>
+          <ul>
+            <li><span class="nowrap">上午场 10:00—12:00</span><a href="#signup" data-pick="1023am">报名此场</a></li>
+            <li><span class="nowrap">下午场 14:00—16:00</span><a href="#signup" data-pick="1023pm">报名此场</a></li>
+          </ul>
+        </div>
+        <div class="day">
+          <h3>10.24</h3>
+          <ul>
+            <li><span class="nowrap">上午场 10:00—12:00</span><a href="#signup" data-pick="1024am">报名此场</a></li>
+            <li><span class="nowrap">下午场 14:00—16:00</span><a href="#signup" data-pick="1024pm">报名此场</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="notes">
+        <p class="nowrap">两天共四场，每场限 20 人</p>
+        <dl>
+          <dt>费用</dt><dd>待公布</dd>
+          <dt>联系</dt><dd>待公布</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter grid" id="signup" aria-labelledby="signup-name">
+    <h2 class="chapter-name vertical" id="signup-name">报名</h2>
+    <div class="body">
+      <form id="signup-form" novalidate>
+        <fieldset class="options-wrap" id="session-group" aria-describedby="err-session">
+          <legend>选择一场</legend>
+          <div class="options">
+            <div class="option"><input type="radio" name="session" id="s-1023am" value="10.23 上午场 10:00—12:00"><label for="s-1023am"><span class="d">10.23<span class="state">已选</span></span><span class="nowrap">上午场 10:00—12:00</span></label></div>
+            <div class="option"><input type="radio" name="session" id="s-1023pm" value="10.23 下午场 14:00—16:00"><label for="s-1023pm"><span class="d">10.23<span class="state">已选</span></span><span class="nowrap">下午场 14:00—16:00</span></label></div>
+            <div class="option"><input type="radio" name="session" id="s-1024am" value="10.24 上午场 10:00—12:00"><label for="s-1024am"><span class="d">10.24<span class="state">已选</span></span><span class="nowrap">上午场 10:00—12:00</span></label></div>
+            <div class="option"><input type="radio" name="session" id="s-1024pm" value="10.24 下午场 14:00—16:00"><label for="s-1024pm"><span class="d">10.24<span class="state">已选</span></span><span class="nowrap">下午场 14:00—16:00</span></label></div>
+          </div>
+          <p class="error" id="err-session" hidden>请选择一场</p>
+        </fieldset>
+
+        <div class="text-field">
+          <label class="field-label" for="name">称呼</label>
+          <input id="name" name="name" type="text" autocomplete="name" aria-describedby="err-name">
+          <p class="error" id="err-name" hidden>请填写称呼</p>
+        </div>
+
+        <div class="text-field short">
+          <label class="field-label" for="count">人数</label>
+          <input id="count" name="count" type="number" inputmode="numeric" min="1" max="20" value="1" aria-describedby="hint-count err-count">
+          <p class="muted hint" id="hint-count">每场限 20 人</p>
+          <p class="error" id="err-count" hidden>人数请填 1 到 20 之间的整数</p>
+        </div>
+
+        <div class="text-field">
+          <label class="field-label" for="email">电子邮箱</label>
+          <input id="email" name="email" type="email" autocomplete="email" aria-describedby="err-email">
+          <p class="error" id="err-email" hidden>请填写电子邮箱</p>
+        </div>
+
+        <div class="submit-row">
+          <button class="button" type="submit">提交报名</button>
+          <span class="note">虚构示例活动，信息不会发送</span>
+        </div>
+      </form>
+
+      <div class="done" id="done" tabindex="-1" hidden aria-live="polite">
+        <h3>报名信息已填好</h3>
+        <dl class="summary" id="done-summary"></dl>
+        <p class="muted">这是虚构示例活动的页面，<span class="nowrap">报名信息没有发送，</span><span class="nowrap">也没有保存。</span></p>
+        <button class="button ghost" type="button" id="again">重新填写</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer grid">
+  <div class="inner">
+    <span>北坡窑工作室 主办</span>
+    <span class="foot-notes"><span class="nowrap">虚构示例活动</span><span class="sep"> · </span><span class="nowrap">费用、报名网址、联系方式待公布</span></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const form = document.getElementById("signup-form");
+  const done = document.getElementById("done");
+  const fields = {
+    session: { el: () => form.querySelector("input[name=session]:checked"), err: "err-session" },
+    name: { el: () => document.getElementById("name"), err: "err-name" },
+    count: { el: () => document.getElementById("count"), err: "err-count" },
+    email: { el: () => document.getElementById("email"), err: "err-email" },
+  };
+  const showError = (key, msg) => {
+    const p = document.getElementById(fields[key].err);
+    p.textContent = msg; p.hidden = !msg;
+    if (key === "session") {
+      document.getElementById("session-group").classList.toggle("invalid", !!msg);
+      form.querySelectorAll("input[name=session]").forEach((r) => r.setAttribute("aria-invalid", msg ? "true" : "false"));
+    } else {
+      fields[key].el().setAttribute("aria-invalid", msg ? "true" : "false");
+    }
+  };
+  const errors = () => {
+    const errs = {};
+    if (!fields.session.el()) errs.session = "请选择一场";
+    if (!fields.name.el().value.trim()) errs.name = "请填写称呼";
+    const c = fields.count.el().value.trim();
+    if (!/^\d+$/.test(c) || +c < 1 || +c > 20) errs.count = "人数请填 1 到 20 之间的整数";
+    const e = fields.email.el().value.trim();
+    if (!e) errs.email = "请填写电子邮箱";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) errs.email = "邮箱格式不对，例如 name@example.com";
+    return errs;
+  };
+  const validate = () => {
+    const errs = errors();
+    for (const k of Object.keys(fields)) showError(k, errs[k] || "");
+    return errs;
+  };
+  form.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const errs = validate();
+    const first = Object.keys(fields).find((k) => errs[k]);
+    if (first) {
+      const target = first === "session" ? form.querySelector("input[name=session]") : fields[first].el();
+      target.focus();
+      return;
+    }
+    const s = fields.session.el().value;
+    const dl = document.getElementById("done-summary");
+    dl.replaceChildren();
+    for (const [k, v] of [["场次", s], ["称呼", fields.name.el().value.trim()], ["人数", fields.count.el().value.trim() + " 人"], ["邮箱", fields.email.el().value.trim()]]) {
+      const dt = document.createElement("dt"); dt.textContent = k;
+      const dd = document.createElement("dd");
+      if (k === "场次") {   // 日期与时段各自不断行
+        const [d, ...rest] = v.split(" ");
+        for (const [i, t] of [d, rest.join(" ")].entries()) { const sp = document.createElement("span"); sp.className = "nowrap"; sp.textContent = t; dd.append(sp); if (!i) dd.append(" "); }
+      } else dd.textContent = v;
+      dl.append(dt, dd);
+    }
+    form.hidden = true;
+    done.hidden = false;
+    done.focus();
+  });
+  // 改动后重新校验已经报错的字段，让说明随输入消失
+  form.addEventListener("input", (ev) => {
+    const key = ev.target.name;
+    if (!fields[key]) return;
+    const p = document.getElementById(fields[key].err);
+    if (!p.hidden) showError(key, errors()[key] || "");   // 只重查正在改的字段
+  });
+  document.getElementById("again").addEventListener("click", () => {
+    done.hidden = true;
+    form.hidden = false;
+    (form.querySelector("input[name=session]:checked") || document.getElementById("name")).focus();
+  });
+  // 场次列表里的「报名此场」：跳到表单并预选
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  document.querySelectorAll("[data-pick]").forEach((a) => a.addEventListener("click", (ev) => {
+    ev.preventDefault();   // 自己滚动：默认的锚点跳转会把焦点重置到页面上
+    document.getElementById("signup").scrollIntoView({ behavior: reduce.matches ? "auto" : "smooth" });
+    const r = document.getElementById("s-" + a.dataset.pick);
+    r.checked = true;
+    if (!document.getElementById("err-session").hidden) showError("session", "");
+    if (!done.hidden) { done.hidden = true; form.hidden = false; }
+    r.focus({ preventScroll: true });   // 键盘用户接着就停在选中的场次上
+  }));
+  // 导航当前章节：细下划线
+  const links = [...document.querySelectorAll(".nav a")];
+  const sections = links.map((a) => document.querySelector(a.getAttribute("href")));
+  const mark = () => {
+    const y = window.innerHeight * 0.6;   // 章节前有大段停顿，顶部越过视口六成时它的内容已占满可见区
+    let cur = -1;
+    sections.forEach((s, i) => { if (s.getBoundingClientRect().top <= y) cur = i; });
+    links.forEach((a, i) => a.setAttribute("aria-current", i === cur ? "true" : "false"));
+  };
+  addEventListener("scroll", mark, { passive: true });
+  addEventListener("resize", mark);
+  mark();
+})();
+</script>
+</body>
+</html>

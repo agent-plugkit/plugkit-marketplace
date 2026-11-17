@@ -56,6 +56,9 @@ overrides:
     size-body: 36px
     size-meta: 24px
 exemplars: [nv0j2qbt]
+examples:
+  graphic: skills/graphic-design/references/examples/japanese-ma-kiln-opening.md
+  web: skills/web-design/references/examples/japanese-ma-kiln-opening.md
 ---
 
 # 日式留白（间）
