@@ -12,6 +12,7 @@ Musekit 把「风格」和「场景制作」分成两层：
 | Skill | 用途 |
 | --- | --- |
 | `musepool` | 设计风格与灵感库：按场景检索 Template、组合 Seed、解析 `style.md` |
+| `style-builder` | 新增一套可长期复用的风格：从零创建，或从已有网站、代码库、设计系统中提取 |
 | `web-design` | 设计并实现网站、落地页与 Web App 界面，在浏览器评审 |
 | `graphic-design` | 制作海报、封面和社媒图等单页平面作品 |
 | `diagram-design` | 从 Mermaid 或关系说明制作精美图解，共用测量与连线代码，成品内置离线布局编辑和 PNG 导出 |

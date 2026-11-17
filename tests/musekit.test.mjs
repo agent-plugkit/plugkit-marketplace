@@ -13,7 +13,7 @@ const plugin = join(root, 'plugins/musekit');
 const musepool = join(plugin, 'skills/musepool');
 const library = join(musepool, 'library');
 const script = join(musepool, 'scripts/muse.py');
-const skillNames = ['musepool', 'web-design', 'graphic-design', 'slides-design', 'diagram-design', 'data-figure', 'article-illustration'];
+const skillNames = ['musepool', 'style-builder', 'web-design', 'graphic-design', 'slides-design', 'diagram-design', 'data-figure', 'article-illustration'];
 const precedentIds = [
   'rvyjrbzh', 'ljwyqi6u', 'vy3ktwac', 'at5oq8hx', 'b3lygtwe', 'mc1nkp2t',
   'g26lbsoo', 'c4aztwoh', 'haych1wi', 'pibxrzsg', 'nv0j2qbt', '1jlusoip',

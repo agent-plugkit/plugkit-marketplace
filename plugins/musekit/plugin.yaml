@@ -19,6 +19,9 @@ components:
     - name: musepool
       path: skills/musepool
       description: "设计风格与灵感库：按场景检索已验证的风格 Template，组合 Seed，或把用户品牌整理成同形风格。"
+    - name: style-builder
+      path: skills/style-builder
+      description: "新增一套可长期复用的风格 Template：从零创建或从已有项目提取，存进用户项目的 musekit/<id>/，或过完关卡进官方风格库。"
     - name: web-design
       path: skills/web-design
       description: "设计并实现网站、落地页与 Web App 界面，从 musepool 取风格并在浏览器评审。"
