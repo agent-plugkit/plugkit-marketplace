@@ -522,7 +522,6 @@ test('fit subtracts board borders apart from padding and sizes vertical titles b
   }
   // 竖排直接给出整列占可用长度一半和三分之二时的字号；同一列里的小字副标题长度先扣掉。
   const vertical = cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical');
-  assert.match(vertical, /三分之一（416px）：展示字号 128\.4px/);
   assert.match(vertical, /一半（624px）：展示字号 192\.6px/);
   assert.match(vertical, /三分之二（832px）：展示字号 256\.8px/);
   const mixed = cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--sub-length', '200');
@@ -531,6 +530,11 @@ test('fit subtracts board borders apart from padding and sizes vertical titles b
   assert.match(mixed, /三分之二（832px）：展示字号 195\.1px/);
   assert.equal(run('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--span', '6', '--sub-length', '100').status, 2);
   assert.equal(run('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--sub-length', '-5').status, 2);
+  // 其余文字比某一档还长时，那一档放不下，不打印负字号。
+  const crowded = cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--sub-length', '700');
+  assert.match(crowded, /一半（624px）：放不下，同一列里其余文字已经超过这个长度/);
+  assert.match(crowded, /三分之二（832px）：展示字号 40\.7px/);
+  assert.doesNotMatch(crowded, /展示字号 -/);
 });
 
 test('check enforces type-scale ratios and breakpoint tokens', () => {

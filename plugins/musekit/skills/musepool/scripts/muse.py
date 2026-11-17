@@ -767,7 +767,7 @@ def cmd_fit(args, lib: Library):
         return f"{label} {first:g}px" if first == second else f"{label}{sides[0]} {first:g}px、{sides[1]} {second:g}px"
 
     padding, border = side_pair(args.padding, "--padding"), side_pair(args.border, "--border")
-    pads = sum(padding) + sum(border)
+    insets = sum(padding) + sum(border)
     note = (f"字数 {args.chars}，字距 {tracking:g}em，{side_note('内边距', padding)}"
             + (f"，{side_note('边框', border)}" if any(border) else "")
             + "（按全角汉字等宽计算；西文需要在浏览器里实测宽度）")
@@ -780,12 +780,14 @@ def cmd_fit(args, lib: Library):
         sub = args.sub_length or 0
         if not (math.isfinite(sub) and sub >= 0):
             raise MuseError("--sub-length 必须是不小于 0 的数")
-        length = height - 2 * margin - pads
+        length = height - 2 * margin - insets
         print(f"{note}，竖排" + (f"，同一列里其余文字 {sub:g}px" if sub else ""))
         print(f"参照画布高 {height:g}px：可用长度 {length:g}px，排满时展示字号 {(length - sub) / units:.1f}px（参照值 {values.get('size-display')}）")
-        for name, share in (("三分之一", 1 / 3), ("一半", 1 / 2), ("三分之二", 2 / 3)):
-            print(f"整列占可用长度的{name}（{length * share:g}px）：展示字号 {(length * share - sub) / units:.1f}px")
-        print("整列长度按墨迹量，包括同一列里接在标题后的小字；按适配要求的比例取对应的一档。")
+        for name, share in (("一半", 1 / 2), ("三分之二", 2 / 3)):
+            target = length * share
+            size = f"展示字号 {(target - sub) / units:.1f}px" if target > sub else "放不下，同一列里其余文字已经超过这个长度"
+            print(f"整列占可用长度的{name}（{target:g}px）：{size}")
+        print("整列长度按墨迹量，包括同一列里接在标题后的小字；按构图在这两个字号之间取值。")
         return
     if not 1 <= args.span <= columns:
         raise MuseError(f"--span 必须在 1 到 {columns} 之间")
@@ -793,8 +795,8 @@ def cmd_fit(args, lib: Library):
 
     def span_width(viewport: float) -> float:
         if args.span == columns:
-            return viewport - 2 * margin - pads
-        return (viewport - 2 * margin - (columns - 1) * gutter) / columns * args.span + (args.span - 1) * gutter - pads
+            return viewport - 2 * margin - insets
+        return (viewport - 2 * margin - (columns - 1) * gutter) / columns * args.span + (args.span - 1) * gutter - insets
 
     canvas = px(values.get("canvas-width"))
     if canvas is not None and not args.breakpoint:
@@ -806,8 +808,8 @@ def cmd_fit(args, lib: Library):
         span = f"{viewport} - {2 * margin:g}px"
     else:
         span = f"({viewport} - {2 * margin:g}px - {columns - 1} * {gutter:g}px) / {columns} * {args.span} + {args.span - 1} * {gutter:g}px"
-    if pads:
-        span = f"{span} - {pads:g}px"
+    if insets:
+        span = f"{span} - {insets:g}px"
     print(f"流式表达式：calc(({span}) / {units:g})")
     print("表达式里的 100cqi 需要在标题的祖先上声明 container-type: inline-size；这个祖先要和视口同宽、没有左右内边距（通常是 body，并把 body 的 margin 设为 0），否则外边距会被扣两次。")
     if args.breakpoint:
@@ -1266,11 +1268,11 @@ def main(argv=None) -> int:
     p.add_argument("--tracking", type=float, default=None,
                    help="字距，单位 em；默认取 tracking-display-cjk，没有时取 tracking-display")
     p.add_argument("--padding", default="0",
-                   help="字块到边框内侧的距离，单位 px；两侧不同时写成 左,右（竖排时为 上,下）")
+                   help="字块到边框内侧的距离，单位 px；和 --border 相加就是字块到所跨栏位外沿的距离。两侧不同时写成 左,右（竖排时为 上,下）")
     p.add_argument("--border", default="0",
                    help="字块所在的板在所跨栏位内画的边框宽度，单位 px，写法同 --padding")
     p.add_argument("--sub-length", type=float, default=None,
-                   help="竖排时同一列里其余文字（如小字副标题）的长度，单位 px")
+                   help="竖排时同一列里其余文字（如小字副标题，连同它与标题之间的间隔）的长度，单位 px")
     p.add_argument("--vertical", action="store_true", help="竖排：按画布高度推导")
     p.add_argument("--breakpoint")
     p = sub.add_parser("specimen", help="生成样张 HTML")
