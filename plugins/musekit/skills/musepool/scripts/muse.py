@@ -580,6 +580,34 @@ def cmd_show(args, lib: Library):
         raise MuseError(f"找不到 {ref}：可以是 template、seed、precedent 的 id 或字体名")
 
 
+def data_palette(color, variant):
+    """颜色 Seed 在某个变体下的数据色板：变体在 data.variants 里有整组色板时用它，否则用默认色板。"""
+    data = (color or {}).get("data")
+    if not isinstance(data, dict):
+        return data
+    by_variant = data.get("variants")
+    own = by_variant.get(variant) if isinstance(by_variant, dict) else None
+    return own if isinstance(own, dict) else data
+
+
+def data_note(data, values) -> str:
+    """数据色板之后的用法说明：按 accent 对纸面够不够 3:1、是否也是分类色、有没有 ink-muted 来写。"""
+    has_muted = "ink-muted" in values
+    rest = "`ink-muted`" if has_muted else "`ink` 的浅色调（网点或透明度）"
+    text_colors = "`ink` 与 `ink-muted`" if has_muted else "`ink`"
+    accent = str(values.get("accent", "")).upper()
+    shared = [i for i, color in enumerate(data["categorical"], 1) if color.upper() == accent]
+    if accent and contrast(accent, values["paper"]) < 3:
+        lead = (f"强调色 `accent` 对纸面不到 3:1：不在分类色里，也不能做线、点和文字，只能做带 `ink` 边框的填充；"
+                f"只想突出一项时，用它填充那一项并加边框，其余用 {rest}。")
+    elif shared:
+        lead = (f"强调色 `accent` 也是分类色的第 {shared[0]} 色：只想突出一项时，用 `accent` 标那一项，其余用 {rest}；"
+                "按分类色区分多个序列时，不再另用 `accent` 强调。")
+    else:
+        lead = f"强调色 `accent` 不在分类色里：只想突出一项时，用 `accent` 标那一项，其余用 {rest}。"
+    return f"{lead}数值、刻度、标注和图例的文字用 {text_colors}，不用序列色。"
+
+
 def cmd_resolve(args, lib: Library):
     if args.scene not in SCENES:
         raise MuseError(f"未知场景 {args.scene}（可用：{', '.join(SCENES)}）")
@@ -595,7 +623,7 @@ def cmd_resolve(args, lib: Library):
            f"adaptation: {'provided' if adaptation else 'missing'}", "tokens:"]
     for name, value in values.items():
         out.append(f"  {name}: {json.dumps(value, ensure_ascii=False)}")
-    data = (lib.seed(template["seeds"]["color"], template) or {}).get("data") if args.scene == "data" else None
+    data = data_palette(lib.seed(template["seeds"]["color"], template), variant) if args.scene == "data" else None
     if data:
         out.append("data:")
         out += [f"  {kind}: {json.dumps(data[kind])}" for kind in DATA_KINDS]
@@ -635,7 +663,7 @@ def cmd_resolve(args, lib: Library):
                 f"| 分类 `categorical` | {'、'.join(data['categorical'])} | 区分序列身份。序列比颜色多时，把小项合并为「其他」或分面，不另造颜色；除颜色外再配直接标注、形状或线型 |",
                 f"| 顺序 `sequential` | {'、'.join(data['sequential'])} | 表示多少，由浅到深 |",
                 f"| 发散 `diverging` | {'、'.join(data['diverging'])} | 表示偏离基准的方向，中点对应基准值 |", "",
-                "强调色 `accent` 不在这些色板里：只想突出一项时，用 `accent` 标那一项，其余用 `ink-muted`。数值、刻度、标注和图例的文字用 `ink` 与 `ink-muted`，不用序列色。", ""]
+                data_note(data, values), ""]
     out += ["## 字体", ""]
     for font in used_fonts(lib, values):
         links = f"网页加载 {font['css']}" if font.get("css") else "无网页加载地址，本地安装使用"
@@ -1034,9 +1062,21 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
                 if ratio < LEVELS[level]:
                     errors.append(f"{where}：{variant} 中 {fg}/{bg} 对比 {ratio:.2f} 低于 {level} 要求 {LEVELS[level]}")
         if "data" in seed:
-            papers = sorted({palette["paper"] for palette in palettes.values() if "paper" in palette})
-            for paper in papers:
-                errors += [f"{where}：{problem}" for problem in data_problems(seed["data"], paper)]
+            by_variant = seed["data"].get("variants") if isinstance(seed["data"], dict) else None
+            if by_variant is not None and not (isinstance(by_variant, dict) and all(isinstance(v, dict) for v in by_variant.values())):
+                errors.append(f"{where}：data.variants 必须是按变体名给出的色板映射")
+                by_variant = None
+            stray = [name for name in by_variant or {} if name not in (seed.get("variants") or {})]
+            if stray:
+                errors.append(f"{where}：数据色板给了不存在的变体 {', '.join(stray)}")
+            checked = set()
+            for variant, palette in palettes.items():
+                data = data_palette(seed, variant)
+                if "paper" not in palette or (id(data), palette["paper"]) in checked:
+                    continue
+                checked.add((id(data), palette["paper"]))
+                label = f"变体 {variant} 的" if data is not seed["data"] else ""
+                errors += [f"{where}：{label}{problem}" for problem in data_problems(data, palette["paper"])]
 
 
 def css_weights(css: str) -> set[int]:

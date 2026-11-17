@@ -4,7 +4,7 @@ category: color
 nature: value
 name: 双色印版
 status: draft
-scenes: [graphic, web, slides]
+scenes: [graphic, web, slides, data]
 affinity: [mono-print]
 conflicts: []
 tokens:
@@ -33,6 +33,23 @@ variants:
   ultramarine-orange:
     ink: "#263E99"
     accent: "#E55D2B"
+data:
+  categorical: ["#2148B8", "#788FD1", "#C65F38"]
+  sequential: ["#D9DFEE", "#AEBCE1", "#8398D4", "#516FC6", "#2148B8"]
+  diverging: ["#C65F38", "#E0AC98", "#DBD5D7", "#8EA1D8", "#2148B8"]
+  variants:
+    charcoal-red:
+      categorical: ["#30343A", "#818386", "#C83232"]
+      sequential: ["#DCDCDB", "#B3B5B5", "#8B8D8F", "#5C6064", "#30343A"]
+      diverging: ["#C83232", "#E19694", "#DDCFCB", "#959798", "#30343A"]
+    oxblood-green:
+      categorical: ["#8F3434", "#001C0F", "#008A4B"]
+      sequential: ["#EADCDA", "#D5B5B3", "#BF8D8C", "#A7605F", "#8F3434"]
+      diverging: ["#008A4B", "#7DC2A1", "#D3D8CE", "#C49796", "#8F3434"]
+    ultramarine-orange:
+      categorical: ["#263E99", "#7B89BF", "#E55D2B"]
+      sequential: ["#DADEE9", "#B0B8D6", "#8593C3", "#5567AE", "#263E99"]
+      diverging: ["#E55D2B", "#F0AC91", "#DFD4D4", "#909CC8", "#263E99"]
 pairs:
   - [ink, paper, body]
   - [paper, ink, body]
@@ -50,4 +67,4 @@ pairs:
 
 ## 适用与边界
 
-不加渐变、彩虹色和全彩照片。选择这一方向时才引入印刷质感；需要大量彩色信息编码的数据图不适合。
+不加渐变、彩虹色和全彩照片。选择这一方向时才引入印刷质感。数据图只用两版墨，每个变体有自己的数据色板。分类最多 3 类：前两类都在主印版上，实色和 60% 网点（oxblood-green 的网点在绿色盲下与绿色撞色，改用两版叠印），所以两个序列的图仍是单色，副印版留给结论那一项；第三类才用副印版，这时不再另用副印版强调。超出 3 类就合并为「其他」或分面，或者在同一种墨上加纹样并直接标注。顺序色是主印版的网点由浅到深，发散色两端是两版墨，中点是两版各 10% 网点的叠印。

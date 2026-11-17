@@ -6,7 +6,7 @@ name_en: Neo-Brutalism
 family: neo-brutalism
 status: verified
 source: library
-scenes: [graphic, web, slides, diagram]
+scenes: [graphic, web, slides, diagram, data]
 mood: [直接, 有力, 好玩, 年轻, 叛逆, 热闹, 活力, 创意, 工具, bold, playful, brutal, loud]
 seeds:
   color: raw-primary

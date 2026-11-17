@@ -6,7 +6,7 @@ name_en: One-and-Two-Ink Editorial Print
 family: mono-print
 status: verified
 source: library
-scenes: [graphic, web, slides, diagram]
+scenes: [graphic, web, slides, diagram, data]
 mood: [印刷, 质感, 独立出版, 文化, 手作, 复古而不旧, 张力, zine, print, risograph, halftone, duotone]
 seeds:
   color: two-plate

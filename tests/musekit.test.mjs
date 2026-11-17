@@ -407,7 +407,8 @@ test('every template resolves for diagrams, with adaptations only where a direct
 });
 
 test('color seeds carry checked data palettes that only the data scene resolves', () => {
-  for (const [id, first] of [['neo-swiss', '#2A6BC4'], ['editorial-serif', '#30609F']]) {
+  for (const [id, first] of [['neo-swiss', '#2A6BC4'], ['editorial-serif', '#30609F'], ['japanese-ma', '#74726D'],
+    ['mono-print', '#2148B8'], ['neo-brutalism', '#1F4FE0']]) {
     const data = cli('resolve', id, '--scene', 'data');
     const meta = parse(/^---\n([\s\S]*?)\n---/.exec(data)[1]);
     assert.equal(meta.data.categorical[0], first, id);
@@ -419,6 +420,10 @@ test('color seeds carry checked data palettes that only the data scene resolves'
     assert.doesNotMatch(web, /--data-|## 数据色板/, id);
     assert.equal(parse(/^---\n([\s\S]*?)\n---/.exec(web)[1]).data, undefined, id);
   }
+  // mono-print's variants are different ink pairs, so each one carries its own palette built from those inks:
+  // the main plate first, the second plate last.
+  const oxblood = cli('resolve', 'mono-print', '--scene', 'data', '--variant', 'oxblood-green');
+  assert.deepEqual(parse(/^---\n([\s\S]*?)\n---/.exec(oxblood)[1]).data.categorical, ['#8F3434', '#001C0F', '#008A4B']);
   const palette = (categorical, sequential, diverging) =>
     `data:\n  categorical: [${categorical}]\n  sequential: [${sequential}]\n  diverging: [${diverging}]\npairs:\n  - [ink, paper, body]`;
   const seq = '"#CEDFF8", "#93B5E5", "#598AD0", "#1D5FB7", "#00368B"';
@@ -451,6 +456,69 @@ test('color seeds carry checked data palettes that only the data scene resolves'
       assert.equal(result.status, 1, file);
       assert.match(result.stdout, pattern, file);
     }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a color variant can replace the whole data palette, and each variant palette is checked', () => {
+  const seq = '["#CEDFF8", "#93B5E5", "#598AD0", "#1D5FB7", "#00368B"]';
+  const div = '["#00489E", "#7393C0", "#DEDBD3", "#BA8168", "#8E1E00"]';
+  const seed = (warm) => userSeed('plates', `variants:
+  cool:
+    accent: "#2050D0"
+  warm:
+    accent: "#A03010"
+data:
+  categorical: ["#2A6BC4", "#C9581A", "#13906A"]
+  sequential: ${seq}
+  diverging: ${div}
+  variants:
+    warm:
+      categorical: ${warm}
+      sequential: ${seq}
+      diverging: ${div}
+pairs:
+  - [ink, paper, body]`);
+  const template = userTemplate('plates.md').replace('scenes: [web]', 'scenes: [web, data]')
+    .replace('seeds:', 'variants:\n  default: cool\n  options: [cool, warm]\nseeds:');
+  const dir = scratch({
+    'plates.md': seed('["#A03010", "#2A6BC4", "#13906A"]'),
+    'style.md': template,
+    'twins.md': seed('["#A03010", "#2A6BC4", "#2D6EC8"]').replace('id: plates', 'id: twins'),
+    'stray.md': seed('["#A03010", "#2A6BC4", "#13906A"]').replace('id: plates', 'id: stray').replace('    warm:\n      categorical', '    hot:\n      categorical'),
+    'listed.md': userSeed('listed', `data:\n  categorical: ["#2A6BC4", "#C9581A", "#13906A"]\n  sequential: ${seq}\n  diverging: ${div}\n  variants: [warm]\npairs:\n  - [ink, paper, body]`),
+  });
+  try {
+    assert.equal(run('check', join(dir, 'style.md')).status, 0, run('check', join(dir, 'style.md')).stdout);
+    const twins = run('check', join(dir, 'twins.md'));
+    assert.equal(twins.status, 1);
+    assert.match(twins.stdout, /变体 warm 的数据色板 categorical 的 #2A6BC4 与 #2D6EC8 太接近/);
+    const stray = run('check', join(dir, 'stray.md'));
+    assert.equal(stray.status, 1);
+    assert.match(stray.stdout, /数据色板给了不存在的变体 hot/);
+    const listed = run('check', join(dir, 'listed.md'));
+    assert.equal(listed.status, 1);
+    assert.match(listed.stdout, /data\.variants 必须是按变体名给出的色板映射/);
+    const first = (variant) => {
+      const text = cli('resolve', join(dir, 'style.md'), '--scene', 'data', ...(variant ? ['--variant', variant] : []));
+      return parse(/^---\n([\s\S]*?)\n---/.exec(text)[1]).data.categorical[0];
+    };
+    assert.equal(first(), '#2A6BC4');
+    assert.equal(first('cool'), '#2A6BC4');
+    assert.equal(first('warm'), '#A03010');
+    const warm = cli('resolve', join(dir, 'style.md'), '--scene', 'data', '--variant', 'warm');
+    assert.match(warm, /--data-cat-1: #A03010;/);
+    // The usage note follows the palette: here accent doubles as the first series and there is no ink-muted token.
+    const note = (text) => text.split('## 数据色板')[1].split('## 字体')[0];
+    assert.match(note(warm), /`accent` 也是分类色的第 1 色/);
+    assert.doesNotMatch(note(warm), /ink-muted|不在分类色里/);
+    assert.match(note(cli('resolve', join(dir, 'style.md'), '--scene', 'data')), /`accent` 不在分类色里.*其余用 `ink` 的浅色调/);
+    assert.match(note(cli('resolve', 'neo-swiss', '--scene', 'data')), /`accent` 不在分类色里.*其余用 `ink-muted`/);
+    // neo-brutalism's yellow accent is under 3:1 on its cream paper, so it may not be offered as a line or dot colour.
+    const brutal = note(cli('resolve', 'neo-brutalism', '--scene', 'data'));
+    assert.match(brutal, /`accent` 对纸面不到 3:1.*只能做带 `ink` 边框的填充/);
+    assert.doesNotMatch(brutal, /用 `accent` 标那一项/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -623,7 +691,8 @@ test('search is scene-aware and says when nothing matches', () => {
   assert.match(miss, /无命中/);
   assert.match(miss, /data 场景可用的气质词：.*理性/);
   assert.match(miss, /data 场景可用的气质词：.*人文/);
-  assert.doesNotMatch(miss, /安静/);
+  // 5 个风格都声明了 data（mono-print、japanese-ma、neo-brutalism 靠数据色板进入），所以它们的气质词也在列。
+  assert.match(miss, /data 场景可用的气质词：.*安静.*risograph.*playful/);
   assert.match(cli('search', '--seeds', '网格'), /grid\/asymmetric-modular/);
 });
 

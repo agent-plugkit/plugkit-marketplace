@@ -4,7 +4,7 @@ category: color
 nature: value
 name: 奶油底与原色撞色
 status: draft
-scenes: [graphic, web, slides]
+scenes: [graphic, web, slides, data]
 affinity: [neo-brutalism]
 conflicts: []
 tokens:
@@ -37,6 +37,10 @@ variants:
     accent-2: "#FFD23F"
   lime:
     accent: "#B8F25C"
+data:
+  categorical: ["#1F4FE0", "#E8461E", "#0E8F4F", "#B0389E"]
+  sequential: ["#CFE0FF", "#94B4FF", "#5784FF", "#2456E8", "#0A2FA8"]
+  diverging: ["#1F4FE0", "#8FA4E4", "#E6E0D2", "#D898C2", "#B0389E"]
 pairs:
   - [ink, paper, body]
   - [ink-muted, paper, body]
@@ -56,4 +60,4 @@ pairs:
 
 ## 适用与边界
 
-适合活动、创意工具、年轻品牌和需要直接、有力、带点挑衅的场合。不适合需要安静和信任感的内容（医疗、金融说明）。数据图里色块可以区分序列，但每个序列还要配标签或图案。
+适合活动、创意工具、年轻品牌和需要直接、有力、带点挑衅的场合。不适合需要安静和信任感的内容（医疗、金融说明）。数据图的序列不用黄、粉、青三个色块：它们在奶油底上不到 3:1，柱子、线和点都会发虚。改用数据色板里的四个深原色（蓝、橙红、绿、品红），柱和块照样加黑边框；最多 4 类，超出就合并为「其他」或分面。橙红与绿在色盲下只勉强分得开，每个序列还要配直接标注或图案。三个色块仍然可以做图表所在的板和标题底。

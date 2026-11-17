@@ -37,7 +37,7 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 
 类别专属字段：
 
-- `color`：必须有 `paper`（背景）、`ink`（正文）、`accent`（强调）三个 token。`variants` 按变体名改写部分 token。`pairs` 列出需要满足对比度的配对 `[前景, 背景, body|large]`，`body` 要求 4.5:1，`large` 要求 3:1，每个变体都要满足。可选的 `data` 给数据图色板，三组都写：`categorical`（3–6 色，每色对纸面至少 3:1，任意两色 OKLab ΔE×100 至少 15，红色盲和绿色盲模拟下至少 8）、`sequential`（3–9 色，由浅到深，最深一色对纸面至少 3:1）、`diverging`（奇数个、至少 5 色，中点是中性色，两臂向两端逐级变深，两端对纸面至少 3:1）。声明了 `data` 场景的 Template，它的颜色 Seed 必须有 `data`。
+- `color`：必须有 `paper`（背景）、`ink`（正文）、`accent`（强调）三个 token。`variants` 按变体名改写部分 token。`pairs` 列出需要满足对比度的配对 `[前景, 背景, body|large]`，`body` 要求 4.5:1，`large` 要求 3:1，每个变体都要满足。可选的 `data` 给数据图色板，三组都写：`categorical`（3–6 色，每色对纸面至少 3:1，任意两色 OKLab ΔE×100 至少 15，红色盲和绿色盲模拟下至少 8）、`sequential`（3–9 色，由浅到深，最深一色对纸面至少 3:1）、`diverging`（奇数个、至少 5 色，中点是中性色，两臂向两端逐级变深，两端对纸面至少 3:1）。变体换掉的颜色让默认色板不再成立时（例如每个变体是一组不同的油墨），在 `data.variants` 下按变体名给整组替换色板，三组同样都写，同样逐一检查；没列出的变体用默认色板。声明了 `data` 场景的 Template，它的颜色 Seed 必须有 `data`。
 - `typography`：必须有 `font-display`、`font-text`、`font-cjk`、`size-body`。字体值必须是注册表里的开源字体，`font-cjk` 必须覆盖汉字。可选的 `archetype` 记录风格原型字体（可以是版权字体，但必须已登记）。
 
 正文必须有 `## 要点`：每条一个短句，说明怎样用、用多少。可以再加 `## 适用与边界`，写限制条件与缺少素材时的退路。两节都会原样进入 `style.md`。

@@ -6,7 +6,7 @@ name_en: Japanese Ma
 family: japanese-ma
 status: verified
 source: library
-scenes: [graphic, web, slides, diagram]
+scenes: [graphic, web, slides, diagram, data]
 mood: [安静, 留白, 内省, 克制, 文学, 慢, 手作, 东方, 诗意, quiet, minimal, ma, zen]
 seeds:
   color: sumi-shu
