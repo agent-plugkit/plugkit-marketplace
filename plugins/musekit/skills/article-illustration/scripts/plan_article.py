@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-"""从一篇 Markdown 里抽出 Mermaid 围栏，并给出结构信号和建议路径。
+"""从一篇 Markdown 里抽出 Mermaid 围栏，并给出结构信号。
 
-只读源文件，不改原文，也不判断散文里要不要新增图。建议路径对应已确认的密度规则：
-
-- 出现分支、回路、精确数字，或标签不是少量短词时，建议 structured（可编辑图解）
-- 否则建议 try-image（尝试生图）
-
-「少量短词」在这里读成：标签 1 到 6 个，每个不超过 8 个字符，且不含空白或句读。
-确认大纲时仍可改这条建议。
+只读源文件，不改原文，也不判断散文里要不要新增图。关系图都交给 diagram-design 做可编辑图解；
+这里报出的标签、条件（边上的文字，时序图 alt / else / opt / loop 等后面的文字）、分支、回路、分组和数字，供写它的 Brief 核对清单时对照。
 
 用法：
 
@@ -21,12 +16,11 @@ import re
 import sys
 from pathlib import Path
 
-MAX_LABELS = 6
-MAX_LABEL_CHARS = 8
 FENCE = re.compile(r"^```([^\n`]*)\n(.*?)^```[ \t]*$", re.M | re.S)
 NODE = re.compile(
     r"([A-Za-z_][\w-]*)(?:\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}|\[\"([^\"]*)\"\])?"
 )
+INLINE_ARROW = re.compile(r"(?:--|-\.|==)\s+([^\s>][^>]*?)\s+(?:-->|\.->|==>|---)")
 ARROW = re.compile(r"-->|==>|-\.->|---")
 EDGE_LABEL = re.compile(r"\|([^|]*)\|")
 SEQUENCE_MESSAGE = re.compile(r"^(\S+?)\s*-+>>?\+?\s*(\S+?)\s*:\s*(.*)$")
@@ -92,10 +86,13 @@ def _flow_signals(code: str) -> dict:
             if line[position].isspace():
                 position += 1
                 continue
-            arrow = ARROW.match(line, position)
+            inline = INLINE_ARROW.match(line, position)
+            arrow = inline or ARROW.match(line, position)
             if arrow:
                 position = arrow.end()
-                label_match = EDGE_LABEL.match(line, position)
+                if inline:
+                    edge_labels.append(inline.group(1).strip())
+                label_match = None if inline else EDGE_LABEL.match(line, position)
                 if label_match:
                     edge_labels.append(label_match.group(1).strip())
                     position = label_match.end()
@@ -125,6 +122,7 @@ def _flow_signals(code: str) -> dict:
         outgoing[source] = outgoing.get(source, 0) + 1
     return {
         "labels": list(labels.values()),
+        "conditions": list(dict.fromkeys(label for label in edge_labels if label)),
         "edgeCount": len(edges),
         "maxOutDegree": max(outgoing.values(), default=0),
         "hasBranch": max(outgoing.values(), default=0) > 1,
@@ -136,6 +134,7 @@ def _flow_signals(code: str) -> dict:
 
 def _sequence_signals(code: str) -> dict:
     labels: list[str] = []
+    conditions: list[str] = []
     has_branch = False
     has_loop = False
     for raw in code.splitlines():
@@ -145,6 +144,9 @@ def _sequence_signals(code: str) -> dict:
         control = CONTROL.match(line)
         if control:
             word = control.group(1).lower()
+            text = line[control.end():].strip()
+            if text:
+                conditions.append(text)
             if word == "loop" or word == "critical":
                 has_loop = True
             elif word != "break":
@@ -163,11 +165,12 @@ def _sequence_signals(code: str) -> dict:
     unique = list(dict.fromkeys(labels))
     return {
         "labels": unique,
+        "conditions": list(dict.fromkeys(conditions)),
         "edgeCount": sum(1 for raw in code.splitlines() if SEQUENCE_MESSAGE.match(raw.strip())),
         "maxOutDegree": 0,
         "hasBranch": has_branch,
         "hasLoop": has_loop,
-        "hasPreciseNumber": _has_digit(unique),
+        "hasPreciseNumber": _has_digit([*unique, *conditions]),
         "hasGroup": False,
     }
 
@@ -196,26 +199,6 @@ def _has_digit(values: list[str]) -> bool:
     return any(re.search(r"\d", value) for value in values)
 
 
-def _short_words(labels: list[str]) -> bool:
-    if not 1 <= len(labels) <= MAX_LABELS:
-        return False
-    return all(
-        0 < len(label.strip()) <= MAX_LABEL_CHARS and not re.search(r"\s|[，。,.、；;：:]", label)
-        for label in labels
-    )
-
-
-def suggest(signals: dict) -> str:
-    dense = (
-        signals["hasBranch"]
-        or signals["hasLoop"]
-        or signals["hasPreciseNumber"]
-        or signals["hasGroup"]
-        or not _short_words(signals["labels"])
-    )
-    return "structured" if dense else "try-image"
-
-
 def _meaningful(code: str) -> bool:
     for line in code.splitlines():
         stripped = re.sub(r"%%.*", "", line).strip()
@@ -236,13 +219,12 @@ def analyze(text: str) -> dict:
             "index": len(fences) + 1,
             "kind": kind,
             "signals": signals,
-            "suggestedPath": suggest(signals),
         })
     return {"fences": fences}
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="抽出 Markdown 中的 Mermaid 并建议密度路径")
+    parser = argparse.ArgumentParser(description="抽出 Markdown 中的 Mermaid 并报出结构信号")
     parser.add_argument("article", type=Path)
     args = parser.parse_args(argv)
     if not args.article.is_file():
