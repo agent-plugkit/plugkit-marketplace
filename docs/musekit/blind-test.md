@@ -25,7 +25,7 @@
 - 需要 Playwright 的命令在仓库根目录运行。
 - 开始和结束时用 `date` 记下时间，写进 process.md。
 - 按本说明「摩擦记录格式」一节的格式，在产物目录根部写 `process.md`，第 6 节的必答项都要回答。<把下一节的格式全文贴在这里>
-- 评审走完整档：Skill 说明里有子代理时，交给空白上下文的评审子代理，多轮复查直到没有主要问题。评审者只拿产物、Brief、style.md 和媒介清单，不读 process.md。
+- 评审走完整档：Skill 说明里有子代理时，交给空白上下文的评审子代理，按 `references/critique.md` 的评审循环复查（最多两轮）。评审者只拿产物、Brief、style.md 和媒介清单，不读 process.md。
 - 交付前在产物目录根部存这些截图（网页用插件的检查脚本或 Playwright 均可）：`web-full.png`（1440 宽整页）、`web-fold.png`（1440 × 900 首屏）、`web-768.png`、`web-375.png`（首屏）、`web-375-full.png`、`web-form-error.png`（空提交后的表单）、`web-form-done.png`（完成态），以及灰度整页 `web-full-gray.png`。
 - 结束时用不超过 300 字报告：产物路径、耗时、评审轮数与主要修正、摩擦条数和最重要的 3 条。
 ```

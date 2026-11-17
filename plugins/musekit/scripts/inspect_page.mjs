@@ -78,7 +78,10 @@ export function readStyle(text) {
     else breakpoints.add(n).add(n + 1);
   }
   const palette = new Set();
+  // Colour tokens are hex or rgb()/rgba(); the page's colours are compared on r,g,b only, as the audit does.
   for (const m of text.matchAll(/--(?:color|data)-[\w-]+:\s*(#[0-9a-fA-F]{3,8})\b/g)) palette.add(hexToRgb(m[1]));
+  for (const m of text.matchAll(/--(?:color|data)-[\w-]+:\s*rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/g))
+    palette.add([m[1], m[2], m[3]].map((n) => Math.round(Number(n))).join(","));
   // Token blocks: the base :root, then each @media block that redefines some of them.
   const vars = (body) => Object.fromEntries([...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
   const css = (/```css\n([\s\S]*?)```/.exec(text) || [])[1] || "";

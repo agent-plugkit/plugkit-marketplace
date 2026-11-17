@@ -47,11 +47,11 @@ test('a canvas run and a web run take different options', () => {
 test('style.md gives breakpoint edges and the palette', () => {
   const style = readStyle(`
 :root { --color-paper: #FFF8E7; --color-ink: #0a0a0a; --color-accent: #F2C;
-  --space-1: 8px; --data-cat-1: #70318A; }
+  --space-1: 8px; --data-cat-1: #70318A; --color-glass: rgba(228, 228, 222, 0.62); --color-line: rgb(28 29 26 / 0.1); }
 @media (min-width: 768px) { :root { --margin: 48px; } }
 @media (max-width: 1100px) { :root { --columns: 8; } }`);
   assert.deepEqual(style.breakpoints, [767, 768, 1100, 1101]);
-  assert.deepEqual(style.palette, ['255,248,231', '10,10,10', '255,34,204', '112,49,138']);
+  assert.deepEqual(style.palette, ['255,248,231', '10,10,10', '255,34,204', '112,49,138', '228,228,222', '28,29,26']);
 });
 
 test('the sweep covers fixed widths, breakpoint edges, the requested viewports and short screens', () => {
