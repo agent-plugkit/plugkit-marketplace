@@ -220,6 +220,57 @@ test('seeds declare shared production tools and resolve says to copy them into t
   }
 });
 
+test('layout rules declared by seeds and templates reach style.md as roles, rules and a machine block', () => {
+  const block = (style) => JSON.parse(/```json musekit-checks\n([\s\S]*?)```/.exec(style)[1]).rules;
+  const web = cli('resolve', 'neo-brutalism', '--scene', 'web');
+  assert.match(web, /^## 机检$/m);
+  for (const role of ['wall', 'panel', 'main', 'list', 'title', 'sticker', 'hero']) assert.match(web, new RegExp('^- `' + role + '`：', 'm'));
+  assert.deepEqual(block(web).map((r) => r.kind), ['seams', 'dominant', 'fill', 'covers', 'max-size']);
+  // Thresholds stay token names, so the mobile breakpoint's dominant-ratio applies on phones.
+  assert.equal(block(web)[1].min, 'dominant-ratio');
+  assert.match(web, /--dominant-ratio: 1\.5;/);
+  // The template's own web rule is not on the poster.
+  assert.deepEqual(block(cli('resolve', 'neo-brutalism', '--scene', 'graphic')).map((r) => r.kind), ['seams', 'dominant', 'fill', 'covers']);
+  assert.deepEqual(block(cli('resolve', 'editorial-serif', '--scene', 'graphic')).map((r) => r.kind), ['axis']);
+  // Only the scenes the page inspector serves get the section.
+  assert.doesNotMatch(cli('resolve', 'neo-brutalism', '--scene', 'diagram'), /## 机检/);
+  assert.doesNotMatch(cli('resolve', 'neo-swiss', '--scene', 'web'), /## 机检/);
+
+  const rules = (body) => userSeed('brand', `checks:\n  roles:\n    box: 一块板\n  rules:\n${body}`);
+  const dir = scratch({
+    'ok.md': rules('    - kind: seams\n      group: box\n      item: box\n      max: 3'),
+    'kind.md': rules('    - kind: wobble\n      item: box'),
+    'param.md': rules('    - kind: seams\n      group: box\n      item: box'),
+    'extra.md': rules('    - kind: seams\n      group: box\n      item: box\n      max: 3\n      side: left'),
+    'count.md': rules('    - kind: covers\n      item: box\n      over: box\n      count: two'),
+    'shape.md': userSeed('brand', 'checks:\n  rules: []'),
+  });
+  try {
+    assert.equal(run('check', join(dir, 'ok.md')).status, 0);
+    assert.match(run('check', join(dir, 'kind.md')).stdout, /未知的规则种类 wobble/);
+    assert.match(run('check', join(dir, 'param.md')).stdout, /seams 缺少参数 max/);
+    assert.match(run('check', join(dir, 'extra.md')).stdout, /seams 不认识参数 side/);
+    assert.match(run('check', join(dir, 'count.md')).stdout, /covers 的 count 必须是整数/);
+    assert.match(run('check', join(dir, 'shape.md')).stdout, /checks 必须有 roles/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  // Templates: undeclared roles, unknown tokens and scenes outside graphic and web are refused.
+  const template = readFileSync(join(library, 'templates/neo-brutalism.md'), 'utf8');
+  const bad = scratch({
+    'role.md': template.replace('than: hero', 'than: banner'),
+    'token.md': template.replace('min: fill-ratio', 'min: fill-ratoi').replace('kind: max-size', 'kind: fill\n        text: hero\n        box: panel\n        min: fill-ratoi\n      - kind: max-size'),
+    'scene.md': template.replace('checks:\n  web:', 'checks:\n  diagram:'),
+  });
+  try {
+    assert.match(run('check', join(bad, 'role.md')).stdout, /web 的 max-size 规则用了没有声明的角色 banner/);
+    assert.match(run('check', join(bad, 'token.md')).stdout, /web 的 fill 规则引用了不存在的 token fill-ratoi/);
+    assert.match(run('check', join(bad, 'scene.md')).stdout, /checks 的场景 diagram 必须是 graphic、web 之一/);
+  } finally {
+    rmSync(bad, { recursive: true, force: true });
+  }
+});
+
 test('tablet breakpoints narrow the margins that blocked line length, and narrow walls relax the area ratio', () => {
   // 768 宽时原来的 128px / 96px 外边距让正文栏放不下规定的行长。
   for (const [id, margin] of [['japanese-ma', '64px'], ['editorial-serif', '48px'], ['mono-print', '64px']]) {

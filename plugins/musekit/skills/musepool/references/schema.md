@@ -18,6 +18,7 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 | `conflicts` | 不能同时使用的 Seed id 或风格族 |
 | `tokens` | 每个 token 是一个映射：`value` 必填，`role` 说明用途 |
 | `tools` | 可选。这个 Seed 要用到的共享制作工具，是路径列表，路径相对插件根，例如 `[assets/halftone.js]`。文件必须在插件的 `assets/` 里。`resolve` 会在这个 Seed 的要点之后写明工具的位置 |
+| `checks` | 可选。要点里能量化的版式规则，交给检查脚本测量，见下方「机检规则」 |
 
 制作工具放在哪一层：
 
@@ -57,6 +58,7 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 | `overrides` | 按场景覆盖 token 值，见下方「场景覆盖」 |
 | `exemplars` | Precedent id 列表 |
 | `examples` | 可选。场景到 Workflow 制作示例的映射，路径相对插件根，例如 `web: skills/web-design/references/examples/<名称>.md`；场景必须在 `scenes` 里，文件必须存在。`resolve` 只输出当前场景那一条 |
+| `checks` | 可选。场景到机检规则的映射（`graphic`、`web`），放只写在本场景适配里的规则，格式同 Seed 的 `checks` |
 
 正文章节依次为：`## 精神`（必填，一段话说明这个风格要解决什么阅读问题）、`## 文法`（必填：网格、对齐、层级、留白、色彩、装置、图像，以及选中、出错、完成等状态）、`## 场景适配`（每个场景一个 `### <场景>` 小节，可缺）、`## 常见误用`、`## 范例`（每条写明 Precedent id、借什么、不借什么；`resolve` 会把这一节原样写进 `style.md`）。
 
@@ -97,3 +99,39 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 | `alternatives` | — | 必填：`family`（已登记的开源字体）与 `note`（差异说明） | — |
 
 `scripts` 使用 `latin`、`greek`、`cyrillic`、`han-simplified`、`han-traditional`、`kana`、`hangul`。全部链接使用 https。`check` 只校验字段，`check --links` 联网确认链接可访问。
+
+## 机检规则
+
+Seed 和 Template 可以把可量化的版式规则声明成 `checks`，检查脚本 `scripts/inspect_page.mjs` 按声明测量，制作方不必再为每件作品手写测量代码。
+
+```yaml
+checks:
+  roles:
+    panel: 墙里的每块板
+    main: 每面墙的主板，同时标 panel
+  rules:
+    - kind: dominant
+      group: wall
+      item: panel
+      main: main
+      min: dominant-ratio
+```
+
+- `roles` 是角色名到一句标注说明的映射。制作方按说明给元素加 `data-mk="<角色>"`，一个元素可以有多个角色。
+- `rules` 的种类与参数：
+
+| 种类 | 参数 | 量什么 |
+| --- | --- | --- |
+| `seams` | `group` `item` `max` | 每个 group 里相邻两个 item 的间隙 |
+| `dominant` | `group` `item` `main` `min`，可选 `exclude` | main 的面积与其余最大一个 item 之比；exclude 的不参与 |
+| `fill` | `text` `box` `min` | text 最宽一行与所在 box 内宽之比；只在海报和第一个视口上判定 |
+| `covers` | `item` `over` `count`，可选 `avoid` | 每个 item 压住几个 over（按 item 实际在最上层的点取样）；avoid 是颜色 token，压在这种底色上也算不合格 |
+| `axis` | `item` `tolerance`，可选 `field` | item 每一行中点离中轴的偏差，按版面宽度计；在 field 里时以 field 的中线为轴 |
+| `max-size` | `item` `than` | item 的字号不大于 than |
+
+- 阈值写 token 名或数字。token 名在检查时按视口宽度取 style.md 里对应断点的值，所以手机上用手机断点的值；不为阈值另造数字。
+- 只写要点或本场景适配里明文规定的规则。「约三分之一」这类没有 token 的说法不写成规则。
+- `check` 校验种类、参数、角色是否在同一 Template 的 Seed 或场景规则里声明过，以及阈值 token 是否存在。
+- `resolve` 只在 `graphic` 和 `web` 场景输出「机检」一节：角色说明、规则的中文描述和一段 `json musekit-checks` 机读块。
+- 检查脚本对没有标记的角色报「not measured」，不当作通过。
+

@@ -68,6 +68,62 @@ button:focus{outline:none}
 });
 test.afterAll(() => rmSync(work, { recursive: true, force: true }));
 
+// A style that declares layout rules, and a page that breaks each of them once.
+const rulesStyle = `## Tokens
+
+\`\`\`css
+:root {
+  --color-paper: #ffffff;
+  --color-ink: #111111;
+  --rule-width: 3px;
+  --dominant-ratio: 2;
+  --fill-ratio: 0.9;
+  --axis-tolerance: 0.02;
+}
+/* mobile */
+@media (max-width: 767px) {
+  :root {
+    --dominant-ratio: 1.5;
+  }
+}
+\`\`\`
+
+## 机检
+
+\`\`\`json musekit-checks
+${JSON.stringify({ rules: [
+  { kind: "seams", group: "wall", item: "panel", max: "rule-width" },
+  { kind: "dominant", group: "wall", item: "panel", main: "main", exclude: "list", min: "dominant-ratio" },
+  { kind: "fill", text: "title", box: "panel", min: "fill-ratio" },
+  { kind: "covers", item: "sticker", over: "panel", count: 2, avoid: "ink" },
+  { kind: "axis", item: "axis", field: "axis-field", tolerance: "axis-tolerance" },
+  { kind: "max-size", item: "title", than: "hero" },
+  { kind: "max-size", item: "ghost", than: "hero" },
+] })}
+\`\`\`
+`;
+const rulesPage = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+.wall{display:grid;position:relative;margin-bottom:40px}
+#w1{grid-template-columns:17fr 10fr;column-gap:20px}
+#w2{grid-template-columns:3fr 1fr}
+.panel{border:3px solid #111;height:160px;position:relative;padding:0 10px}
+.ink{background:#111;color:#fff}
+.sticker{position:absolute;margin:0;background:#ffcc00;border:3px solid #111;width:80px;height:40px;transform:rotate(-6deg)}
+#s1{left:10px;top:10px}
+#s2{left:calc(75% - 40px);top:60px}
+h2,h1{margin:0;white-space:nowrap}
+</style>
+<section class="wall" id="w1" data-mk="wall">
+  <div class="panel" data-mk="panel main"><h2 data-mk="title" style="font-size:40px">短标题</h2><p class="sticker" id="s1" data-mk="sticker">贴</p></div>
+  <div class="panel" data-mk="panel"></div>
+</section>
+<section class="wall" id="w2" data-mk="wall">
+  <div class="panel" data-mk="panel main"><h1 data-mk="title hero" style="font-size:30px">首屏标题首屏标题首屏标题首屏标题首屏</h1></div>
+  <div class="panel ink" data-mk="panel"></div>
+  <p class="sticker" id="s2" data-mk="sticker">压</p>
+</section>
+<div style="width:600px"><p data-mk="axis">齐左的一行，不在中轴上</p></div>`;
 
 
 test("a canvas run exports the PNG and reports what is covered, past the canvas and missing", async () => {
@@ -142,3 +198,34 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   expect(Object.keys(report.flow)).toEqual(["1024x700", "375x700"]);
   expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).problems).toEqual(report.problems);
 });
+
+test("layout rules from style.md: each broken rule is named with its reading, thresholds follow the breakpoint", async () => {
+  test.setTimeout(90000);
+  write("rules.html", rulesPage);
+  write("rules-style.md", rulesStyle);
+  const report = await inspectPage(parseArgs([join(work, "rules.html"), "--viewports", "1024x900,375x900", "--style", join(work, "rules-style.md"), "--out", join(work, "rules-review")]));
+  const [desk, phone] = report.views;
+  const d = desk.rules;
+  const kind = (rules, k, n = 0) => rules.filter((r) => r.kind === k)[n];
+
+  expect(kind(d, "seams").status).toBe("fail");
+  expect(kind(d, "seams").items[0].gaps).toEqual([20, 20]);
+  // 1.7 is below the desktop ratio 2 but above the phone ratio 1.5.
+  expect(kind(d, "dominant").items.map((i) => [i.ratio, i.ok])).toEqual([[1.7, false], [3, true]]);
+  expect(kind(phone.rules, "dominant").threshold).toBe(1.5);
+  expect(kind(phone.rules, "dominant").items[0].ok).toBe(true);
+  // Fill is judged on the first viewport only; elsewhere it reports the reading.
+  expect(kind(d, "fill").status).toBe("fail");
+  expect(kind(phone.rules, "fill").status).toBe("info");
+  // A sticker inside one panel covers one; a sticker across the seam covers two but sits on the ink panel.
+  expect(kind(d, "covers").items.map((i) => [i.covers, !!i.onAvoided, i.ok])).toEqual([[1, false, false], [2, true, false]]);
+  expect(kind(d, "axis").items[0].ok).toBe(false);
+  expect(kind(d, "max-size").items.map((i) => [i.size, i.limit, i.ok])).toEqual([[40, 30, false]]);
+  // An unmarked role is reported as not measured, never as a silent pass.
+  expect(kind(d, "max-size", 1)).toMatchObject({ status: "unmarked" });
+  expect(report.problems).toContain('layout rule max-size not measured @1024x900: no element marked data-mk="ghost"');
+  expect(report.problems.some((p) => p.startsWith("layout rule dominant fails @1024x900: section#w1"))).toBe(true);
+  expect(report.problems.some((p) => p.startsWith("layout rule dominant fails @375x900"))).toBe(false);
+  expect(report.problems.some((p) => /^sweep .*rule seams fails/.test(p))).toBe(true);
+});
+

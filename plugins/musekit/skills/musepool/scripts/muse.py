@@ -239,6 +239,90 @@ def seed_points(seed) -> str:
     return sections(seed["_body"]).get("要点", "")
 
 
+# 机检：Seed 和 Template 用 checks 声明可量的版式规则，inspect_page.mjs 按声明测量。
+# 每种规则：必填的角色参数、可选的角色参数、阈值参数（token 名或数字）、整数参数、可选的颜色 token。
+CHECK_SCENES = ("graphic", "web")
+CHECK_KINDS = {
+    "seams": {"roles": ("group", "item"), "thresholds": ("max",)},
+    "dominant": {"roles": ("group", "item", "main"), "optional_roles": ("exclude",), "thresholds": ("min",)},
+    "fill": {"roles": ("text", "box"), "thresholds": ("min",)},
+    "covers": {"roles": ("item", "over"), "ints": ("count",), "colors": ("avoid",)},
+    "axis": {"roles": ("item",), "optional_roles": ("field",), "thresholds": ("tolerance",)},
+    "max-size": {"roles": ("item", "than")},
+}
+CHECK_TEXT = {
+    "seams": "每面 `{group}` 里相邻两块 `{item}` 的间隙不超过 `{max}`",
+    "dominant": "每面 `{group}` 里 `{main}` 的面积至少是其余最大一块 `{item}` 的 `{min}` 倍{exclude}",
+    "fill": "`{text}` 的字宽至少是所在 `{box}` 内宽的 `{min}`；只在海报画布和第一个视口上判定，其他宽度只报数值",
+    "covers": "每张 `{item}` 压住 {count} 块 `{over}`{avoid}",
+    "axis": "每个 `{item}` 的每一行，中点离中轴不超过版面宽度的 `{tolerance}`{field}",
+    "max-size": "`{item}` 的字号不大于 `{than}`",
+}
+
+
+def check_rule_problems(rule) -> list[str]:
+    """只查规则本身的形状；角色是否声明、token 是否存在由 Template 检查。"""
+    if not isinstance(rule, dict):
+        return ["每条规则必须是映射"]
+    spec = CHECK_KINDS.get(rule.get("kind"))
+    if not spec:
+        return [f"未知的规则种类 {rule.get('kind')}（可用：{', '.join(CHECK_KINDS)}）"]
+    known = {"kind", *spec.get("roles", ()), *spec.get("optional_roles", ()), *spec.get("thresholds", ()),
+             *spec.get("ints", ()), *spec.get("colors", ())}
+    problems = [f"{rule['kind']} 不认识参数 {key}" for key in rule if key not in known]
+    for key in (*spec.get("roles", ()), *spec.get("thresholds", ()), *spec.get("ints", ())):
+        if rule.get(key) in (None, ""):
+            problems.append(f"{rule['kind']} 缺少参数 {key}")
+    for key in spec.get("ints", ()):
+        if key in rule and not isinstance(rule[key], int):
+            problems.append(f"{rule['kind']} 的 {key} 必须是整数")
+    for key in spec.get("thresholds", ()):
+        if key in rule and not isinstance(rule[key], (int, float, str)):
+            problems.append(f"{rule['kind']} 的 {key} 必须是 token 名或数字")
+    return problems
+
+
+def check_spec_problems(spec) -> list[str]:
+    if not isinstance(spec, dict) or not isinstance(spec.get("roles"), dict) or not isinstance(spec.get("rules"), list):
+        return ["checks 必须有 roles（角色到说明的映射）和 rules（规则列表）"]
+    return [problem for rule in spec["rules"] for problem in check_rule_problems(rule)]
+
+
+def scene_checks(lib: Library, template, scene: str):
+    """合并 Template 各 Seed 的规则和 Template 自己为本场景写的规则。"""
+    roles, rules = {}, []
+    specs = [(lib.seed(ref, template) or {}).get("checks") for ref in (template.get("seeds") or {}).values()]
+    specs.append((template.get("checks") or {}).get(scene))
+    for spec in specs:
+        if isinstance(spec, dict):
+            roles.update(spec.get("roles") or {})
+            rules += [rule for rule in spec.get("rules") or [] if isinstance(rule, dict)]
+    return roles, rules
+
+
+def check_section(roles, rules) -> list[str]:
+    used = []
+    for rule in rules:
+        spec = CHECK_KINDS[rule["kind"]]
+        for key in (*spec.get("roles", ()), *spec.get("optional_roles", ())):
+            if rule.get(key) and rule[key] not in used:
+                used.append(rule[key])
+    out = ["## 机检", "",
+           "跑检查脚本 `inspect_page.mjs` 时，它按下面的规则量版式，并把量到的数值写进摘要，不用再自己写测量代码。"
+           "先给元素加 `data-mk` 标记；一个元素可以有多个角色，用空格分开，如 `data-mk=\"panel main\"`。", ""]
+    out += [f"- `{role}`：{roles[role]}" for role in used]
+    out += ["", "规则："]
+    for rule in rules:
+        extra = {
+            "exclude": f"；`{rule['exclude']}` 不参与比较" if rule.get("exclude") else "",
+            "avoid": f"，不压在底色为 `{rule['avoid']}` 的板上" if rule.get("avoid") else "",
+            "field": f"；标了 `{rule['field']}` 的元素里以它的中线为轴，其余以画布或视口的中线为轴" if rule.get("field") else "",
+        }
+        out.append("- " + CHECK_TEXT[rule["kind"]].format_map({**rule, **extra}) + "。")
+    out += ["", "```json musekit-checks", json.dumps({"rules": rules}, ensure_ascii=False), "```", ""]
+    return out
+
+
 def template_tokens(lib: Library, template, scene: str | None, variant: str | None):
     """合并 Seed 的值，依次应用颜色变体与场景覆盖值。返回 (值, 角色, 所属类别)。"""
     values, roles, owner = {}, {}, {}
@@ -561,6 +645,10 @@ def cmd_resolve(args, lib: Library):
             out += ["**适用与边界**：" + boundary.replace("\n", " "), ""]
         for tool in seed.get("tools") or []:
             out += [f"制作工具：插件内的 `{tool}`，用法写在文件开头。复制进作品目录使用，不要在成品里引用插件路径。", ""]
+    if args.scene in CHECK_SCENES:
+        check_roles, check_rules = scene_checks(lib, template, args.scene)
+        if check_rules:
+            out += check_section(check_roles, check_rules)
     out += ["## 常见误用", "", parts.get("常见误用", "无。"), "", "## 范例", ""]
     if parts.get("范例"):
         out += [parts["范例"], ""]
@@ -869,6 +957,8 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
         target = (PLUGIN / str(tool)).resolve()
         if assets not in target.parents or not target.is_file():
             errors.append(f"{where}：制作工具 {tool} 不是插件 assets/ 里存在的文件")
+    if "checks" in seed:
+        errors += [f"{where}：{problem}" for problem in check_spec_problems(seed["checks"])]
     tokens = seed.get("tokens") or {}
     for name, token in tokens.items():
         if not isinstance(token, dict) or "value" not in token:
@@ -995,6 +1085,31 @@ def check_template(lib: Library, template, errors: list[str]):
         target = (PLUGIN / str(path)).resolve()
         if PLUGIN.resolve() not in target.parents or target.suffix != ".md" or not target.is_file():
             errors.append(f"{where}：制作示例 {path} 不是插件内存在的 Markdown 文件")
+    checks = template.get("checks") or {}
+    if not isinstance(checks, dict):
+        errors.append(f"{where}：checks 必须是场景到规则的映射")
+        checks = {}
+    for scene, spec in checks.items():
+        if scene not in CHECK_SCENES or scene not in (template.get("scenes") or []):
+            errors.append(f"{where}：checks 的场景 {scene} 必须是 {'、'.join(CHECK_SCENES)} 之一，并在 scenes 里")
+        errors += [f"{where}：checks.{scene}：{problem}" for problem in check_spec_problems(spec)]
+    if all(lib.seed(seed_id, template) for seed_id in seeds.values()):
+        for scene in CHECK_SCENES:
+            if scene not in (template.get("scenes") or []):
+                continue
+            roles, rules = scene_checks(lib, template, scene)
+            names = template_tokens(lib, template, scene, None)[0]
+            for rule in rules:
+                spec = CHECK_KINDS.get(rule.get("kind"))
+                if not spec:
+                    continue
+                for key in (*spec.get("roles", ()), *spec.get("optional_roles", ())):
+                    if rule.get(key) and rule[key] not in roles:
+                        errors.append(f"{where}：{scene} 的 {rule['kind']} 规则用了没有声明的角色 {rule[key]}")
+                for key in (*spec.get("thresholds", ()), *spec.get("colors", ())):
+                    value = rule.get(key)
+                    if isinstance(value, str) and value not in names:
+                        errors.append(f"{where}：{scene} 的 {rule['kind']} 规则引用了不存在的 token {value}")
     if all(lib.seed(seed_id, template) for seed_id in seeds.values()):
         try:
             variants = template.get("variants") or {}

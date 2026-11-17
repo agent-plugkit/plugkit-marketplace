@@ -11,6 +11,15 @@ tokens:
   sticker-tilt:
     value: 6deg
     role: 压缝贴片的旋转角度；可在 4–8° 之间取值，同一版面统一，方向可以相反
+checks:
+  roles:
+    sticker: 压在接缝上的贴片
+  rules:
+    - kind: covers
+      item: sticker
+      over: panel
+      count: 2
+      avoid: ink
 ---
 
 # 压缝贴片与箭头

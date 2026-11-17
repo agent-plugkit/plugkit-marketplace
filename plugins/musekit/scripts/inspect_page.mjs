@@ -23,6 +23,8 @@ Both:
   --ready JS            extra condition to wait for, e.g. "document.body.dataset.ready === '1'"
   --browser NAME        chromium (default), chrome or msedge
 
+Layout rules listed under "机检" in style.md are measured on elements marked data-mk="<role>"; unmarked roles are
+reported as not measured.
 Mark intentionally clipped or decorative text (a marquee strip) with data-inspect-ignore. Never mark stickers or
 other overlays with it: an ignored element is no longer checked for covering text.
 Requires Playwright in the current working directory and an installed browser.
@@ -72,7 +74,45 @@ export function readStyle(text) {
   }
   const palette = new Set();
   for (const m of text.matchAll(/--(?:color|data)-[\w-]+:\s*(#[0-9a-fA-F]{3,8})\b/g)) palette.add(hexToRgb(m[1]));
-  return { breakpoints: [...breakpoints].sort((a, b) => a - b), palette: [...palette].filter(Boolean) };
+  // Token blocks: the base :root, then each @media block that redefines some of them.
+  const vars = (body) => Object.fromEntries([...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  const css = (/```css\n([\s\S]*?)```/.exec(text) || [])[1] || "";
+  const tokens = [];
+  const base = /^:root\s*\{([^}]*)\}/m.exec(css);
+  if (base) tokens.push({ vars: vars(base[1]) });
+  for (const m of css.matchAll(/@media\s*\((min|max)-width:\s*(\d+)px\)\s*\{\s*:root\s*\{([^}]*)\}\s*\}/g))
+    tokens.push({ [m[1]]: Number(m[2]), vars: vars(m[3]) });
+  const block = /```json musekit-checks\n([\s\S]*?)```/.exec(text);
+  const rules = block ? JSON.parse(block[1]).rules || [] : [];
+  return { breakpoints: [...breakpoints].sort((a, b) => a - b), palette: [...palette].filter(Boolean), tokens, rules };
+}
+
+// Token values in force at a given width, as the page's own media queries would apply them.
+export function tokensAt(blocks, width) {
+  const out = {};
+  for (const b of blocks || []) if ((b.max === undefined || width <= b.max) && (b.min === undefined || width >= b.min)) Object.assign(out, b.vars);
+  return out;
+}
+
+// Rule thresholds name tokens; turn them into numbers (colours into rgb) for one width.
+export function resolveRules(rules, blocks, width) {
+  const values = tokensAt(blocks, width);
+  return rules.map((rule) => {
+    const out = { ...rule, values: {} };
+    for (const key of ["max", "min", "tolerance"]) {
+      if (!(key in rule)) continue;
+      const raw = typeof rule[key] === "number" ? rule[key] : values[rule[key]];
+      const n = parseFloat(raw);
+      if (Number.isFinite(n)) out.values[key] = n;
+      else out.unresolved = `${rule[key]}`;
+    }
+    if (rule.avoid) {
+      const rgb = values[`color-${rule.avoid}`] && hexToRgb(values[`color-${rule.avoid}`]);
+      if (rgb) out.values.avoid = rgb;
+      else out.unresolved = `color-${rule.avoid}`;
+    }
+    return out;
+  });
 }
 
 export function hexToRgb(hex) {
@@ -386,6 +426,152 @@ function audit({ facts, palette, canvas, scroll }) {
   };
 }
 
+// Layout rules declared by the style (style.md "机检"). Elements carry their roles in data-mk.
+function measureRules({ rules, judgeFill, canvas }) {
+  const vw = canvas ? canvas.width : document.documentElement.clientWidth;
+  const vh = canvas ? canvas.height : document.documentElement.clientHeight;
+  const sel = (role) => `[data-mk~="${role}"]`;
+  const shown = (el) => (el.checkVisibility ? el.checkVisibility() : !!el.offsetParent);
+  const all = (role, root = document) => [...root.querySelectorAll(sel(role))].filter(shown);
+  const own = (role, group, g) => all(role, g).filter((el) => el.closest(sel(group)) === g);
+  const name = (el) => {
+    let s = el.tagName.toLowerCase() + (el.id ? "#" + el.id : "");
+    const cls = [...el.classList].slice(0, 2);
+    if (cls.length) s += "." + cls.join(".");
+    const t = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 12);
+    return t ? `${s} "${t}"` : s;
+  };
+  const rect = (el) => el.getBoundingClientRect();
+  const area = (el) => { const r = rect(el); return r.width * r.height; };
+  const r2 = (n) => Math.round(n * 100) / 100;
+  // Text lines of an element: fragments that overlap vertically by half belong to one line.
+  const textLines = (el) => {
+    const frags = [];
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const rg = document.createRange();
+    while (w.nextNode()) {
+      const n = w.currentNode;
+      if (!n.textContent.trim() || !shown(n.parentElement)) continue;
+      rg.selectNodeContents(n);
+      for (const q of rg.getClientRects()) if (q.width > 1 && q.height > 1) frags.push(q);
+    }
+    frags.sort((a, b) => a.top - b.top);
+    const lines = [];
+    for (const q of frags) {
+      const last = lines.at(-1);
+      if (last && q.top <= last.bottom - q.height / 2) { last.left = Math.min(last.left, q.left); last.right = Math.max(last.right, q.right); last.bottom = Math.max(last.bottom, q.bottom); }
+      else lines.push({ left: q.left, right: q.right, top: q.top, bottom: q.bottom });
+    }
+    return lines;
+  };
+  const results = [];
+  for (const rule of rules) {
+    const out = { kind: rule.kind, status: "pass", items: [], threshold: rule.values?.min ?? rule.values?.max ?? rule.values?.tolerance ?? rule.count ?? null };
+    results.push(out);
+    if (rule.unresolved) { out.status = "error"; out.note = `token ${rule.unresolved} not found in style.md`; continue; }
+    const need = [rule.group, rule.item, rule.main, rule.text, rule.box, rule.over, rule.than].filter(Boolean);
+    const missing = need.filter((role) => !all(role).length);
+    if (missing.length) { out.status = "unmarked"; out.note = `no element marked data-mk="${missing.join('", "')}"`; continue; }
+    const fail = (item) => { item.ok = false; out.status = "fail"; };
+    const v = rule.values;
+
+    if (rule.kind === "seams" || rule.kind === "dominant") {
+      for (const g of all(rule.group)) {
+        const panels = own(rule.item, rule.group, g);
+        if (rule.kind === "seams") {
+          const gaps = [];
+          for (const a of panels) {
+            const ra = rect(a);
+            let right = null, down = null;
+            for (const b of panels) {
+              if (b === a || a.contains(b) || b.contains(a)) continue;
+              const rb = rect(b);
+              const oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+              const ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+              if (oy > 20 && rb.left > ra.left + ra.width / 2) { const gap = rb.left - ra.right; if (right === null || gap < right) right = gap; }
+              if (ox > 20 && rb.top > ra.top + ra.height / 2) { const gap = rb.top - ra.bottom; if (down === null || gap < down) down = gap; }
+            }
+            for (const gap of [right, down]) if (gap !== null) gaps.push(Math.round(gap));
+          }
+          const item = { where: name(g), gaps: gaps.length ? [Math.min(...gaps), Math.max(...gaps)] : [], ok: true };
+          out.items.push(item);
+          if (gaps.length && Math.max(...gaps) > v.max + 1) fail(item);
+        } else {
+          const mains = panels.filter((p) => p.matches(sel(rule.main)));
+          const others = panels.filter((p) => !mains.includes(p) && !(rule.exclude && p.matches(sel(rule.exclude))));
+          const item = { where: name(g), ok: true };
+          out.items.push(item);
+          if (mains.length !== 1) { item.note = `${mains.length} elements marked ${rule.main}; mark exactly one`; fail(item); continue; }
+          if (!others.length) { item.note = "no other panel to compare"; continue; }
+          item.ratio = r2(area(mains[0]) / Math.max(...others.map(area)));
+          if (item.ratio < v.min - 0.005) fail(item);
+        }
+      }
+    } else if (rule.kind === "fill") {
+      for (const t of all(rule.text)) {
+        const box = t.closest(sel(rule.box));
+        const item = { where: name(t), ok: true };
+        out.items.push(item);
+        if (!box) { item.note = `not inside data-mk="${rule.box}"`; fail(item); continue; }
+        const cs = getComputedStyle(box);
+        const inner = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const widest = Math.max(0, ...textLines(t).map((l) => l.right - l.left));
+        item.ratio = r2(widest / inner);
+        item.size = Math.round(parseFloat(getComputedStyle(t).fontSize));
+        if (judgeFill && item.ratio < v.min - 0.005) fail(item);
+      }
+      if (!judgeFill && out.status === "pass") out.status = "info";
+    } else if (rule.kind === "covers") {
+      const y0 = scrollY;
+      for (const st of all(rule.item)) {
+        if (!canvas) { const r = rect(st); scrollTo(0, Math.max(0, r.top + scrollY - (vh - r.height) / 2)); }
+        const r = rect(st);
+        const under = new Set();
+        for (let i = 0; i < 9; i++) for (let j = 0; j < 5; j++) {
+          const x = r.left + (r.width * (i + 0.5)) / 9, y = r.top + (r.height * (j + 0.5)) / 5;
+          if (x < 0 || y < 0 || x > vw || y > vh) continue;
+          const stack = document.elementsFromPoint(x, y);
+          if (!stack.length || !(stack[0] === st || st.contains(stack[0]))) continue; // the sticker is not on top here
+          // The first thing under the sticker decides the panel, even when that panel is the sticker's own parent.
+          const below = stack.find((el) => el !== st && !st.contains(el));
+          const panel = below && (below === document.documentElement ? null : below.closest(sel(rule.over)));
+          if (panel) under.add(panel);
+        }
+        const item = { where: name(st), covers: under.size, over: [...under].map(name), ok: true };
+        if (v.avoid) {
+          const hit = [...under].filter((p) => (getComputedStyle(p).backgroundColor.match(/\d+/g) || []).slice(0, 3).join(",") === v.avoid);
+          if (hit.length) item.onAvoided = hit.map(name);
+        }
+        out.items.push(item);
+        if (under.size !== rule.count || item.onAvoided) fail(item);
+      }
+      if (!canvas) scrollTo(0, y0);
+    } else if (rule.kind === "axis") {
+      for (const el of all(rule.item)) {
+        const field = rule.field ? el.closest(sel(rule.field)) : null;
+        const fr = field ? rect(field) : { left: 0, width: vw };
+        const axis = fr.left + fr.width / 2;
+        const lines = textLines(el);
+        if (!lines.length) { const q = rect(el); lines.push({ left: q.left, right: q.right }); }
+        const dev = Math.max(...lines.map((l) => Math.abs((l.left + l.right) / 2 - axis) / fr.width));
+        const item = { where: name(el), deviation: Math.round(dev * 1000) / 1000, ok: true };
+        out.items.push(item);
+        if (dev > v.tolerance + 0.0005) fail(item);
+      }
+    } else if (rule.kind === "max-size") {
+      const limit = Math.max(...all(rule.than).map((el) => parseFloat(getComputedStyle(el).fontSize)));
+      for (const el of all(rule.item)) {
+        if (el.matches(sel(rule.than))) continue;
+        const size = parseFloat(getComputedStyle(el).fontSize);
+        const item = { where: name(el), size: Math.round(size), limit: Math.round(limit), ok: true };
+        out.items.push(item);
+        if (size > limit + 0.5) fail(item);
+      }
+    }
+  }
+  return results;
+}
+
 function keyboardStop() {
   const a = document.activeElement;
   if (!a || a === document.body) return null;
@@ -466,6 +652,26 @@ async function openPage(browser, url, viewport, opts, extra = {}) {
 const gray = (page) => page.addStyleTag({ content: "html{filter:grayscale(1)!important}" });
 const ungray = (page) => page.evaluate(() => document.querySelectorAll("style").forEach((s) => { if (s.textContent.startsWith("html{filter:grayscale(1)")) s.remove(); }));
 
+// One-line readings of a rule result, for the summary and the sweep.
+function itemDetail(r, item) {
+  if (item.note) return item.note;
+  if (r.kind === "seams") return `gaps ${item.gaps.join("–")}px (max ${r.threshold}px)`;
+  if (r.kind === "dominant") return `area ratio ${item.ratio} (min ${r.threshold})`;
+  if (r.kind === "fill") return `fill ${item.ratio} at ${item.size}px (min ${r.threshold})`;
+  if (r.kind === "covers") return `covers ${item.covers} panels (want ${r.threshold})${item.onAvoided ? `, sits on ${item.onAvoided.join(", ")}` : ""}`;
+  if (r.kind === "axis") return `off axis by ${item.deviation} (max ${r.threshold})`;
+  if (r.kind === "max-size") return `${item.size}px (limit ${item.limit}px)`;
+  return "";
+}
+function ruleDetail(r, failingOnly = false) {
+  if (r.status === "unmarked" || r.status === "error") return r.note;
+  const items = failingOnly ? r.items.filter((x) => !x.ok) : r.items;
+  const val = (x) => x.note || (r.kind === "seams" ? `${x.gaps.join("–")}px` : r.kind === "covers" ? `${x.covers}${x.onAvoided ? "!" : ""}` : r.kind === "axis" ? x.deviation : r.kind === "max-size" ? `${x.size}px` : x.ratio);
+  const limit = { seams: `≤${r.threshold}px`, dominant: `≥${r.threshold}`, fill: `≥${r.threshold}`, covers: `=${r.threshold}`, axis: `≤${r.threshold}`, "max-size": "≤ limit" }[r.kind];
+  const mark = { pass: "ok", fail: "FAIL", info: "values only" }[r.status];
+  return `${items.map(val).join(", ")} (${limit}) ${mark}`;
+}
+
 function summarize(report) {
   const p = [];
   const at = (v) => (report.mode === "canvas" ? "" : ` @${v.viewport}`);
@@ -475,6 +681,10 @@ function summarize(report) {
     for (const o of v.occlusions) p.push(`text covered${at(v)}: "${o.text}" (${o.element}) under ${o.by}, ${o.points} points`);
     for (const c of v.clipped) p.push(`text clipped${at(v)}: "${c.text}" (${c.element}) by ${c.by}`);
     for (const c of v.outside) p.push(`text outside the ${report.mode === "canvas" ? "canvas" : "viewport"}${at(v)}: "${c.text}" (${c.element})`);
+    for (const r of v.rules || []) {
+      if (r.status === "unmarked" || r.status === "error") p.push(`layout rule ${r.kind} not measured${at(v)}: ${r.note}`);
+      if (r.status === "fail") for (const item of r.items.filter((x) => !x.ok)) p.push(`layout rule ${r.kind} fails${at(v)}: ${item.where} ${itemDetail(r, item)}`);
+    }
     for (const f of v.facts) {
       if (!f.count) p.push(`fact missing${at(v)}: "${f.text}"`);
       else if (f.lines > 1) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" (fine only at a semantic boundary)`);
@@ -490,11 +700,12 @@ function summarize(report) {
     run = null;
   };
   for (const s of report.sweep || []) {
-    const counts = [s.occlusions && `${s.occlusions} covered`, s.clipped && `${s.clipped} clipped`, s.outside && `${s.outside} outside`].filter(Boolean).join(", ");
+    const kinds = [...new Set((s.ruleFails || []).map((f) => f.split(" ")[0]))];
+    const counts = [s.occlusions && `${s.occlusions} covered`, s.clipped && `${s.clipped} clipped`, s.outside && `${s.outside} outside`, ...kinds.map((k) => `rule ${k} fails`)].filter(Boolean).join(", ");
     const key = `${s.height}|${s.overflowX ? "overflow" : ""}|${counts}`;
     if (run && run.id === key) { run.to = s.width; run.overflow = Math.max(run.overflow, s.overflowX); continue; }
     flush();
-    if (s.overflowX || counts) run = { id: key, key: counts, height: s.height, from: s.width, to: s.width, overflow: s.overflowX, example: s.examples[0] };
+    if (s.overflowX || counts) run = { id: key, key: counts, height: s.height, from: s.width, to: s.width, overflow: s.overflowX, example: (s.ruleFails || [])[0] || s.examples[0] };
   }
   flush();
   for (const f of report.fonts) if (f.fallback.length) p.push(`font fallback: ${f.stack} ${f.weight} rendered with ${f.fallback.join(", ")}`);
@@ -548,6 +759,7 @@ export async function inspectPage(opts) {
     if (opts.canvas) {
       const { page, context, errors } = await openPage(browser, url, opts.canvas, opts);
       const view = await page.evaluate(audit, auditArgs(opts.canvas, false));
+      if (style.rules.length) view.rules = await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, opts.canvas.width), judgeFill: true, canvas: opts.canvas });
       report.fonts = await renderedFonts(page, view.fontSamples);
       report.offPalette = view.offPalette;
       report.views.push(strip(view));
@@ -578,6 +790,7 @@ export async function inspectPage(opts) {
         await page.screenshot({ path: file(`${tag}-full-gray`, join(out, `web-${tag}-full-gray.png`)), fullPage: true });
         await ungray(page);
         const view = await page.evaluate(audit, auditArgs(null, true));
+        if (style.rules.length) view.rules = await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, vp.width), judgeFill: i === 0, canvas: null });
         if (i === 0) {
           report.fonts = await renderedFonts(page, view.fontSamples);
           report.offPalette = view.offPalette;
@@ -606,7 +819,9 @@ export async function inspectPage(opts) {
         await page.setViewportSize({ width, height });
         await page.evaluate(settle, false);
         const v = await page.evaluate(audit, { ...auditArgs(null, true), facts: [] });
-        report.sweep.push({ width, height, overflowX: v.overflowX, occlusions: v.occlusions.length, clipped: v.clipped.length, outside: v.outside.length, examples: [...v.occlusions, ...v.clipped, ...v.outside].slice(0, 3).map((x) => `${x.text} (${x.element}${x.by ? " / " + x.by : ""})`) });
+        const rules = style.rules.length ? await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, width), judgeFill: false, canvas: null }) : [];
+        const ruleFails = rules.filter((r) => r.status === "fail").map((r) => `${r.kind} ${ruleDetail(r, true)}`);
+        report.sweep.push({ width, height, ruleFails, overflowX: v.overflowX, occlusions: v.occlusions.length, clipped: v.clipped.length, outside: v.outside.length, examples: [...v.occlusions, ...v.clipped, ...v.outside].slice(0, 3).map((x) => `${x.text} (${x.element}${x.by ? " / " + x.by : ""})`) });
       }
       await sweepPage.context.close();
 
@@ -682,6 +897,8 @@ function printSummary(report) {
     lines.push("note: a variable webfont is listed by its default instance name (e.g. \"… ExtraLight\"); the requested weight is still applied");
   const facts = report.views[0]?.facts || [];
   if (facts.length) lines.push(`facts: ${facts.map((f) => `"${f.text}" ×${f.count}${f.fontSize ? ` ${f.fontSize}px` : ""}${f.shownAt ? ` (${f.shownAt["0.35"]}px at 0.35)` : ""}`).join("; ")}`);
+  for (const v of report.views) if (v.rules?.length)
+    lines.push(`layout rules${report.mode === "canvas" ? "" : ` @${v.viewport}`}: ${v.rules.map((r) => `${r.kind} ${ruleDetail(r)}`).join("; ")}`);
   const shown = report.problems.slice(0, 40);
   lines.push(report.problems.length ? `findings (${report.problems.length}, leads for review, not verdicts):` : "findings: none");
   for (const p of shown) lines.push(`- ${p}`);

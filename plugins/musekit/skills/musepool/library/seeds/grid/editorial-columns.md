@@ -23,6 +23,15 @@ tokens:
   axis-tolerance:
     value: 0.02
     role: 轴上每一行的中点离所在版面中轴的最大偏差，按版面宽度计
+checks:
+  roles:
+    axis: 轴上居中的每一项：标题组的各行、主操作、居中的栏目名和版权行；书眉不标
+    axis-field: 对开构图时文字所在的半区；不对开时不标
+  rules:
+    - kind: axis
+      item: axis
+      field: axis-field
+      tolerance: axis-tolerance
 ---
 
 # 中轴与编辑栏

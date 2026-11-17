@@ -30,6 +30,28 @@ tokens:
   fill-ratio:
     value: 0.9
     role: 标题墨迹宽度占所在板内宽的最小比例
+checks:
+  roles:
+    wall: 一面墙。整张海报算一面；网页的首屏和首屏以下的每一段各是一面
+    panel: 墙里的每块板，列表板和表单板也标
+    main: 每面墙的主板，同时标 panel；表单墙里是表单板
+    list: 列表板，同时标 panel；不参与面积比较
+    title: 顶满主板的标题，每面墙一个
+  rules:
+    - kind: seams
+      group: wall
+      item: panel
+      max: rule-width
+    - kind: dominant
+      group: wall
+      item: panel
+      main: main
+      exclude: list
+      min: dominant-ratio
+    - kind: fill
+      text: title
+      box: panel
+      min: fill-ratio
 ---
 
 # 拼板墙

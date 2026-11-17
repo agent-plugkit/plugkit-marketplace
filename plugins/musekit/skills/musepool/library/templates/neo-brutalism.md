@@ -54,6 +54,14 @@ exemplars: [pibXRzsG, AT5oq8hX, nB7kQ2mX]
 examples:
   graphic: skills/graphic-design/references/examples/neo-brutalism-maker-fair.md
   web: skills/web-design/references/examples/neo-brutalism-maker-fair.md
+checks:
+  web:
+    roles:
+      hero: 首屏的标题，同时标 title
+    rules:
+      - kind: max-size
+        item: title
+        than: hero
 ---
 
 # 新粗野主义
@@ -103,7 +111,7 @@ examples:
 - 类别、日程等同级条目收进一块列表板，板内粗线分格；可以点击的格子悬停时填充主色，不加阴影。按钮和贴片才有阴影。
 - 报名、联系之类的表单墙里，表单板就是主板：它的标题顶满表单板上方，平时用纸色，完成态填主色；步骤和须知放在旁边的窄板里。输入框用 `rule-width` 黑边框和奶油底，焦点时加主色底和焦点框；出错与完成见文法里的「状态」，不只靠颜色。
 - 1100px 以下：主板跨满宽度，右侧的小板移到主板下方，排成一行共用竖线；900px 以下放不下一行时，小板两块一行。首屏标题用 `fit --span 12 --breakpoint tablet` 推导，并按它的提示用 `min()` 封顶，不超过 1101px 宽时的首屏标题；封顶后标题不再要求顶满，主板右侧空出的部分留给贴片。首屏以下的墙标题取 `tablet` 断点的展示字号和首屏标题中较小的一个。贴片仍压在主板下缘的接缝上。
-- 窄屏退为 4 栏：所有板单列堆叠，仍共用横线、不留缝；每面墙的主板放在最前，标题顶满；单列时面积比按 `mobile` 断点的 `dominant-ratio` 计，内容不够撑高时把同墙的次要板并进主板，不用空白凑高度；贴片缩小并保留旋转，整体留在视口内；条带保留，字号随 `size-title` 缩小。
+- 窄屏退为 4 栏：所有板单列堆叠，仍共用横线、不留缝；每面墙的主板放在最前，标题顶满；单列时面积比按 `mobile` 断点的 `dominant-ratio` 计，列表板和桌面上一样不参与比较；内容不够撑高时把同墙的次要板并进主板，不用空白凑高度；贴片缩小并保留旋转，整体留在视口内；条带保留，字号随 `size-title` 缩小。
 
 ### diagram
 
