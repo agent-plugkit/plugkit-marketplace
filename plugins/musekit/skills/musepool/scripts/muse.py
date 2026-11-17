@@ -783,9 +783,9 @@ def cmd_fit(args, lib: Library):
         length = height - 2 * margin - pads
         print(f"{note}，竖排" + (f"，同一列里其余文字 {sub:g}px" if sub else ""))
         print(f"参照画布高 {height:g}px：可用长度 {length:g}px，排满时展示字号 {(length - sub) / units:.1f}px（参照值 {values.get('size-display')}）")
-        for name, share in (("一半", 1 / 2), ("三分之二", 2 / 3)):
+        for name, share in (("三分之一", 1 / 3), ("一半", 1 / 2), ("三分之二", 2 / 3)):
             print(f"整列占可用长度的{name}（{length * share:g}px）：展示字号 {(length * share - sub) / units:.1f}px")
-        print("整列长度按墨迹量，包括同一列里接在标题后的小字；按构图在这两个字号之间取值。")
+        print("整列长度按墨迹量，包括同一列里接在标题后的小字；按适配要求的比例取对应的一档。")
         return
     if not 1 <= args.span <= columns:
         raise MuseError(f"--span 必须在 1 到 {columns} 之间")

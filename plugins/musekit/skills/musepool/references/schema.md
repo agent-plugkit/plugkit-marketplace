@@ -73,7 +73,7 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 几类值不是写死的，由脚本推导或检查：
 
 - `column-width`：由 `canvas-width`、`columns`、`gutter`、`margin` 算出参照画布下的单栏宽度。
-- 展示字号：随标题字数变化，不写成 token；`size-display` 只是参照值。适配要求标题跨满栏或竖排到某个长度时，用 `muse.py fit <template> --scene <场景> --chars <字数> (--span <栏数> | --vertical) [--tracking <em>] [--padding <左,右>] [--border <左,右>] [--sub-length <px>] [--breakpoint <名称>]` 推导；它按全角汉字等宽计算，西文要在浏览器里实测。字距默认取 `tracking-display-cjk`，没有时取 `tracking-display`；`--tracking` 显式覆盖。`--padding` 是字块到边框内侧的距离，`--border` 是板在所跨栏位内画的边框，两者都从栏位外沿量起、分开扣减；竖排时它们指上、下两端，并且直接给出整列占可用长度一半和三分之二时的字号，`--sub-length` 先扣掉同一列里小字副标题的长度。
+- 展示字号：随标题字数变化，不写成 token；`size-display` 只是参照值。适配要求标题跨满栏或竖排到某个长度时，用 `muse.py fit <template> --scene <场景> --chars <字数> (--span <栏数> | --vertical) [--tracking <em>] [--padding <左,右>] [--border <左,右>] [--sub-length <px>] [--breakpoint <名称>]` 推导；它按全角汉字等宽计算，西文要在浏览器里实测。字距默认取 `tracking-display-cjk`，没有时取 `tracking-display`；`--tracking` 显式覆盖。`--padding` 是字块到边框内侧的距离，`--border` 是板在所跨栏位内画的边框，两者都从栏位外沿量起、分开扣减；竖排时它们指上、下两端，并且直接给出整列占可用长度三分之一、一半和三分之二时的字号，`--sub-length` 先扣掉同一列里小字副标题的长度。
 - 文字配对：`resolve` 根据颜色 Seed 的 `pairs` 生成「文字配对」表，列出每种文字色可以放在哪种背景上、可用多大字号。
 - 间距：用了带 `space-scale` 的间距 Seed 时，每个场景和断点的 `margin`、`gutter` 都必须取自阶梯。
 - 字重：Typography Seed 用到的字重必须出现在对应字体加载地址的 `wght@` 列表里（等宽字体只要求 `weight-text`）。

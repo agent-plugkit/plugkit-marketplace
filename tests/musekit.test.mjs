@@ -522,6 +522,7 @@ test('fit subtracts board borders apart from padding and sizes vertical titles b
   }
   // 竖排直接给出整列占可用长度一半和三分之二时的字号；同一列里的小字副标题长度先扣掉。
   const vertical = cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical');
+  assert.match(vertical, /三分之一（416px）：展示字号 128\.4px/);
   assert.match(vertical, /一半（624px）：展示字号 192\.6px/);
   assert.match(vertical, /三分之二（832px）：展示字号 256\.8px/);
   const mixed = cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--sub-length', '200');
