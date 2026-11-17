@@ -19,7 +19,7 @@ body {
   line-height: var(--leading-body, 1.5);
 }
 .page { padding: var(--margin, 64px); }
-.grid { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); }
+.grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter, 24px); }
 .meta { font-family: var(--font-mono, var(--font-text)); font-size: var(--size-meta, 13px); letter-spacing: var(--tracking-meta, 0); color: var(--color-ink-muted, var(--color-ink)); }
 .rule { border-top: var(--rule-width, 1px) solid var(--color-ink); }
 header { padding-bottom: 96px; }
@@ -30,25 +30,25 @@ section { padding: 24px 0 96px; }
 section > .head { margin-bottom: 32px; }
 section > .head .index { grid-column: 1 / span 1; }
 section > .head h2 { grid-column: 2 / span 11; font-family: var(--font-display); font-weight: var(--weight-strong, 600); font-size: var(--size-title, 28px); line-height: 1.1; }
-.swatches { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); row-gap: 24px; }
+.swatches { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter, 24px); row-gap: 24px; }
 .swatch { grid-column: span 3; }
 .swatch .chip { height: 160px; border: var(--rule-width, 1px) solid var(--color-ink); border-radius: var(--radius, 0); }
 .swatch p { margin-top: 8px; }
 .pairs { margin-top: 32px; grid-column: 1 / -1; }
-.pairs .row { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); padding: 8px 0; border-bottom: var(--rule-width, 1px) solid var(--color-ink); }
+.pairs .row { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter, 24px); padding: 8px 0; border-bottom: var(--rule-width, 1px) solid var(--color-ink); }
 .pairs .row > :first-child { grid-column: span 4; }
 .pairs .row > :nth-child(2) { grid-column: span 4; }
 .pairs .row > :nth-child(3) { grid-column: span 4; }
-.type .row { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); align-items: baseline; padding: 16px 0; border-bottom: var(--rule-width, 1px) solid var(--color-ink); }
+.type .row { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter, 24px); align-items: baseline; padding: 16px 0; border-bottom: var(--rule-width, 1px) solid var(--color-ink); }
 .type .row .meta { grid-column: span 2; }
 .type .row .sample { grid-column: span 10; font-family: var(--font-display); overflow-wrap: anywhere; }
 .fonts { margin-top: 24px; }
-.columns { position: relative; height: 320px; }
+.columns { position: relative; height: 320px; grid-template-columns: repeat(var(--columns, 12), 1fr); }
 .columns .col { background: color-mix(in srgb, var(--color-accent) 10%, transparent); border-left: var(--rule-width, 1px) solid var(--color-accent); border-right: var(--rule-width, 1px) solid var(--color-accent); }
 .columns .block { position: absolute; top: 48px; bottom: 48px; padding: 16px; font-size: 24px; font-weight: var(--weight-strong, 600); }
 .block.main { background: var(--color-ink); color: var(--color-paper); }
 .block.side { background: var(--color-accent); color: var(--color-on-accent, var(--color-paper)); }
-.space .row { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); align-items: center; padding: 6px 0; }
+.space .row { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter, 24px); align-items: center; padding: 6px 0; }
 .space .row .meta { grid-column: span 2; }
 .space .row .bar { grid-column: span 10; height: 16px; }
 .space .bar span { display: block; height: 100%; background: var(--color-ink); }
@@ -57,7 +57,7 @@ section > .head h2 { grid-column: 2 / span 11; font-family: var(--font-display);
 .sample-button { font: inherit; font-weight: var(--weight-strong, 600); padding: 12px 24px; background: var(--color-ink); color: var(--color-paper); border: var(--rule-width, 1px) solid var(--color-ink); border-radius: var(--radius, 0); box-shadow: var(--shadow, none); }
 .sample-card { width: 360px; padding: 24px; background: var(--color-paper); border: var(--rule-width, 1px) solid var(--color-ink); border-radius: var(--radius, 0); box-shadow: var(--shadow, none); }
 .sample-input { display: block; width: 100%; margin-top: 12px; font: inherit; padding: 8px 0; background: transparent; border: 0; border-bottom: var(--rule-state, 2px) solid var(--color-ink); }
-.rules { display: grid; grid-template-columns: repeat(var(--columns, 12), 1fr); column-gap: var(--gutter, 24px); row-gap: 48px; }
+.rules { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter, 24px); row-gap: 48px; }
 .rules article { grid-column: span 6; border-top: var(--rule-width, 1px) solid var(--color-ink); padding-top: 16px; }
 .rules h3 { font-size: var(--size-title, 28px); font-weight: var(--weight-strong, 600); line-height: 1.2; margin: 8px 0 16px; }
 .rules li { margin: 0 0 8px 1.2em; }
@@ -123,8 +123,11 @@ page.append(section('02', '字体',
 
 const columns = el('div', { class: 'grid columns' }, Array.from({ length: spec.columns }, () => el('div', { class: 'col' })));
 const span = (from, count) => `left:calc((100% - (var(--columns) - 1) * var(--gutter)) / var(--columns) * ${from} + var(--gutter) * ${from});width:calc((100% - (var(--columns) - 1) * var(--gutter)) / var(--columns) * ${count} + var(--gutter) * ${count - 1})`;
-columns.append(el('div', { class: 'block main', style: span(0, 8) }, el('p', {}, '主体 8 栏')));
-columns.append(el('div', { class: 'block side', style: span(9, 3) }, el('p', {}, '辅助 3 栏')));
+// 样张页本身固定按 12 栏排；只有这一节按风格自己的栏数画，主体约占三分之二，隔一栏放辅助。
+const mainSpan = Math.round(spec.columns * 2 / 3);
+const sideSpan = spec.columns - mainSpan - 1;
+columns.append(el('div', { class: 'block main', style: span(0, mainSpan) }, el('p', {}, `主体 ${mainSpan} 栏`)));
+columns.append(el('div', { class: 'block side', style: span(mainSpan + 1, sideSpan) }, el('p', {}, `辅助 ${sideSpan} 栏`)));
 page.append(section('03', `网格 · ${spec.columns} 栏`, columns));
 
 page.append(section('04', '间距', el('div', { class: 'space' }, spec.space.map((s) => el('div', { class: 'row' },

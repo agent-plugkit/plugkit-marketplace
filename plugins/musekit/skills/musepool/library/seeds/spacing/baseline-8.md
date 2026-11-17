@@ -5,7 +5,7 @@ nature: value
 name: 基线节奏
 status: draft
 scenes: [graphic, web, slides, diagram, data]
-affinity: [neo-swiss, swiss, editorial, minimal, japanese-ma, editorial-serif, mono-print, neo-brutalism]
+affinity: [neo-swiss, swiss, editorial, minimal, japanese-ma, editorial-serif, mono-print, neo-brutalism, broadsheet]
 conflicts: []
 tokens:
   space-unit:

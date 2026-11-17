@@ -17,7 +17,7 @@ const skillNames = ['musepool', 'style-builder', 'web-design', 'graphic-design',
 const precedentIds = [
   'rvyjrbzh', 'ljwyqi6u', 'vy3ktwac', 'at5oq8hx', 'b3lygtwe', 'mc1nkp2t',
   'g26lbsoo', 'c4aztwoh', 'haych1wi', 'pibxrzsg', 'nv0j2qbt', '1jlusoip',
-  'yoiov5el', 'nb7kq2mx',
+  'yoiov5el', 'nb7kq2mx', 'u0w5k7uv', '8fwk52fi', '50nz9co2',
 ];
 
 function walk(dir) {
@@ -144,11 +144,14 @@ test('check rejects a precedent with a dead reference, a broken id, or no reason
       .replace('# Layout', 'See references/motion.md for details.\n\n# Layout'));
     const named = join(dir, 'art-book-fair-event-vy3ktwac.md');
     writeFileSync(named, readFileSync(named, 'utf8').replace('id: vy3ktwac', 'id: Vy3KTWAC'));
+    const shaped = join(dir, 'arts-center-b3lygtwe.md');
+    writeFileSync(shaped, readFileSync(shaped, 'utf8').replace(/^modality: .*$/m, 'modality: poster'));
     const result = spawnSync('python3', [join(copy, 'skills/musepool/scripts/muse.py'), 'check'], { encoding: 'utf8' });
     assert.equal(result.status, 1, result.stdout + result.stderr);
     assert.match(result.stdout, /precedent haych1wi：正文引用了不存在的 references\/motion\.md/);
     assert.match(result.stdout, /precedent haych1wi：没有 Template 引用，需要写 retained_for/);
     assert.match(result.stdout, /precedent Vy3KTWAC：id 应为 8 位小写字母或数字/);
+    assert.match(result.stdout, /precedent b3lygtwe：modality 应为 web、design-system 或 print/);
     assert.match(result.stdout, /template neo-swiss：范例 vy3ktwac 不存在/);
   } finally {
     rmSync(copy, { recursive: true, force: true });
@@ -655,7 +658,7 @@ ${overrides}
 
 test('every library template resolves for each declared scene and ranks by curated mood words', () => {
   const ids = readdirSync(join(library, 'templates')).filter((name) => name.endsWith('.md')).map((name) => name.slice(0, -3));
-  assert.deepEqual(new Set(ids), new Set(['neo-swiss', 'japanese-ma', 'editorial-serif', 'neo-brutalism', 'mono-print']));
+  assert.deepEqual(new Set(ids), new Set(['neo-swiss', 'japanese-ma', 'editorial-serif', 'neo-brutalism', 'mono-print', 'broadsheet']));
   for (const id of ids) {
     const meta = frontmatter(join(library, `templates/${id}.md`));
     assert.ok(existsSync(join(library, `templates/${id}.png`)), `${id} specimen`);
@@ -666,6 +669,7 @@ test('every library template resolves for each declared scene and ranks by curat
   assert.match(quiet[0], /^editorial-serif/);
   assert.match(quiet[1], /^japanese-ma/);
   assert.match(cli('search', '--scene', 'web', '好玩', '年轻').split('\n')[0], /^neo-brutalism/);
+  assert.match(cli('search', '--scene', 'web', '新闻', '日程').split('\n')[0], /^broadsheet/);
 });
 
 test('unquoted hash values are rejected instead of silently diverging from YAML', () => {

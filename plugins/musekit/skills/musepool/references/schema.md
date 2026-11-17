@@ -91,10 +91,10 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 | --- | --- |
 | `id` | 8 位小写字母或数字，与文件名末段一致，例如 `ljwyqi6u`。全是数字或可能被读成数字的 id 要加引号 |
 | `category` | 原作品是什么，英文短语，例如 `art book fair event` |
-| `modality`、`view_type` | 原作品的形态：`web` 或 `design-system`；`landing`、`portfolio`、`component-library` 等 |
+| `modality`、`view_type` | 原作品的形态：`web`、`design-system` 或 `print`（报纸、海报、书刊等印刷品）；`landing`、`portfolio`、`component-library`、`newspaper` 等 |
 | `retained_for` | 没有 Template 在 `exemplars` 里引用它时必填，写明留在库里的理由 |
 | `dimensions_with_reference` | 正文 `# Dimensional References` 里有深度实现参考的维度；没有这一节就写 `[]` |
-| `source_url`、`source_revision`、`source_license` | 来自开源项目时三项都填，并在 `references/third-party-notices.md` 登记这份文件的路径与许可全文；`visual_assets_included` 说明有没有带入原项目的图像 |
+| `source_url`、`source_revision`、`source_license` | 来自开源项目时三项都填，并在 `references/third-party-notices.md` 登记这份文件的路径与许可全文；来自公有领域的作品时，`source_revision` 写馆藏或文件的标识，`source_license` 写 `public-domain`，登记时写明依据。`visual_assets_included` 说明有没有带入原作品的图像 |
 
 `core_dimensions`、`scores`、`tags` 是拆解时的描述，脚本不读。正文里引用的 `references/…` 文件必须存在。
 
