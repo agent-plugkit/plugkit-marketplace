@@ -501,9 +501,35 @@ test('fit derives display size from character count and span', () => {
   assert.match(cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '32'), /字距 -0\.04em.*\n.*可用宽度 920px，展示字号 237\.1px/);
   assert.match(cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', '--padding', '32', '--tracking', '0'), /展示字号 230\.0px/);
   assert.match(cli('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '12'), /字距 0em/);
-  assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical'), /可用长度 1248px，展示字号 385\.2px/);
-  assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--tracking', '0.12'), /可用长度 1248px，展示字号 385\.2px/);
+  assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical'), /可用长度 1248px，排满时展示字号 385\.2px/);
+  assert.match(cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--tracking', '0.12'), /可用长度 1248px，排满时展示字号 385\.2px/);
   assert.match(cli('fit', 'japanese-ma', '--scene', 'web', '--chars', '3', '--span', '6', '--tracking', '0.12'), /\/ 3\.24\)/);
+});
+
+test('fit subtracts board borders apart from padding and sizes vertical titles by column length', () => {
+  // 海报主板：跨满 12 栏，板内边距 32，墙外框 3px；可用宽度就是主板内宽 914。
+  const board = cli('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '3', '--span', '12', '--padding', '32', '--border', '3');
+  assert.match(board, /内边距 32px，边框 3px/);
+  assert.match(board, /可用宽度 914px/);
+  assert.match(board, / - 70px\) \/ 2\.92\)/);
+  // 网页靠视口一侧不画边框，靠接缝一侧是半条线。
+  assert.match(cli('fit', 'neo-brutalism', '--scene', 'web', '--chars', '4', '--span', '8', '--padding', '0,24', '--border', '0,1.5'),
+    /边框左 0px、右 1\.5px/);
+  for (const bad of ['-1', 'x', '1,2,3']) {
+    const result = run('fit', 'neo-brutalism', '--scene', 'graphic', '--chars', '4', '--span', '12', `--border=${bad}`);
+    assert.equal(result.status, 2, bad);
+    assert.match(result.stderr, /--border/, bad);
+  }
+  // 竖排直接给出整列占可用长度一半和三分之二时的字号；同一列里的小字副标题长度先扣掉。
+  const vertical = cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical');
+  assert.match(vertical, /一半（624px）：展示字号 192\.6px/);
+  assert.match(vertical, /三分之二（832px）：展示字号 256\.8px/);
+  const mixed = cli('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--sub-length', '200');
+  assert.match(mixed, /同一列里其余文字 200px/);
+  assert.match(mixed, /一半（624px）：展示字号 130\.9px/);
+  assert.match(mixed, /三分之二（832px）：展示字号 195\.1px/);
+  assert.equal(run('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--span', '6', '--sub-length', '100').status, 2);
+  assert.equal(run('fit', 'japanese-ma', '--scene', 'graphic', '--chars', '3', '--vertical', '--sub-length', '-5').status, 2);
 });
 
 test('check enforces type-scale ratios and breakpoint tokens', () => {

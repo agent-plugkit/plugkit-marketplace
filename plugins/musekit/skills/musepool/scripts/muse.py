@@ -6,7 +6,7 @@
   python3 scripts/muse.py show <template|seed|precedent id 或字体名>
   python3 scripts/muse.py resolve <template id|路径> --scene S [--variant V] [--out style.md]
   python3 scripts/muse.py compose --id ID --name 名称 --family F --seeds a,b,c [--out 路径]
-  python3 scripts/muse.py fit <template> --scene S --chars N (--span K | --vertical) [--tracking EM] [--padding PX] [--breakpoint B]
+  python3 scripts/muse.py fit <template> --scene S --chars N (--span K | --vertical) [--tracking EM] [--padding L,R] [--border L,R] [--sub-length PX] [--breakpoint B]
   python3 scripts/muse.py specimen <template id|路径> [--variant V] --out specimen.html
   python3 scripts/muse.py check [路径...] [--links]
   python3 scripts/muse.py frontmatter <路径>          # 以 JSON 打印 frontmatter，供调试
@@ -393,16 +393,16 @@ def em(value) -> float | None:
     return float(match.group(1)) if match else None
 
 
-def padding_pair(raw) -> tuple[float, float]:
+def side_pair(raw, option: str) -> tuple[float, float]:
     parts = [part.strip() for part in str(raw).split(",")]
     if len(parts) not in (1, 2):
-        raise MuseError("--padding 写一个值，或者 左,右 两个值")
+        raise MuseError(f"{option} 写一个值，或者 左,右 两个值")
     try:
         left, right = float(parts[0]), float(parts[-1])
     except ValueError:
-        raise MuseError(f"--padding 不是数字：{raw}") from None
+        raise MuseError(f"{option} 不是数字：{raw}") from None
     if not all(math.isfinite(v) and v >= 0 for v in (left, right)):
-        raise MuseError("--padding 必须是不小于 0 的数")
+        raise MuseError(f"{option} 必须是不小于 0 的数")
     return left, right
 
 
@@ -760,19 +760,32 @@ def cmd_fit(args, lib: Library):
     # 字块长度 = 字号 × (字数 + (字数 - 1) × 字距)，字距以 em 计。
     tracking = args.tracking if args.tracking is not None else default_tracking(values)
     units = args.chars + (args.chars - 1) * tracking
-    left, right = padding_pair(args.padding)
-    pads = left + right
     sides = ("上", "下") if args.vertical else ("左", "右")
-    padding_note = f"内边距 {left:g}px" if left == right else f"内边距{sides[0]} {left:g}px、{sides[1]} {right:g}px"
-    note = f"字数 {args.chars}，字距 {tracking:g}em，{padding_note}（按全角汉字等宽计算；西文需要在浏览器里实测宽度）"
+
+    def side_note(label, pair):
+        first, second = pair
+        return f"{label} {first:g}px" if first == second else f"{label}{sides[0]} {first:g}px、{sides[1]} {second:g}px"
+
+    padding, border = side_pair(args.padding, "--padding"), side_pair(args.border, "--border")
+    pads = sum(padding) + sum(border)
+    note = (f"字数 {args.chars}，字距 {tracking:g}em，{side_note('内边距', padding)}"
+            + (f"，{side_note('边框', border)}" if any(border) else "")
+            + "（按全角汉字等宽计算；西文需要在浏览器里实测宽度）")
+    if args.sub_length is not None and not args.vertical:
+        raise MuseError("--sub-length 只用于竖排（--vertical）")
     if args.vertical:
         height = px(values.get("canvas-height"))
         if height is None:
             raise MuseError("竖排需要 canvas-height token")
+        sub = args.sub_length or 0
+        if not (math.isfinite(sub) and sub >= 0):
+            raise MuseError("--sub-length 必须是不小于 0 的数")
         length = height - 2 * margin - pads
-        print(f"{note}，竖排")
-        print(f"参照画布高 {height:g}px：可用长度 {length:g}px，展示字号 {length / units:.1f}px（参照值 {values.get('size-display')}）")
-        print("竖排字块的长度通常取可用长度的一半到三分之二，按构图把结果乘以相应比例。")
+        print(f"{note}，竖排" + (f"，同一列里其余文字 {sub:g}px" if sub else ""))
+        print(f"参照画布高 {height:g}px：可用长度 {length:g}px，排满时展示字号 {(length - sub) / units:.1f}px（参照值 {values.get('size-display')}）")
+        for name, share in (("一半", 1 / 2), ("三分之二", 2 / 3)):
+            print(f"整列占可用长度的{name}（{length * share:g}px）：展示字号 {(length * share - sub) / units:.1f}px")
+        print("整列长度按墨迹量，包括同一列里接在标题后的小字；按构图在这两个字号之间取值。")
         return
     if not 1 <= args.span <= columns:
         raise MuseError(f"--span 必须在 1 到 {columns} 之间")
@@ -1253,7 +1266,11 @@ def main(argv=None) -> int:
     p.add_argument("--tracking", type=float, default=None,
                    help="字距，单位 em；默认取 tracking-display-cjk，没有时取 tracking-display")
     p.add_argument("--padding", default="0",
-                   help="字块到所跨栏位外沿的距离，单位 px，边框宽度算在内；两侧不同时写成 左,右（竖排时为 上,下）")
+                   help="字块到边框内侧的距离，单位 px；两侧不同时写成 左,右（竖排时为 上,下）")
+    p.add_argument("--border", default="0",
+                   help="字块所在的板在所跨栏位内画的边框宽度，单位 px，写法同 --padding")
+    p.add_argument("--sub-length", type=float, default=None,
+                   help="竖排时同一列里其余文字（如小字副标题）的长度，单位 px")
     p.add_argument("--vertical", action="store_true", help="竖排：按画布高度推导")
     p.add_argument("--breakpoint")
     p = sub.add_parser("specimen", help="生成样张 HTML")
