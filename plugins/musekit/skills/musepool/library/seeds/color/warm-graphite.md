@@ -116,6 +116,8 @@ pairs:
   - [ink-muted, surface, body]
   - [ink-subtle, paper, body]
   - [ink-subtle, surface, body]
+  - [ink-muted, field, body]
+  - [ink-subtle, field, body]
   - [on-accent, accent, body]
   - [error, surface, body]
   - [warning, surface, body]
