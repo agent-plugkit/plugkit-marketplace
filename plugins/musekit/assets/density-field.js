@@ -19,6 +19,11 @@
  *   ink  ← --color-ink（字形）
  * cell 默认 10（与方格同距），font 默认 9px 的 IBM Plex Mono（等 document.fonts 加载后再画）。
  * 画布左上角要落在方格的格线上。trail 可选，是一串渐隐短划 [[列, 行, 长度, 不透明度], …]。
+ * strength 可选，是强度系数，或者按格给系数的函数 (列, 行) => 0..1：直接排在方格上的文字
+ * 下方那几行压到约 0.42，其余保持 1。
+ *
+ * bounds(cells, cols) 返回团的外包框 { left, top, right, bottom, count }，单位是格，right 与
+ * bottom 不含；乘以格距、加上画布位置，就能和玻璃面板比面积。
  *
  * 网页里让团漂移：每隔一段时间把 cx（或 cy）挪一格重新 cluster 和 draw，方块始终落在格上；
  * reduced-motion 下只画一帧。海报画一帧静止画面。
@@ -85,14 +90,27 @@
 
   const round = (x) => Math.round(x * 1000) / 1000;
 
-  // 一格的底色与字形强度：团心用 core 色，外围用 edge 色，都随密度变浓。
-  function tone(v) {
+  // 一格的底色与字形强度：团心用 core 色，外围用 edge 色，都随密度变浓；strength 整体压淡。
+  function tone(v, strength) {
+    const k = strength === undefined ? 1 : strength;
     const core = v > 0.2;
     return {
       fill: core ? 'core' : 'edge',
-      fillAlpha: round(core ? Math.min(1, 0.42 + 0.8 * v) : 0.16 + 1.1 * v),
-      inkAlpha: round(Math.min(0.9, 0.38 + 0.55 * v)),
+      fillAlpha: round(k * (core ? Math.min(1, 0.42 + 0.8 * v) : 0.16 + 1.1 * v)),
+      inkAlpha: round(k * Math.min(0.9, 0.38 + 0.55 * v)),
     };
+  }
+
+  function bounds(cells, cols) {
+    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity, count = 0;
+    cells.forEach((v, n) => {
+      if (!v) return;
+      const i = n % cols, j = Math.floor(n / cols);
+      count++;
+      left = Math.min(left, i); top = Math.min(top, j);
+      right = Math.max(right, i + 1); bottom = Math.max(bottom, j + 1);
+    });
+    return count ? { left, top, right, bottom, count } : { left: 0, top: 0, right: 0, bottom: 0, count: 0 };
   }
 
   function draw(canvas, opts) {
@@ -114,7 +132,8 @@
       for (let i = 0; i < cols; i++) {
         const v = cells[j * cols + i];
         if (!v) continue;
-        const t = tone(v), x = i * cell, y = j * cell;
+        const k = typeof opts.strength === 'function' ? opts.strength(i, j) : opts.strength;
+        const t = tone(v, k), x = i * cell, y = j * cell;
         c.globalAlpha = t.fillAlpha;
         c.fillStyle = t.fill === 'core' ? colors.core : colors.edge;
         c.fillRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
@@ -133,5 +152,5 @@
     c.globalAlpha = 1;
   }
 
-  root.MusekitDensityField = { glyphs: GLYPHS, cluster, glyph, tone, draw };
+  root.MusekitDensityField = { glyphs: GLYPHS, cluster, glyph, tone, bounds, draw };
 })(typeof window !== 'undefined' ? window : globalThis);

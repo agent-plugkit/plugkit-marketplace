@@ -52,3 +52,17 @@ test('density picks the glyph, the fill tone and the ink strength', () => {
   assert.equal(D.tone(1).fillAlpha, 1);
   assert.equal(D.tone(1).inkAlpha, 0.9);
 });
+
+test('bounds give the outline box in cells, so a cluster can be measured against the glass', () => {
+  const cells = D.cluster(base);
+  const box = plain(D.bounds(cells, base.cols));
+  assert.ok(box.left < 20 && box.right > 20 && box.top < 15 && box.bottom > 15, JSON.stringify(box));
+  assert.equal(box.count, cells.filter((v) => v > 0).length);
+  assert.deepEqual(plain(D.bounds([0, 0, 0, 0], 2)), { left: 0, top: 0, right: 0, bottom: 0, count: 0 });
+});
+
+test('strength scales a cell, for the rows under text set directly on the grid', () => {
+  assert.equal(D.tone(0.5, 0.42).fillAlpha, 0.344);
+  assert.equal(D.tone(0.5, 0.42).inkAlpha, 0.275);
+  assert.equal(D.tone(0.5, 1).fillAlpha, D.tone(0.5).fillAlpha);
+});
