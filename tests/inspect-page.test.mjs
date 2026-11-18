@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   environmentFailure,
+  fontLabel,
   parseArgs,
   pdfPages,
   readFacts,
@@ -125,4 +126,13 @@ test('the script stays portable: no machine paths, no network, resolves Playwrig
   assert.doesNotMatch(source, /\bfetch\s*\(|XMLHttpRequest/);
   assert.match(source, /createRequire\(join\(process\.cwd\(\), "package\.json"\)\)/);
   assert.match(source, /visualReview: "not-performed"/);
+});
+
+test('a webfont is listed by the family that asked for it, not by its default instance name', () => {
+  const stack = '"Noto Sans SC", "PingFang SC", sans-serif';
+  assert.equal(fontLabel('Noto Sans SC Thin', true, stack), 'Noto Sans SC');
+  assert.equal(fontLabel('IBM Plex Mono Medium', true, '"IBM Plex Mono", "Noto Sans SC", monospace'), 'IBM Plex Mono');
+  // A system font keeps its own name, so a fallback is still visible.
+  assert.equal(fontLabel('PingFang SC', false, stack), 'PingFang SC');
+  assert.equal(fontLabel('Some Other Face', true, stack), 'Some Other Face');
 });

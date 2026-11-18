@@ -6,7 +6,7 @@
   python3 scripts/muse.py show <template|seed|precedent id 或字体名>
   python3 scripts/muse.py resolve <template id|路径> --scene S [--variant V] [--out style.md]
   python3 scripts/muse.py compose --id ID --name 名称 --family F --seeds a,b,c [--out 路径]
-  python3 scripts/muse.py fit <template> --scene S --chars N (--span K | --vertical) [--tracking EM] [--padding L,R] [--border L,R] [--sub-length PX] [--breakpoint B]
+  python3 scripts/muse.py fit <template> --scene S (--chars N | --em W) (--span K | --vertical) [--tracking EM] [--padding L,R] [--border L,R] [--sub-length PX] [--breakpoint B]
   python3 scripts/muse.py specimen <template id|路径> [--variant V] --out specimen.html
   python3 scripts/muse.py check [路径...] [--links]
   python3 scripts/muse.py frontmatter <路径>          # 以 JSON 打印 frontmatter，供调试
@@ -811,11 +811,20 @@ def cmd_fit(args, lib: Library):
     columns, margin, gutter = values.get("columns"), px(values.get("margin")), px(values.get("gutter"))
     if not isinstance(columns, int) or margin is None or gutter is None:
         raise MuseError("需要 columns、margin、gutter 三个 token")
-    if args.chars < 1:
-        raise MuseError("--chars 必须大于 0")
-    # 字块长度 = 字号 × (字数 + (字数 - 1) × 字距)，字距以 em 计。
-    tracking = args.tracking if args.tracking is not None else default_tracking(values)
-    units = args.chars + (args.chars - 1) * tracking
+    if (args.chars is None) == (args.em is None):
+        raise MuseError("--chars 和 --em 二选一：全是汉字时给字数，中西混排时给浏览器实测的整行宽度")
+    if args.em is not None:
+        if not (math.isfinite(args.em) and args.em > 0):
+            raise MuseError("--em 必须大于 0")
+        if args.tracking is not None:
+            raise MuseError("--tracking 只用于 --chars；--em 的实测宽度已经含字距")
+        units = args.em
+    else:
+        if args.chars < 1:
+            raise MuseError("--chars 必须大于 0")
+        # 字块长度 = 字号 × (字数 + (字数 - 1) × 字距)，字距以 em 计。
+        tracking = args.tracking if args.tracking is not None else default_tracking(values)
+        units = args.chars + (args.chars - 1) * tracking
     sides = ("上", "下") if args.vertical else ("左", "右")
 
     def side_note(label, pair):
@@ -824,9 +833,11 @@ def cmd_fit(args, lib: Library):
 
     padding, border = side_pair(args.padding, "--padding"), side_pair(args.border, "--border")
     insets = sum(padding) + sum(border)
-    note = (f"字数 {args.chars}，字距 {tracking:g}em，{side_note('内边距', padding)}"
+    measure = (f"实测宽 {args.em:g}em" if args.em is not None
+               else f"字数 {args.chars}，字距 {tracking:g}em")
+    note = (f"{measure}，{side_note('内边距', padding)}"
             + (f"，{side_note('边框', border)}" if any(border) else "")
-            + "（按全角汉字等宽计算；西文需要在浏览器里实测宽度）")
+            + ("" if args.em is not None else "（按全角汉字等宽计算；中西混排时改用 --em）"))
     if args.sub_length is not None and not args.vertical:
         raise MuseError("--sub-length 只用于竖排（--vertical）")
     if args.vertical:
@@ -1358,7 +1369,9 @@ def main(argv=None) -> int:
     p = sub.add_parser("fit", help="按标题字数推导展示字号")
     p.add_argument("template")
     p.add_argument("--scene", required=True, choices=SCENES)
-    p.add_argument("--chars", type=int, required=True)
+    p.add_argument("--chars", type=int, help="标题的汉字数（全是全角字时）")
+    p.add_argument("--em", type=float,
+                   help="中西混排时用：标题一行在浏览器里实测的宽度，单位 em（字号 100px 时的宽度 ÷ 100，含字距）")
     p.add_argument("--span", type=int, default=0, help="横排时跨几栏")
     p.add_argument("--tracking", type=float, default=None,
                    help="字距，单位 em；默认取 tracking-display-cjk，没有时取 tracking-display")

@@ -158,6 +158,49 @@ test("a canvas run exports the PNG and reports what is covered, past the canvas 
   expect(report.offPalette).toEqual([]);
 });
 
+test("thumbnails show the real reduced size at any export scale, and a fact may break only where it is marked", async () => {
+  test.setTimeout(60000);
+  write("marked.html", `<!doctype html><meta charset="utf-8"><style>
+html,body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+h1{margin:0;width:200px;font-size:40px}
+p{margin:0;width:70px;font-size:30px}
+</style><h1>河岸图书节 2027</h1><p>城市里的植物</p>`);
+  write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n");
+  const report = await inspectPage(parseArgs([join(work, "marked.html"), "--canvas", "400x300", "--scale", "2", "--facts", join(work, "marked-facts.txt"), "--out", join(work, "marked-review")]));
+  expect(png(report.files.png)).toEqual({ width: 800, height: 600 });
+  expect(png(report.files["at-0.25"])).toEqual({ width: 100, height: 75 });
+  const facts = Object.fromEntries(report.views[0].facts.map((f) => [f.text, f]));
+  expect(facts["河岸图书节 |2027"]).toMatchObject({ count: 1, exact: true, lines: 2 });
+  expect(report.problems.some((p) => p.includes('"河岸图书节 |2027"'))).toBe(false);
+  expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"城市里的植物"'))).toBe(true);
+});
+
+test("the fold is shot after scroll-driven state has settled back at the top", async ({ page }) => {
+  test.setTimeout(60000);
+  write("nav.html", `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+nav{position:fixed;top:0;left:0;display:flex;gap:20px;padding:10px}
+nav a{display:block;width:100px;height:40px;transition:background-color .6s}
+nav a.on{background:#cc2200}
+</style><nav><a id="a1" class="on">一</a><a id="a2">二</a></nav><div style="height:3000px"></div>
+<script>const on=()=>{const deep=scrollY>300;a1.classList.toggle("on",!deep);a2.classList.toggle("on",deep)};addEventListener("scroll",()=>requestAnimationFrame(on))</script>`);
+  const report = await inspectPage(parseArgs([join(work, "nav.html"), "--viewports", "800x600", "--style", join(work, "style.md"), "--out", join(work, "nav-review")]));
+  const fold = readFileSync(report.files["800x600-fold"]).toString("base64");
+  await page.setContent(`<img id="i" src="data:image/png;base64,${fold}">`);
+  const at = (x, y) => page.evaluate(async ([x, y]) => {
+    const img = document.getElementById("i");
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    return [...g.getImageData(x, y, 1, 1).data.slice(0, 3)];
+  }, [x, y]);
+  // The first item is current at the top; the second has finished fading out.
+  expect(await at(15, 45)).toEqual([204, 34, 0]);
+  expect(await at(135, 45)).toEqual([255, 255, 255]);
+});
+
 test("a web run screenshots each viewport, sweeps widths and walks keyboard, motion and the flow", async ({ page }) => {
   test.setTimeout(90000);
   const out = join(work, "web-review");
@@ -348,7 +391,7 @@ test("a deck run checks each slide alone, counts facts over the deck and exports
 
   expect(report.facts.map((f) => [f.text, f.count, f.slides])).toEqual([["城市里的植物", 2, [1, 4]], ["2027.03.06 14:30", 1, [2]], ["南门书房", 0, []]]);
   // Each slide keeps its own reading: broken over two lines in the 20px column on slide 4 only.
-  expect(report.facts[0].at).toEqual([{ slide: 1, lines: 1, fontSize: 48 }, { slide: 4, lines: 2, fontSize: 20 }]);
+  expect(report.facts[0].at).toEqual([{ slide: 1, lines: 1, unmarkedBreak: false, fontSize: 48 }, { slide: 4, lines: 2, unmarkedBreak: true, fontSize: 20 }]);
   expect(report.problems.some((p) => p.startsWith('fact breaks across 2 lines @slide 4: "城市里的植物"'))).toBe(true);
   expect(report.problems.some((p) => /breaks across .* @slide 1:/.test(p))).toBe(false);
   expect(report.problems).toContain('fact missing from every slide: "南门书房"');

@@ -22,7 +22,8 @@ Web page:
   --flow FILE.mjs       optional task path; default export async ({ page, viewport, shot, check, log })
 Both:
   --out DIR             screenshots and report.json (default: review/ next to the HTML)
-  --facts FILE          one exact fact per line; counted in the rendered text
+  --facts FILE          one exact fact per line; counted in the rendered text. A "|" marks where the fact may
+                        break across lines (e.g. "河岸图书节 |2027"); a break anywhere else is reported
   --style FILE          style.md for breakpoints and palette (default: style.md next to the HTML)
   --ready JS            extra condition to wait for, e.g. "document.body.dataset.ready === '1'"
   --browser NAME        chromium (default), chrome or msedge
@@ -227,6 +228,9 @@ async function settle(fullReveal) {
       await new Promise((r) => setTimeout(r, 60));
     }
     scrollTo(0, 0);
+    // Scroll handlers and observers switch state (a nav's current item) a frame or two after the
+    // scroll; let those transitions start, so finishing them below leaves the top-of-page state.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 100))));
   }
   for (const a of document.getAnimations()) {
     const t = a.effect?.getComputedTiming?.();
@@ -407,22 +411,31 @@ function audit({ facts, palette, canvas, scroll }) {
     for (let i = 0; i < t.length; i++) if (!/\s/.test(t[i])) { chars.push([n, i]); flat += t[i]; }
   }
   const spoken = document.body.innerText.replace(/\s+/g, " ");
+  // A "|" in a fact marks where it may break (between a name and a year); it is not part of the text.
+  const lineCount = (from, length) => {
+    const [sn, so] = chars[from], [en, eo] = chars[from + length - 1];
+    const rg = document.createRange();
+    rg.setStart(sn, so); rg.setEnd(en, eo + 1);
+    // Fragments in another font (a monospace digit in a Chinese line) sit at another top;
+    // a new line starts only where a fragment no longer overlaps the current one by half.
+    let bottom = -Infinity, n = 0;
+    for (const q of [...rg.getClientRects()].filter((q) => q.width > 1).sort((a, b) => a.top - b.top)) {
+      if (q.top > bottom - q.height / 2) { n++; bottom = q.bottom; } else bottom = Math.max(bottom, q.bottom);
+    }
+    return n;
+  };
   const factReport = facts.map((fact) => {
-    const key = fact.replace(/\s+/g, "");
+    const parts = fact.split("|").map((part) => part.replace(/\s+/g, ""));
+    const key = parts.join("");
     const at = [];
     for (let i = flat.indexOf(key); i >= 0 && key; i = flat.indexOf(key, i + 1)) at.push(i);
-    const out = { text: fact, count: at.length, exact: spoken.includes(fact) };
+    const out = { text: fact, count: at.length, exact: spoken.includes(fact.replace(/\|/g, "")) };
     if (at.length) {
-      const [sn, so] = chars[at[0]], [en, eo] = chars[at[0] + key.length - 1];
-      const rg = document.createRange();
-      rg.setStart(sn, so); rg.setEnd(en, eo + 1);
-      // Fragments in another font (a monospace digit in a Chinese line) sit at another top;
-      // a new line starts only where a fragment no longer overlaps the current one by half.
-      let bottom = -Infinity;
-      out.lines = 0;
-      for (const q of [...rg.getClientRects()].filter((q) => q.width > 1).sort((a, b) => a.top - b.top)) {
-        if (q.top > bottom - q.height / 2) { out.lines++; bottom = q.bottom; } else bottom = Math.max(bottom, q.bottom);
-      }
+      const [sn] = chars[at[0]], [en] = chars[at[0] + key.length - 1];
+      out.lines = lineCount(at[0], key.length);
+      // Broken inside a part, not only at a marked place.
+      let from = at[0];
+      out.unmarkedBreak = parts.some((part) => { const n = part && lineCount(from, part.length); from += part.length; return n > 1; });
       out.fontSize = Math.round(Math.max(...[sn, en].map((n) => parseFloat(getComputedStyle(n.parentElement).fontSize))));
       if (canvas) out.shownAt = Object.fromEntries([0.25, 0.35].map((k) => [k, +(out.fontSize * k).toFixed(1)]));
     }
@@ -656,6 +669,14 @@ function runningAnimations() {
 
 // ---------------------------------------------------------------------------
 
+// A variable webfont reports its default instance ("Noto Sans SC Thin"); name it by the family that asked for it.
+export function fontLabel(name, custom, stack) {
+  if (!custom) return name;
+  const families = stack.split(",").map((f) => f.trim().replace(/^["']|["']$/g, ""));
+  const match = families.filter((f) => name.toLowerCase().startsWith(f.toLowerCase())).sort((a, b) => b.length - a.length)[0];
+  return match || name;
+}
+
 async function renderedFonts(page, samples) {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("DOM.enable");
@@ -669,9 +690,10 @@ async function renderedFonts(page, samples) {
       if (!nodeId) continue;
       const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId });
       for (const f of fonts) {
-        const v = used.get(f.familyName) || { name: f.familyName, custom: f.isCustomFont, glyphs: 0 };
+        const name = fontLabel(f.familyName, f.isCustomFont, s.family);
+        const v = used.get(name) || { name, custom: f.isCustomFont, glyphs: 0 };
         v.glyphs += f.glyphCount;
-        used.set(f.familyName, v);
+        used.set(name, v);
       }
     }
     const stack = s.family.split(",").map((f) => f.trim().replace(/^["']|["']$/g, "").toLowerCase());
@@ -747,7 +769,7 @@ function summarize(report) {
     }
     for (const f of v.facts) {
       if (!f.count) p.push(`fact missing${at(v)}: "${f.text}"`);
-      else if (f.lines > 1) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" (fine only at a semantic boundary)`);
+      else if (f.unmarkedBreak) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" (fine only at a semantic boundary; mark it with | in the facts file)`);
     }
   }
   // Sweep: consecutive widths with the same kinds of finding collapse into one range.
@@ -775,7 +797,7 @@ function summarize(report) {
     });
     for (const f of report.facts) {
       if (!f.count) p.push(`fact missing from every slide: "${f.text}"`);
-      for (const a of (f.at || []).filter((x) => x.lines > 1)) p.push(`fact breaks across ${a.lines} lines @slide ${a.slide}: "${f.text}" (fine only at a semantic boundary)`);
+      for (const a of (f.at || []).filter((x) => x.unmarkedBreak)) p.push(`fact breaks across ${a.lines} lines @slide ${a.slide}: "${f.text}" (fine only at a semantic boundary; mark it with | in the facts file)`);
     }
     if (report.pdf.pages !== report.views.length) p.push(`PDF has ${report.pdf.pages} pages for ${report.views.length} slides: give each slide break-after: page and @page the canvas size`);
     // PDF sizes are whole points, so a canvas side can read 1px off.
@@ -863,7 +885,7 @@ async function inspectSlides({ browser, url, opts, out, at, name, facts, style, 
       total.slides.push(n);
       total.exact = total.exact || f.exact;
       // Each slide keeps its own reading: a fact can be a broken title on one slide and a footer on the next.
-      (total.at ||= []).push({ slide: n, lines: f.lines, fontSize: f.fontSize });
+      (total.at ||= []).push({ slide: n, lines: f.lines, unmarkedBreak: f.unmarkedBreak, fontSize: f.fontSize });
     });
     view.facts = [];
     const png = file(`slide-${n}`, join(dir, `${String(n).padStart(2, "0")}.png`));
@@ -946,11 +968,12 @@ export async function inspectPage(opts) {
       const data = (await readFile(png)).toString("base64");
       for (const k of THUMBS) {
         const w = Math.round(opts.canvas.width * k), h = Math.round(opts.canvas.height * k);
-        const thumb = await context.newPage();
-        await thumb.setViewportSize({ width: w, height: h });
+        // At pixel ratio 1, so the thumbnail is the real reduced size whatever --scale exported.
+        const shrink = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
+        const thumb = await shrink.newPage();
         await thumb.setContent(`<body style="margin:0"><img src="data:image/png;base64,${data}" style="display:block;width:${w}px;height:${h}px"></body>`);
         await thumb.screenshot({ path: file(`at-${k}`, join(out, `${name}-at-${k}.png`)) });
-        await thumb.close();
+        await shrink.close();
       }
       report.errors.push(...errors);
       await context.close();
@@ -1082,10 +1105,7 @@ function printSummary(report) {
   const lines = [`report: ${report.files.report}`];
   for (const [k, v] of Object.entries(report.files)) if (k !== "report" && !k.startsWith("slide-")) lines.push(`${k}: ${v}`);
   if (report.mode === "slides") lines.push(`slides: ${report.views.length} PNG in ${dirname(report.files["slide-1"])}; PDF ${report.pdf.pages} pages`);
-  // A variable webfont reports the name of its default instance (e.g. "… ExtraLight"); the weight is still applied.
   lines.push(`fonts (requested → rendered): ${report.fonts.map((f) => `${f.stack.split(",")[0]} ${f.weight} → ${f.rendered.map((r) => `${r.name}${r.custom ? " [webfont]" : " [system]"}`).join(" + ") || "none"}`).join("; ")}`);
-  if (report.fonts.some((f) => f.rendered.some((r) => r.custom && /(Thin|Light|Medium|SemiBold|Bold|Black)$/.test(r.name))))
-    lines.push("note: a variable webfont is listed by its default instance name (e.g. \"… ExtraLight\"); the requested weight is still applied");
   const facts = report.facts || report.views[0]?.facts || [];
   // On a deck each slide where a fact appears is listed with its size there.
   const where = (f) => (f.at ? ` on ${f.at.map((a) => `${a.slide} (${a.fontSize}px)`).join(", ")}` : f.fontSize ? ` ${f.fontSize}px` : "");
