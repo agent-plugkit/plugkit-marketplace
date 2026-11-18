@@ -83,7 +83,7 @@ Template 用相对自己的路径引用用户 Seed，例如 `color: seeds/color/
 
 1. `check` 通过。
 2. 样张给用户看过。
-3. 用[标准 Brief](references/briefs.md) 在用户最常用的场景试做一件：把请求交给那个场景的 Workflow，风格给出 Template 的路径。试做中发现风格文件说不清的地方，回去补 Template，再试一次。
+3. 用[标准 Brief](references/briefs.md) 在用户最常用的场景试做一件：把请求交给那个场景的 Workflow，风格给出 Template 的路径。场景适配是推导出来的（来源里没有这个场景，例如从应用界面推出的海报）时，每个推导的场景也各试做一件。试做中发现风格文件说不清的地方，回去补 Template，再试一次。
 
 完成标准：三项都满足。交付时写明 Template 的路径、样张、试做作品，推断的值和沿用的部分，替换掉的字体，以及没有声明或只是未验证适配的场景。
 
