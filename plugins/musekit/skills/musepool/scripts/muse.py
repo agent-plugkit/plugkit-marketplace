@@ -1217,7 +1217,7 @@ def check_precedent(entry, used: set[str], errors: list[str]):
         if not entry.get(field):
             errors.append(f"{where}：缺少 {field}")
     if entry.get("modality") and entry["modality"] not in MODALITIES:
-        errors.append(f"{where}：modality 应为 web、design-system 或 print")
+        errors.append(f"{where}：modality 应为 {'、'.join(MODALITIES[:-1])} 或 {MODALITIES[-1]}")
     if not (isinstance(pid, str) and re.fullmatch(r"[a-z0-9]{8}", pid)):
         errors.append(f"{where}：id 应为 8 位小写字母或数字")
     if not entry["_path"].name.endswith(f"-{pid}.md"):
