@@ -4,7 +4,7 @@ kind: template
 name: 报纸大版
 name_en: Broadsheet
 family: broadsheet
-status: draft
+status: verified
 source: library
 scenes: [graphic, web, data]
 mood: [多条, 并列, 信息密, 新闻, 日程, 通讯, 公告, 周报, 可信, 秩序, informative, dense, news, newspaper]
