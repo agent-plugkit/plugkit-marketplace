@@ -4,7 +4,7 @@ kind: template
 name: 雾面网格
 name_en: Frosted Grid
 family: frosted-grid
-status: draft
+status: verified
 source: library
 scenes: [graphic, web]
 mood: [安静, 可信, 克制, 任务导向, 仪器感, 网格]

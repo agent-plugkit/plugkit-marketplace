@@ -786,7 +786,8 @@ test('every library template resolves for each declared scene and ranks by curat
   }
   const quiet = cli('search', '--scene', 'web', '慢读', '安静').split('\n').filter((line) => !line.startsWith(' '));
   assert.match(quiet[0], /^editorial-serif/);
-  assert.match(quiet[1], /^japanese-ma/);
+  // Frosted-grid is quiet too, so japanese-ma shares the next places with it.
+  assert.ok(quiet.slice(1, 3).some((line) => line.startsWith('japanese-ma')), quiet.slice(0, 3).join('\n'));
   assert.match(cli('search', '--scene', 'web', '好玩', '年轻').split('\n')[0], /^neo-brutalism/);
   assert.match(cli('search', '--scene', 'web', '新闻', '日程').split('\n')[0], /^broadsheet/);
 });
