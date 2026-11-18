@@ -10,7 +10,7 @@ posts `{"id","owner","state"}` to your webhook; if the wrapper was killed, the C
 (the `SessionEnd` lifecycle hook of either CLI) posts instead. The webhook only speeds things up: the task directory
 `~/.agent-wake/<owner>/<id>/` is the source of truth, and `pending` finds anything a lost webhook missed.
 
-Linux and Node.js 20+ only. Nothing is written to Claude or Codex configuration; the `Stop` and
+Linux or macOS, Node.js 20+. Nothing is written to Claude or Codex configuration; the `Stop` and
 `SessionEnd` hooks are injected per run (Claude via `--settings`, Codex via `-c hooks.*`). Every Codex
 call also gets `--dangerously-bypass-hook-trust`, because Codex silently skips unreviewed `-c` hooks;
 it makes every enabled hook in that call run without review, including hooks from the user's global
@@ -22,7 +22,7 @@ Fetch the tagged source into `~/tools/agent-wake` (do not use `npx agent-plugkit
 it writes the CLI's user-level plugin config, and the wake mechanism does not need it):
 
 ```bash
-git clone --depth 1 -b agent-wake-v0.1.1 https://github.com/agent-plugkit/plugkit-marketplace /tmp/agent-wake-src
+git clone --depth 1 -b agent-wake-v0.1.2 https://github.com/agent-plugkit/plugkit-marketplace /tmp/agent-wake-src
 mkdir -p ~/tools && cp -a /tmp/agent-wake-src/plugins/agent-wake/skills/agent-wake ~/tools/agent-wake
 rm -rf /tmp/agent-wake-src
 ```
@@ -76,6 +76,9 @@ because they would replace the hooks or expose the wake secrets.
 - A host restart, or `run` and the CLI killed together, sends no webhook; the fallback routine picks it up.
 - An exit 0 without a `Stop` hook is recorded as `interrupted`.
 - The Codex side was tested with codex-cli 0.162.1, which caps `SessionEnd` hooks at 3 s.
+- On macOS, liveness checks call `/bin/ps` and `/usr/sbin/sysctl`; `run` refuses to start if `ps` cannot
+  report its own start time (for example inside a sandbox that blocks it). `ps` start times have
+  one-second resolution, so a PID reused within the same second would be mistaken for the original.
 
 ## Bot routines
 
