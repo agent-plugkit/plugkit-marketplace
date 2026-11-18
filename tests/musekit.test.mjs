@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { parse } from 'yaml';
@@ -28,7 +28,7 @@ function walk(dir) {
 }
 
 function frontmatter(path) {
-  const match = /^---\n([\s\S]*?)\n---(?:\n|$)/.exec(readFileSync(path, 'utf8'));
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(readFileSync(path, 'utf8'));
   assert.ok(match, `Missing frontmatter: ${relative(root, path)}`);
   return parse(match[1]);
 }
@@ -131,7 +131,7 @@ test('precedents are flat lowercase records that a template uses or that say why
     assert.ok(used.has(meta.id) || meta.retained_for, name);
   }
   assert.equal(cli('show', 'ljwyqi6u'), readFileSync(join(dir, 'sustainability-manifesto-ljwyqi6u.md'), 'utf8'));
-  assert.match(cli('list', 'precedents'), /^haych1wi {2}fashion archive {2}— {2}A Swiss menswear/m);
+  assert.match(cli('list', 'precedents'), /^haych1wi {2}fashion archive {2}— {2}An independent European menswear/m);
 });
 
 test('check rejects a precedent with a dead reference, a broken id, or no reason to stay', () => {
@@ -956,9 +956,10 @@ test('generated client indexes list musekit and keep portable metadata clean', (
   for (const path of [
     'marketplace.json', '.github/plugin/marketplace.json', '.cursor-plugin/marketplace.json',
     '.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json',
+    '.grok-plugin/marketplace.json',
   ]) {
     const entries = JSON.parse(readFileSync(join(root, path), 'utf8')).plugins;
-    assert.deepEqual(entries.map((entry) => entry.name).sort(), ['musekit', 'plugkit'], path);
+    assert.deepEqual(entries.map((entry) => entry.name).sort(), ['agent-wake', 'musekit', 'plugkit'], path);
     const entry = entries.find((item) => item.name === 'musekit');
     const source = typeof entry.source === 'string' ? entry.source : entry.source.path;
     assert.equal(source, './plugins/musekit', path);
@@ -978,7 +979,7 @@ test('local release inventory contains every Musekit source and shared reference
     .filter((entry) => entry.kind === 'file')
     .map((entry) => [entry.releaseRelativePath, entry.bytes]));
   for (const path of walk(plugin)) {
-    const name = relative(root, path);
+    const name = relative(root, path).split(sep).join('/');
     assert.ok(bundled.has(name), `Missing from package: ${name}`);
     assert.deepEqual(bundled.get(name), readFileSync(path), `Package content differs: ${name}`);
   }

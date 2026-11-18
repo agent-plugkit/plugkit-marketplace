@@ -13,9 +13,9 @@ Use this skill when creating or maintaining an `agent-plugkit` marketplace repos
 - Treat `plugin.yaml` as the source of truth for the Agent Plugins 1.0 portable package, Claude Code and Codex native artifacts, and all client marketplace indexes.
 - Keep portable and client-specific layers distinct: Agent Plugins discovers only root `plugin.json`, immediate-child `skills/`, and optional root `mcp.json`; marketplace registration and installation belong to each client.
 - Treat a plugin as the namespace and container. Add related skills or platform components under the existing plugin when they belong together.
-- Prefer `agent-plugkit add <skill|mcp|hook|lsp> <plugin-name> <component-name>` when extending an existing plugin.
-- Prefer `agent-plugkit init <plugin-name> --type <skill|mcp|hook|lsp>` when creating a new plugin.
-- Prefer `agent-plugkit import-skill <source-dir> [plugin-name]` when the skill already exists on disk (for example `~/.claude/skills/<name>`) — it creates a new single-skill plugin and copies `SKILL.md` verbatim.
+- Prefer `npx agent-plugkit add <skill|mcp|hook|lsp> <plugin-name> <component-name>` when extending an existing plugin.
+- Prefer `npx agent-plugkit init <plugin-name> --type <skill|mcp|hook|lsp>` when creating a new plugin.
+- Prefer `npx agent-plugkit import-skill <source-dir> [plugin-name]` when the skill already exists on disk (for example `~/.claude/skills/<name>`) — it creates a new single-skill plugin and copies `SKILL.md` verbatim.
 
 ## Flow
 
@@ -25,18 +25,18 @@ Use this skill when creating or maintaining an `agent-plugkit` marketplace repos
 4. Run:
 
    ```bash
-   agent-plugkit build --all
-   agent-plugkit index
-   agent-plugkit validate --all
+   npx agent-plugkit build --all
+   npx agent-plugkit index
+   npx agent-plugkit validate --all
    ```
 
-5. Before handing off a release candidate, run `agent-plugkit release-local` or the repository's release script and inspect the local directory/archive. This does not publish, push, register, or install anything remotely.
+5. Before handing off a release candidate, run `npx agent-plugkit release-local` or the repository's release script and inspect the local directory/archive. This does not publish, push, register, or install anything remotely.
 6. Once a ready Marketplace has an intended local or Git source, register it only when the user asks:
 
    ```bash
-   agent-plugkit install-repo OWNER/REPO
-   agent-plugkit install-repo OWNER/REPO --agent claude --agent codex
-   agent-plugkit install-repo /path/to/marketplace --all
+   npx agent-plugkit install-repo OWNER/REPO
+   npx agent-plugkit install-repo OWNER/REPO --agent claude --agent codex
+   npx agent-plugkit install-repo /path/to/marketplace --all
    ```
 
 ## Client Delivery

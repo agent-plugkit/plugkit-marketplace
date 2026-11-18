@@ -32,11 +32,17 @@ Musekit `0.3.0` 的图解成品支持节点查找与直接关系定位，内置�
 
 Musekit `1.0.0` 重做了风格层：`ui-design` 改名为 `web-design`；musepool 的 `muse_local.py` 与 `ui`/`graphic`/`information` 分类、Markdown seed 简报不再提供，改用 `scripts/muse.py` 的 `search/show/resolve/compose/check` 与 `style.md`。原 29 个 seed 里仍有参考价值的 14 个作为范例保留在 `library/precedents/`（id 改为小写），`muse.py show <id>` 可以查看。不提供旧名称和旧命令的兼容别名。
 
+0.6.x 起 musepool 内置的 Muspro Seeds 快照、`seeds.lock` 与 `npm run sync:seeds`、`muse_local.py` 的中文检索与 `MUSEPOOL_SEEDS_DIR` 在 1.0 中都不再提供；风格库改由插件自己维护，仍有参考价值的 seed 转为范例，并带上了 0.6.x 对它们做的配色修正与去标识化。
+
 ### 从旧设计插件迁移
 
 Musekit `0.1.0` 整体替换 `musepool`、`design-compile` 和 `mermaid-render` 三个插件。安装新插件后使用上面的 Skill 名称；旧的已安装副本不会由仓库变更自动迁移，请在所用客户端移除或停用旧副本，避免重复触发。
 
 `musepool-export` 已合并到 `musepool` 的 Markdown seed 简报；旧 JSON reference bundle、编译 manifest 和 `design-compile` 状态契约不再提供。已有材料可提取为普通设计参考，不需要转换器。`render` 的图解制作入口改为 `diagram-design`。1.0 起图解不再提供整图生图，插画式表达交给 `graphic-design`。
+
+## agent-wake 长任务叫醒
+
+agent-wake 在后台运行 `claude -p` 或 `codex exec` 长任务，任务结束（完成、失败或中断）时经 webhook 叫醒发起任务的 Bot；状态落盘在 `~/.agent-wake/`，通知丢失时可用 `pending` 补查。仅支持 Linux 与 Node.js 20+，不改动 Claude 或 Codex 的全局配置。Bot 侧按 tag 取源码安装，不经下文的 `install-repo`。安装、启动与醒来规程见 [agent-wake Skill](plugins/agent-wake/skills/agent-wake/SKILL.md)。
 
 ## Install
 
@@ -179,6 +185,14 @@ downloads go to the system temporary directory. After changing diagram runtime s
 artwork in `references/examples/source/`, run `npm run build:diagram` before the check. The
 development dependencies above are only for this repository; what plugin users need is listed under
 [Runtime requirements](#runtime-requirements).
+
+The Plugkit skills use `npx agent-plugkit` so a local dev dependency works without a global CLI
+install.
+
+## Releases
+
+After a plugin version change is merged into `main`, tag the merge commit as
+`<plugin>-v<version>` (for example `musekit-v0.6.4`) and create a GitHub Release for that tag.
 
 ## License
 

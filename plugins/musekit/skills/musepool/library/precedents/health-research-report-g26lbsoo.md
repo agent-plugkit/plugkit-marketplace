@@ -24,6 +24,8 @@ tags:
   - health
   - education
   - product-showcase
+  - research
+  - report
   imagery:
   - 3d-render
   - abstract-graphics
@@ -48,7 +50,7 @@ tags:
   - soft
   tech:
   - vanilla-js
-  - webflow
+  - framer
   - gsap
   typography:
   - serif
