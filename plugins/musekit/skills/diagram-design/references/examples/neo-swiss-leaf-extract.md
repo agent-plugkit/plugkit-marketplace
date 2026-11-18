@@ -2,7 +2,7 @@
 
 把一段实验步骤做成插进 A4 Word 实验报告的流程图，风格取新瑞士国际主义的钴蓝变体。学这份示例的判断过程：画布宽度怎样从显示宽度和最小字号倒推，风格的编号细线骨架怎样落到一张小画布上，黑白打印时怎样不只靠颜色分清主路径。不照搬坐标；换了内容，分区、栏位和线型都要重新推。
 
-[制作源文件](neo-swiss-leaf-extract/leaf-extraction.source.html)：未内嵌运行时，接法见[接入示例](../integration.md)，重新封装的命令见「制作」。
+[制作源文件](source/neo-swiss-leaf-extract.html)和[可编辑成品](neo-swiss-leaf-extract.html)：源文件未内嵌运行时，接法见[接入示例](../integration.md)；成品可以直接在浏览器里打开、查找节点和微调布局。
 
 ## 请求
 
@@ -58,7 +58,7 @@
 - 数值包在 `white-space: nowrap` 里，「12 000 rpm」不会断开。正文开 `tabular-nums` 让数字等宽；「10 分钟」含中文，不能改用等宽字体。`tracking-meta` 只给等宽编号，中文小字不放字距。
 - style.md 之外的值都写进交付说明：画布 768 × 1024、外边距 48、栏宽 34、条件表列宽 273 / 174，以及字体栈里补的本地名 `Source Han Sans CN`（Seed 允许印刷导出用思源黑体的本地版本）。
 
-要重新得到可编辑 HTML 和 PNG，把源文件复制到装有 Playwright 的作品目录，从那里运行交付命令（脚本路径换成本 Skill 的实际位置）。先装好 style.md「字体」一节列出的字体，否则按字体栈回退。
+要重新得到可编辑 HTML 和 PNG，把源文件复制到装有 Playwright 的作品目录、改名为 `leaf-extraction.source.html`，从那里运行交付命令（脚本路径换成本 Skill 的实际位置）。先装好 style.md「字体」一节列出的字体，否则按字体栈回退。
 
 ```sh
 node scripts/deliver_diagram.mjs leaf-extraction.source.html --output leaf-extraction.html --strict --json

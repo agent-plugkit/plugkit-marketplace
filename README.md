@@ -6,7 +6,7 @@ The official plugin marketplace maintained by the Agent Plugkit organization.
 
 Musekit 把「风格」和「场景制作」分成两层：
 
-- **风格库**由 `musepool` 管理：Seed 是按设计元素分类的可复用单元（配色、字体、网格、间距、形态、手法等），Template 是由 Seed 组合而成的风格（目前有新瑞士国际主义、日式留白、编辑衬线、新粗野主义、单色编辑印刷、报纸大版 6 种，均已验收为 verified），写明精神、文法、各场景适配与常见误用；17 个真实作品的拆解记录作为范例。musepool 按场景检索或组合风格，并解析成一份 `style.md`。
+- **风格库**由 `musepool` 管理：Seed 是按设计元素分类的可复用单元（配色、字体、网格、间距、形态、手法等），Template 是由 Seed 组合而成的风格（目前有新瑞士国际主义、日式留白、编辑衬线、新粗野主义、单色编辑印刷、报纸大版 6 种，均已验收为 verified），写明精神、文法、各场景适配与常见误用；17 个真实作品的拆解记录作为范例（14 个来自 0.x 的 seed，3 个随报纸大版新增）。musepool 按场景检索或组合风格，并解析成一份 `style.md`。
 - **场景工作流**负责制作：先写场景 Brief，再从 musepool 取 `style.md`，选结构原型、用风格文法排版，制作后按共享的评审循环检查。用户的品牌规范或既有设计系统会被整理成同形的风格。
 
 | Skill | 用途 |
@@ -22,7 +22,7 @@ Musekit 把「风格」和「场景制作」分成两层：
 
 `article-illustration` 只编排整篇文章，不替代单张图的场景 Skill，也不做公众号排版。字体只登记可合法获得的开源字体；版权字体作为风格原型登记，并给出开源替代。
 
-每个制作 Skill 都附制作示例，记录一次完整制作从 Brief 到评审的判断过程，并附可编辑源文件：[官网首页](plugins/musekit/skills/web-design/references/examples.md)和[活动海报](plugins/musekit/skills/graphic-design/references/examples.md)各三种风格，[演示文稿](plugins/musekit/skills/slides-design/references/examples.md)、[图解](plugins/musekit/skills/diagram-design/references/examples.md)、[数据图](plugins/musekit/skills/data-figure/references/examples.md)和[文章配图](plugins/musekit/skills/article-illustration/references/examples.md)各有对应示例。图解另有六种图型的[接入示例](plugins/musekit/skills/diagram-design/references/integration.md)。
+每个 Workflow 都附制作示例，记录一次完整制作从 Brief 到评审的判断过程，并附可编辑源文件：[官网首页](plugins/musekit/skills/web-design/references/examples.md)和[活动海报](plugins/musekit/skills/graphic-design/references/examples.md)各三种风格，[演示文稿](plugins/musekit/skills/slides-design/references/examples.md)、[图解](plugins/musekit/skills/diagram-design/references/examples.md)、[数据图](plugins/musekit/skills/data-figure/references/examples.md)和[文章配图](plugins/musekit/skills/article-illustration/references/examples.md)各有对应示例。图解另有六种图型的[接入示例](plugins/musekit/skills/diagram-design/references/integration.md)。
 
 Musekit `0.3.0` 的图解成品支持节点查找与直接关系定位，内置按错误和提示分组的布局诊断。点击“编辑布局”可调整模块、分组、连线与标签，按编号定位或删除折点；属性区与对象列表独立滚动，窄窗口使用底部双栏。保存新 HTML 后可离线继续编辑，使用者直接在桌面 Chrome 或 Edge 打开文件。[布局编辑说明](plugins/musekit/skills/diagram-design/references/editor.md)包含保存和 PNG 导出操作。
 

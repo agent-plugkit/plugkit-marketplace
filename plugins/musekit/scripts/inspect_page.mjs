@@ -429,7 +429,9 @@ function audit({ facts, palette, canvas, scroll }) {
     const key = parts.join("");
     const at = [];
     for (let i = flat.indexOf(key); i >= 0 && key; i = flat.indexOf(key, i + 1)) at.push(i);
-    const out = { text: fact, count: at.length, exact: spoken.includes(fact.replace(/\|/g, "")) };
+    // Exact: the text as written, with each mark read as either nothing or the space a line break leaves.
+    const exact = [fact.replace(/\|/g, ""), fact.replace(/\s*\|\s*/g, " ")].some((t) => spoken.includes(t));
+    const out = { text: fact, count: at.length, exact };
     if (at.length) {
       const [sn] = chars[at[0]], [en] = chars[at[0] + key.length - 1];
       out.lines = lineCount(at[0], key.length);
@@ -691,8 +693,10 @@ async function renderedFonts(page, samples) {
       const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId });
       for (const f of fonts) {
         const name = fontLabel(f.familyName, f.isCustomFont, s.family);
-        const v = used.get(name) || { name, custom: f.isCustomFont, glyphs: 0 };
+        const v = used.get(name) || { name, custom: f.isCustomFont, glyphs: 0, faces: [] };
         v.glyphs += f.glyphCount;
+        // The face name as the font reports it, kept for the report: a static file of the wrong weight shows here.
+        if (!v.faces.includes(f.familyName)) v.faces.push(f.familyName);
         used.set(name, v);
       }
     }

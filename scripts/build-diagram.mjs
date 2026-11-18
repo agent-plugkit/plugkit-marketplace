@@ -38,7 +38,7 @@ if (checking) {
 } else writeFileSync(target, output);
 const work = mkdtempSync(resolve(tmpdir(), "musekit-build-"));
 try {
-  for (const name of ["architecture", "decision", "sequence", "state", "dataflow", "async-roundtrip"]) {
+  for (const name of ["architecture", "decision", "sequence", "state", "dataflow", "async-roundtrip", "neo-swiss-leaf-extract"]) {
     const source = resolve(skill, "references/examples/source", `${name}.html`),
       file = resolve(skill, "references/examples", `${name}.html`);
     const output = checking ? resolve(work, `${name}.html`) : file;

@@ -36,7 +36,7 @@ B,4,21
 
 ## 制作
 
-[绘图代码](plot_responses.py)读取 [原始 CSV](responses.csv) 和 style.md 的 frontmatter，用 matplotlib 输出 160 × 100 mm 的 SVG、PDF 和 300 dpi PNG。运行 `python3 plot_responses.py <style.md> <输出目录> --fonts <字体目录>`；字体目录里放 style.md「字体」一节列出的字体文件，没有时 matplotlib 用自带字体回退，交付说明要写明。
+[绘图代码](neo-swiss-responses/plot_responses.py)读取 [原始 CSV](neo-swiss-responses/responses.csv) 和 style.md 的 frontmatter，用 matplotlib 输出 160 × 100 mm 的 SVG、PDF 和 300 dpi PNG。运行 `python3 plot_responses.py <style.md> <输出目录> --fonts <字体目录>`；字体目录里放 style.md「字体」一节列出的字体文件，没有时 matplotlib 用自带字体回退，交付说明要写明。
 
 ## 评审发现与修正
 

@@ -1371,7 +1371,7 @@ def main(argv=None) -> int:
     p.add_argument("--scene", required=True, choices=SCENES)
     p.add_argument("--chars", type=int, help="标题的汉字数（全是全角字时）")
     p.add_argument("--em", type=float,
-                   help="中西混排时用：标题一行在浏览器里实测的宽度，单位 em（字号 100px 时的宽度 ÷ 100，含字距）")
+                   help="中西混排时用：标题一行（竖排时一列）在浏览器里实测的长度，单位 em（字号 100px 时的长度 ÷ 100，含字距）")
     p.add_argument("--span", type=int, default=0, help="横排时跨几栏")
     p.add_argument("--tracking", type=float, default=None,
                    help="字距，单位 em；默认取 tracking-display-cjk，没有时取 tracking-display")

@@ -164,14 +164,17 @@ test("thumbnails show the real reduced size at any export scale, and a fact may 
 html,body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
 h1{margin:0;width:200px;font-size:40px}
 p{margin:0;width:70px;font-size:30px}
-</style><h1>河岸图书节 2027</h1><p>城市里的植物</p>`);
-  write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n");
+h2{margin:0;font-size:20px}
+</style><h1>河岸图书节 2027</h1><p>城市里的植物</p><h2>南门<br>书房</h2>`);
+  write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n南门|书房\n");
   const report = await inspectPage(parseArgs([join(work, "marked.html"), "--canvas", "400x300", "--scale", "2", "--facts", join(work, "marked-facts.txt"), "--out", join(work, "marked-review")]));
   expect(png(report.files.png)).toEqual({ width: 800, height: 600 });
   expect(png(report.files["at-0.25"])).toEqual({ width: 100, height: 75 });
   const facts = Object.fromEntries(report.views[0].facts.map((f) => [f.text, f]));
   expect(facts["河岸图书节 |2027"]).toMatchObject({ count: 1, exact: true, lines: 2 });
   expect(report.problems.some((p) => p.includes('"河岸图书节 |2027"'))).toBe(false);
+  // A mark with no space beside it still matches the text broken there.
+  expect(facts["南门|书房"]).toMatchObject({ count: 1, exact: true, lines: 2, unmarkedBreak: false });
   expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"城市里的植物"'))).toBe(true);
 });
 
