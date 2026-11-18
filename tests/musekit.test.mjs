@@ -189,9 +189,16 @@ test('resolve keeps what each exemplar is borrowed for', () => {
 });
 
 test('templates link workflow examples per scene and resolve points to the current one', () => {
-  for (const id of ['neo-brutalism', 'editorial-serif']) {
+  const expected = {
+    'neo-brutalism': ['graphic', 'web'],
+    'editorial-serif': ['data', 'graphic', 'web'],
+    'japanese-ma': ['graphic', 'web'],
+    'neo-swiss': ['data', 'diagram'],
+    'mono-print': ['slides'],
+  };
+  for (const [id, scenes] of Object.entries(expected)) {
     const { examples } = frontmatter(join(library, `templates/${id}.md`));
-    assert.deepEqual(Object.keys(examples).sort(), ['graphic', 'web'], id);
+    assert.deepEqual(Object.keys(examples).sort(), scenes, id);
     for (const [scene, path] of Object.entries(examples)) {
       assert.ok(existsSync(join(plugin, path)), path);
       const tail = cli('resolve', id, '--scene', scene).split('## 范例')[1];
@@ -644,6 +651,19 @@ test('scene overrides carry breakpoints, derived column width and text pairs int
   assert.doesNotMatch(graphic, /@media/);
 });
 
+test('fit takes a measured line width in em for mixed Chinese and Latin titles', () => {
+  // neo-swiss's poster spans 952px across all 12 columns; a line measured at 6.8em fits at 140px.
+  const mixed = cli('fit', 'neo-swiss', '--scene', 'graphic', '--em', '6.8', '--span', '12');
+  assert.match(mixed, /可用宽度 952px，展示字号 140\.0px/);
+  assert.match(mixed, /实测宽 6\.8em/);
+  assert.match(mixed, /\/ 6\.8\)/);
+  assert.doesNotMatch(mixed, /按全角汉字等宽计算/);
+  for (const bad of [['--chars', '5', '--em', '6'], [], ['--em', '0']]) {
+    const result = run('fit', 'neo-swiss', '--scene', 'graphic', '--span', '12', ...bad);
+    assert.equal(result.status, 2, bad.join(' '));
+  }
+});
+
 test('fit derives display size from character count and span', () => {
   assert.match(cli('fit', 'neo-swiss', '--scene', 'graphic', '--chars', '5', '--span', '12'), /展示字号 190\.4px/);
   // 流式表达式用容器宽度，不含滚动条；输出提醒在根容器上声明 container-type。
@@ -880,6 +900,27 @@ test('invalid targets return useful nonzero results without tracebacks', () => {
     assert.equal(result.status, 2, args.join(' '));
     assert.ok(result.stderr.trim());
     assert.ok(!result.stderr.includes('Traceback'));
+  }
+});
+
+test('every production workflow shares one skeleton and indexes its own production examples', () => {
+  const workflows = ['web-design', 'graphic-design', 'slides-design', 'diagram-design', 'data-figure', 'article-illustration'];
+  for (const name of workflows) {
+    const dir = join(plugin, 'skills', name);
+    const skill = readFileSync(join(dir, 'SKILL.md'), 'utf8');
+    const headings = [...skill.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+    assert.equal(headings[0], '范围', `${name}: the first section names what belongs here`);
+    assert.match(headings[1], / → /, `${name}: the second section is the workflow chain`);
+    assert.equal(headings.at(-1), '交付', `${name}: the last section is the delivery`);
+    assert.equal(skill.trim().split('\n').at(-1), '完整的判断过程见[制作示例](references/examples.md)。', name);
+    // The index links each example; every example is a file of its own that opens with the request.
+    const index = readFileSync(join(dir, 'references/examples.md'), 'utf8');
+    const linked = [...index.matchAll(/\]\((examples\/[^)#]+\.md)\)/g)].map((m) => m[1]);
+    assert.ok(linked.length > 0, `${name}: the index links at least one production example`);
+    for (const file of linked) {
+      const text = readFileSync(join(dir, 'references', file), 'utf8');
+      assert.equal(/^## (.+)$/m.exec(text)[1], '请求', `${name}/${file} opens with the request`);
+    }
   }
 });
 

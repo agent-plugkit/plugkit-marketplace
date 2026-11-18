@@ -50,6 +50,7 @@ tokens:
     value: "-0.04em"
   tracking-meta:
     value: "0.02em"
+    role: 西文标签的字距；中文小字字距为 0
 ---
 
 # 超粗怪诞体

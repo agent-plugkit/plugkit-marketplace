@@ -18,7 +18,7 @@
 ## 栏位与字号
 
 - 每页用同一套网格：`.slide` 的内边距取 `margin`，内容区按 `columns` 和 `gutter` 分栏（例如 `display: grid; grid-template-columns: repeat(var(--columns), 1fr); column-gap: var(--gutter)`）。零间隙拼板这类风格不用 `column-gap`：按它的文法用网格轨道和边框排，接缝落在哪里以文法为准。各页型的区域按第 3 步定下的栏位放。
-- 本场景适配要求标题跨满某几栏时，用 `muse.py fit <template> --scene slides --chars <字数> --span <栏数> [--padding <左,右>] [--border <左,右>]` 推导。幻灯片是固定画布，直接用它打印的「参照画布 1920px」那一行的字号，不用流式表达式；标题设为不换行。竖排用 `--vertical`，按适配要求的长度取它打印的对应那一档，不取排满的值。
+- 本场景适配要求标题跨满某几栏时，用 `muse.py fit <template> --scene slides (--chars <字数> | --em <实测宽度>) --span <栏数> [--padding <左,右>] [--border <左,右>]` 推导。幻灯片是固定画布，直接用它打印的「参照画布 1920px」那一行的字号，不用流式表达式；标题设为不换行。竖排用 `--vertical`，按适配要求的长度取它打印的对应那一档，不取排满的值。
 - 画幅不是 1920 × 1080 时（例如 4:3 的 1440 × 1080），正文字号保持 style.md 的值；`fit` 的字号按「可用宽度 ÷ (字数 + (字数 − 1) × 字距)」用新的画布宽度重算。
 - 现场讲的文稿按会场最后一排设计：要读的内容不小于 `size-body`；`size-meta` 只给页码、来源和固定区。检查脚本会报出小于 `size-meta` 的字。
 

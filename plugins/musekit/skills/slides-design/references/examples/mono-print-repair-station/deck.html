@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>修好再用：街坊修理站的一年</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* 1. style.md 的 Tokens（mono-print · slides · cobalt-terracotta） */
+:root {
+  --color-paper: #FAFAF7;
+  --color-ink: #2148B8;
+  --color-accent: #C65F38;
+  --color-on-accent: #FAFAF7;
+  --font-display: "Archivo", "Noto Sans SC", "Arial Black", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-text: "IBM Plex Sans", "Noto Sans SC", "Helvetica Neue", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-cjk: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "IBM Plex Mono", "Noto Sans SC", "Menlo", "Consolas", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
+  --weight-display: 800;
+  --weight-text: 400;
+  --weight-strong: 600;
+  --size-display: 240px;
+  --size-headline: 112px;
+  --size-title: 56px;
+  --size-body: 40px;
+  --size-meta: 24px;
+  --leading-display: 0.9;
+  --leading-display-cjk: 1.05;
+  --leading-headline: 1.0;
+  --leading-title: 1.2;
+  --leading-body: 1.5;
+  --tracking-display: -0.02em;
+  --tracking-meta: 0.08em;
+  --canvas-width: 1920px;
+  --canvas-height: 1080px;
+  --columns: 12;
+  --gutter: 24px;
+  --margin: 96px;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --radius: 0;
+  --rule-width: 1px;
+  --rule-state: 2px;
+  --rule-heavy: 6px;
+  --shadow: none;
+  --halftone-cell: 6px;
+  --halftone-angle: 45deg;
+  --halftone-angle-accent: 75deg;
+  --ink-drift: 0.08;
+  --dry-break: 0.02;
+  --registration-offset: 4px;
+  --index-format: 01;
+  --meta-label-width: 4em;
+  --ratio-adjacent: 2;
+  --ratio-display: 5;
+  --column-width: 122px;
+}
+
+/* 2. 骨架（起始模板原样） */
+html, body { margin: 0; padding: 0; }
+.slide {
+  position: relative;
+  box-sizing: border-box;
+  width: var(--canvas-width);
+  height: var(--canvas-height);
+  overflow: hidden;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+@page { size: 1920px 1080px; margin: 0; }
+@media print {
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .slide { break-after: page; }
+}
+@media screen {
+  html, body { height: 100%; overflow: hidden; background: #000; }
+  .slide { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(var(--fit, 1)); }
+  .slide:not(.is-current) { visibility: hidden; }
+}
+
+/* 3. 版式 */
+:where(.slide) :where(h1, h2, h3, h4, p, ul, ol, li, figure, blockquote) { margin: 0; padding: 0; }
+.slide { font-family: var(--font-text); font-weight: var(--weight-text); font-size: var(--size-body); line-height: var(--leading-body); }
+
+/* 网点印版：铺满整页的画布，正片叠底在纸上，文字在其上 */
+.plate { position: absolute; left: 0; top: 0; width: var(--canvas-width); height: var(--canvas-height); mix-blend-mode: multiply; z-index: 0; pointer-events: none; }
+
+/* 内容框：12 栏，外边距 96。有固定区的页底部让出 固定区 52 + 间隔 48。 */
+.frame {
+  position: absolute; z-index: 1;
+  left: var(--margin); right: var(--margin); top: var(--margin); bottom: var(--margin);
+  display: grid; grid-template-columns: repeat(var(--columns), 1fr); column-gap: var(--gutter);
+}
+.has-folio .frame { bottom: calc(var(--margin) + 52px + var(--space-6)); }
+
+/* 固定区：页底，细规线承托，左短标题、右页码 */
+.folio {
+  position: absolute; z-index: 1; left: var(--margin); right: var(--margin); bottom: var(--margin);
+  box-sizing: border-box; height: 52px; padding-top: var(--space-3);
+  border-top: var(--rule-width) solid var(--color-ink);
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: var(--size-meta); line-height: var(--leading-body);
+}
+.folio .no { font-family: var(--font-mono); letter-spacing: var(--tracking-meta); }
+
+.mono { font-family: var(--font-mono); letter-spacing: var(--tracking-meta); }
+.meta { font-size: var(--size-meta); line-height: var(--leading-body); }
+.source { font-size: var(--size-meta); line-height: var(--leading-body); }
+
+/* 规线信息栏：标签 size-meta（含中文的标签用正文字体），值 size-body */
+.facts { display: grid; grid-template-columns: calc(4 * var(--size-meta) + var(--space-4)) 1fr; column-gap: 0; border-top: var(--rule-width) solid var(--color-ink); }
+.facts dt, .facts dd { margin: 0; padding: var(--space-3) 0; border-bottom: var(--rule-width) solid var(--color-ink); }
+.facts dt { font-size: var(--size-meta); line-height: calc(var(--size-body) * var(--leading-body)); }
+.facts dd { font-size: var(--size-body); line-height: var(--leading-body); }
+.facts .note { grid-column: 1 / -1; border-bottom: 0; padding-top: var(--space-3); font-size: var(--size-meta); }
+
+/* 封面 */
+.cover-title {
+  position: absolute; z-index: 1; left: var(--margin); top: 288px; margin: 0;
+  font-family: var(--font-display); font-weight: var(--weight-display);
+  font-size: 135px; line-height: var(--leading-display-cjk); letter-spacing: var(--tracking-display); white-space: nowrap;
+}
+.cover .facts { position: absolute; z-index: 1; left: var(--margin); bottom: var(--margin); width: calc(5 * var(--column-width) + 4 * var(--gutter)); }
+
+/* 要点页：页标题 size-headline 做焦点；要点为细规线行，等宽编号，靠在左边线，贴底 */
+.points .frame { grid-template-rows: auto 1fr auto; }
+.points h2 { grid-column: 1 / 11; grid-row: 1; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-headline); line-height: var(--leading-display-cjk); letter-spacing: var(--tracking-display); white-space: nowrap; }
+.points ol { grid-column: 1 / 8; grid-row: 3; list-style: none; border-bottom: var(--rule-width) solid var(--color-ink); }
+.points li { display: grid; grid-template-columns: var(--column-width) 1fr; column-gap: var(--gutter); padding: var(--space-4) 0; border-top: var(--rule-width) solid var(--color-ink); }
+.points li .mono { font-size: var(--size-meta); padding-top: 10px; }
+
+/* 数据页：页标题 size-title；左 1–7 栏副印版大数字；右 9–12 栏注释；来源贴底 */
+.data .frame { grid-template-rows: auto 1fr auto; }
+.data h2 { grid-column: 1 / 11; grid-row: 1; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-title); line-height: var(--leading-title); }
+.data .source { grid-column: 1 / 9; grid-row: 3; }
+.bignum { grid-column: 1 / 7; grid-row: 2; align-self: center; font-family: var(--font-display); font-weight: var(--weight-display); color: var(--color-accent); font-size: 400px; line-height: 0.8; letter-spacing: -0.04em; white-space: nowrap; }
+.bignum small { display: block; margin-top: var(--space-5); color: var(--color-ink); font-size: var(--size-title); line-height: var(--leading-title); letter-spacing: 0; font-family: var(--font-display); }
+.side { grid-column: 8 / 13; grid-row: 2; align-self: center; }
+.side .field { height: 360px; }
+.side .meta { margin: var(--space-2) 0 var(--space-3); }
+.side .facts dd .num { font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-headline); line-height: 1; }
+.side .facts { grid-template-columns: 1fr; }
+.side .facts dt { border-bottom: 0; padding-bottom: 0; line-height: var(--leading-body); }
+.side .facts dd { line-height: 1; padding: var(--space-2) 0 var(--space-3); }
+
+/* 标本：修复率条 */
+/* 标本：一块按件数分高的柱。外框是登记的 612 件，底部实墨是修好的 451 件 */
+.spec { grid-column: 8 / 13; grid-row: 2; align-self: stretch; position: relative; margin: var(--space-6) 0; box-sizing: border-box; border: var(--rule-width) solid var(--color-ink); }
+.spec .fixed { position: absolute; left: 0; right: 0; bottom: 0; color: var(--color-paper); }
+.spec .lab { position: absolute; left: var(--space-5); top: var(--space-4); }
+.spec .lab b { display: block; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-title); line-height: var(--leading-title); }
+.spec .lab span { display: block; font-size: var(--size-body); line-height: var(--leading-body); }
+
+/* 品类条形图 */
+.chart { grid-column: 1 / 13; grid-row: 2; position: relative; }
+.chart .row { position: absolute; left: 0; right: 0; height: 64px; display: flex; align-items: center; }
+.chart .cat { width: calc(2 * var(--column-width) + var(--gutter)); }
+.chart .val { position: absolute; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-title); line-height: 1; }
+.chart .val.hi { color: var(--color-accent); }
+
+/* 引文页 */
+.quote .frame { grid-template-rows: 1fr auto auto 1fr; }
+.quote blockquote { grid-column: 1 / 13; grid-row: 2; font-family: var(--font-display); font-weight: var(--weight-display); font-size: 117px; line-height: var(--leading-display-cjk); letter-spacing: var(--tracking-display); white-space: nowrap; margin-left: -0.5em; }
+.quote cite { grid-column: 1 / 6; grid-row: 3; font-style: normal; margin-top: var(--space-6); padding-top: var(--space-3); border-top: var(--rule-width) solid var(--color-ink); }
+
+/* 对比页：两栏规线表 + 一处副印版大字结论 */
+.compare .frame { grid-template-rows: auto 1fr auto; }
+.compare h2 { grid-column: 1 / 13; grid-row: 1; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-title); line-height: var(--leading-title); }
+.compare table { grid-column: 1 / 10; grid-row: 2; align-self: end; border-collapse: collapse; width: 100%; table-layout: fixed; }
+.compare th, .compare td { text-align: left; vertical-align: baseline; padding: var(--space-3) var(--gutter) var(--space-3) 0;}
+.compare thead th, .compare td { padding-left: var(--space-3); }
+.compare th, .compare td { border-top: var(--rule-width) solid var(--color-ink); font-weight: var(--weight-text); }
+.compare tbody tr:last-child td, .compare tbody tr:last-child th { border-bottom: var(--rule-width) solid var(--color-ink); }
+.compare thead th { font-weight: var(--weight-strong); color: var(--color-paper); padding-top: var(--space-3); }
+.compare tbody th { font-weight: var(--weight-text); }
+.compare col.k { width: calc(2 * var(--column-width) + 2 * var(--gutter)); }
+.compare .tag { grid-column: 1 / 10; grid-row: 3; margin-top: var(--space-3); }
+.verdict { grid-column: 10 / 13; grid-row: 2; align-self: end; color: var(--color-accent); font-family: var(--font-display); font-weight: var(--weight-display); font-size: 192px; line-height: var(--leading-display-cjk); letter-spacing: var(--tracking-display); white-space: nowrap; margin-bottom: -0.12em; }
+
+/* 章节页 */
+.chapter .num { position: absolute; z-index: 1; left: calc(var(--margin) - 0.06em); bottom: -0.16em; margin: 0; font-family: var(--font-display); font-weight: 900; color: var(--color-accent); font-size: 960px; line-height: 0.8; letter-spacing: -0.04em; }
+.chapter h2 { position: absolute; z-index: 2; left: calc(var(--margin) + 5 * (var(--column-width) + var(--gutter))); top: 600px; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-headline); line-height: var(--leading-display-cjk); letter-spacing: var(--tracking-display); mix-blend-mode: multiply; white-space: nowrap; }
+.chapter .lead { position: absolute; z-index: 2; left: calc(var(--margin) + 5 * (var(--column-width) + var(--gutter))); top: 384px; width: calc(6 * var(--column-width) + 5 * var(--gutter)); }
+
+/* 空位：20 个细线圆 */
+.seats { grid-column: 10 / 13; grid-row: 1 / 4; align-self: end; height: 528px; }
+.seats-note { grid-column: 10 / 13; grid-row: 1 / 4; align-self: end; margin-bottom: calc(528px + var(--space-3)); }
+
+/* 结尾页：副印版大字章 + 规线信息栏 */
+.stamp { position: absolute; z-index: 1; left: var(--margin); top: var(--margin); width: calc(8 * var(--column-width) + 7 * var(--gutter)); height: 600px; transform: rotate(-3deg); transform-origin: 0 100%; }
+.stamp canvas { position: absolute; inset: 0; mix-blend-mode: multiply; }
+.stamp p { position: absolute; left: var(--space-7); top: var(--space-6); color: var(--color-on-accent); font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--size-display); line-height: var(--leading-display-cjk); letter-spacing: var(--tracking-display); white-space: nowrap; }
+.end .facts { position: absolute; z-index: 1; right: var(--margin); bottom: var(--margin); width: calc(4 * var(--column-width) + 3 * var(--gutter)); }
+.end .facts dd.mono { font-family: var(--font-mono); letter-spacing: 0; }
+</style>
+</head>
+<body>
+
+<!-- 01 封面：网点收音机做焦点，标题横穿；规线信息栏靠在左下释放区一侧 -->
+<section class="slide cover" aria-label="第 1 页：修好再用：街坊修理站的一年">
+  <canvas class="plate" data-art="cover-ink"></canvas>
+  <canvas class="plate" data-art="cover-accent"></canvas>
+  <h1 class="cover-title" data-knock>修好再用：街坊修理站的一年</h1>
+  <dl class="facts">
+    <dt>讲者</dt><dd>林晓</dd>
+    <dt>身份</dt><dd>街坊修理站发起人</dd>
+    <dt>时间</dt><dd>2026 年 12 月 6 日</dd>
+    <dt>地点</dt><dd>南门社区活动中心</dd>
+    <dd class="note">虚构示例活动</dd>
+  </dl>
+</section>
+
+<!-- 02 要点：为什么开修理站 -->
+<section class="slide points has-folio" aria-label="第 2 页：会修的人，其实就在街坊里">
+  <canvas class="plate" data-art="wrench"></canvas>
+  <div class="frame">
+    <h2 data-knock>会修的人，其实就在街坊里</h2>
+    <ol>
+      <li><span class="mono">01</span><span>东西坏了就扔，太可惜</span></li>
+      <li><span class="mono">02</span><span>街坊里其实有很多会修的人</span></li>
+      <li><span class="mono">03</span><span>修理站把会修的人和坏了的东西请到一起</span></li>
+    </ol>
+  </div>
+  <footer class="folio"><span>修好再用：街坊修理站的一年</span><span class="no">02 / 10</span></footer>
+</section>
+
+<!-- 03 数据：这一年做了什么 -->
+<section class="slide data has-folio" aria-label="第 3 页：这一年，我们办了 24 场修理日">
+  <canvas class="plate" data-art="days"></canvas>
+  <div class="frame">
+    <h2>这一年，我们办了 24 场修理日</h2>
+    <p class="bignum" aria-hidden="true">24<small>场修理日</small></p>
+    <div class="side">
+      <div class="field" data-field="24" aria-hidden="true"></div>
+      <p class="meta">一格是一场修理日</p>
+      <dl class="facts">
+        <dt>志愿者</dt><dd><span class="num">38</span> 人</dd>
+      </dl>
+    </div>
+    <p class="source">来源：街坊修理站统计</p>
+  </div>
+  <footer class="folio"><span>修好再用：街坊修理站的一年</span><span class="no">03 / 10</span></footer>
+</section>
+
+<!-- 04 数据：修复率 -->
+<section class="slide data has-folio" aria-label="第 4 页：登记的 612 件里，修好了 451 件">
+  <canvas class="plate" data-art="blocks"></canvas>
+  <div class="frame">
+    <h2>登记的 612 件里，修好了 451 件</h2>
+    <p class="bignum">74%<small>修复率</small></p>
+    <div class="spec" data-spec></div>
+    <p class="source">来源：街坊修理站统计</p>
+  </div>
+  <footer class="folio"><span>修好再用：街坊修理站的一年</span><span class="no">04 / 10</span></footer>
+</section>
+
+<!-- 05 数据：品类 -->
+<section class="slide data has-folio" aria-label="第 5 页：修的东西里，小家电最多，占 41%">
+  <canvas class="plate" data-art="cat-ink"></canvas>
+  <canvas class="plate" data-art="cat-accent"></canvas>
+  <div class="frame">
+    <h2>修的东西里，小家电最多，占 41%</h2>
+    <div class="chart" data-chart></div>
+    <p class="source">来源：街坊修理站统计</p>
+  </div>
+  <footer class="folio"><span>修好再用：街坊修理站的一年</span><span class="no">05 / 10</span></footer>
+</section>
+
+<!-- 06 引文 -->
+<section class="slide quote has-folio" aria-label="第 6 页：街坊王阿姨的话">
+  <canvas class="plate" data-art="radio-ink"></canvas>
+  <canvas class="plate" data-art="radio-acc"></canvas>
+  <div class="frame">
+    <blockquote data-knock>「我以为这台收音机只能扔了。」</blockquote>
+    <cite>街坊王阿姨</cite>
+  </div>
+  <footer class="folio"><span>修好再用：街坊修理站的一年</span><span class="no">06 / 10</span></footer>
+</section>
+
+<!-- 07 对比 -->
+<section class="slide compare has-folio" aria-label="第 7 页：修理站和直接买新的，差在哪">
+  <canvas class="plate" data-art="blocks"></canvas>
+  <div class="frame">
+    <h2>买新的只换来一件东西，修理站还连起了街坊</h2>
+    <table>
+      <colgroup><col class="k"><col><col></colgroup>
+      <thead><tr><th></th><th data-block="0.95">修理站</th><th data-block="0.95">直接买新的</th></tr></thead>
+      <tbody>
+        <tr><th>坏了的东西</th><td>修好，接着用</td><td>扔掉</td></tr>
+        <tr><th>谁来动手</th><td>街坊志愿者，当面修</td><td>付钱，带走新的</td></tr>
+        <tr><th>带回家的</th><td>旧物件和一点修理门道</td><td>一件新东西</td></tr>
+        <tr><th>认识的人</th><td>楼下会修的街坊</td><td>没有多认识谁</td></tr>
+      </tbody>
+    </table>
+    <p class="tag meta">示例：对比条目由制作方根据讲述线整理</p>
+    <p class="verdict">差在<br>街坊</p>
+  </div>
+  <footer class="folio"><span>修好再用：街坊修理站的一年</span><span class="no">07 / 10</span></footer>
+</section>
+
+<!-- 08 章节 -->
+<section class="slide chapter" aria-label="第 8 页：明年的打算">
+  <p class="num" aria-hidden="true" data-inspect-ignore>06</p>
+  <p class="lead">修理日、志愿者和报名方式</p>
+  <h2>明年的打算</h2>
+</section>
+
+<!-- 09 要点：明年 -->
+<section class="slide points has-folio" aria-label="第 9 页：明年，修理站需要更多人手">
+  <canvas class="plate" data-art="seats"></canvas>
+  <div class="frame">
+    <h2>明年，修理站需要更多人手</h2>
+    <ol>
+      <li><span class="mono">01</span><span>修理日改成每月两场</span></li>
+      <li><span class="mono">02</span><span>招募 20 名新志愿者</span></li>
+      <li><span class="mono">03</span><span>报名发邮件到 <span class="mono" style="font-size:inherit">repair@example.org</span></span></li>
+    </ol>
+    <div class="seats" aria-hidden="true" data-seats="20"></div>
+    <p class="seats-note meta">一个圆点是一位新志愿者的位置</p>
+  </div>
+  <footer class="folio"><span>修好再用：街坊修理站的一年</span><span class="no">09 / 10</span></footer>
+</section>
+
+<!-- 10 结尾 -->
+<section class="slide end" aria-label="第 10 页：坏了，先拿来修">
+  <div class="stamp">
+    <canvas data-art="stamp"></canvas>
+    <p>坏了，<br>先拿来修</p>
+  </div>
+  <dl class="facts">
+    <dt>报名</dt><dd class="mono">repair@example.org</dd>
+    <dt>招募</dt><dd>20 名新志愿者</dd>
+    <dt>讲者</dt><dd>林晓</dd>
+    <dd class="note">虚构示例活动</dd>
+  </dl>
+</section>
+
+<script>
+/*
+ * Musekit 网点模块：把墨量场渲染成一块网点印版。
+ *
+ * 用法：把本文件复制进作品目录，用带 src="halftone.js" 的 script 标签引入（经典脚本，
+ * file:// 下也能运行），得到全局对象 MusekitHalftone。没有依赖，不访问网络。
+ * 单文件交付时，可以把本文件全文原样放进页面的一个 script 标签里；文件里没有会提前
+ * 结束标签的字样。
+ *
+ * 重画：dots 按给定尺寸算一次。画布尺寸随容器变化，或者墨量场依赖文字位置时，用
+ * watch(容器, render) 包住 dots 和 draw：它等 document.fonts.ready 之后调用一次
+ * render({ width, height, dpr })，此后容器尺寸变化时防抖重调；返回的函数用来停止监听。
+ *
+ * 参数与 halftone-plate Seed 的 token 一一对应：
+ *   cell      ← halftone-cell（px）
+ *   angle     ← halftone-angle（主版）或 halftone-angle-accent（副版），单位为度
+ *   drift     ← ink-drift：浓淡起伏幅度，0.08 表示墨量在 ±8% 内起伏
+ *   dryBreak  ← dry-break：边缘圆点断开的比例，0.02 表示约 2% 的边缘圆点缺失
+ *   offset    ← registration-offset：只给副版，[x, y]，向右下为正
+ *
+ * 墨量场是函数 (x, y) => 0..1，0 是纸，1 是满墨，坐标为 CSS 像素。题材（剪影、几何形、
+ * 声波）由调用方画在离屏画布上，再用 fieldFromImage 转成墨量场；也可以直接写函数。
+ *
+ * 照片：file:// 打开的页面里，<img> 读取的本地图片会污染画布，getImageData 会抛出
+ * SecurityError。照片请转成 data URL 引入，或者经本地服务器打开页面。
+ */
+(function (root) {
+  'use strict';
+
+  // 32 位整数哈希：按格子坐标取随机数，结果与遍历顺序无关。
+  function hash(i, j, seed, salt) {
+    let h = Math.imul(i | 0, 0x27d4eb2d) ^ Math.imul(j | 0, 0x165667b1) ^ Math.imul((seed | 0) + salt, 0x9e3779b1);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+
+  // 低频值噪声，取值在 [-1, 1]，用于大面积墨色的浓淡起伏。
+  function valueNoise(seed, scale) {
+    const at = (i, j) => hash(i, j, seed, 1) * 2 - 1;
+    const smooth = (t) => t * t * (3 - 2 * t);
+    return function (x, y) {
+      x /= scale;
+      y /= scale;
+      const xi = Math.floor(x), yi = Math.floor(y);
+      const u = smooth(x - xi), v = smooth(y - yi);
+      const a = at(xi, yi), b = at(xi + 1, yi), c = at(xi, yi + 1), d = at(xi + 1, yi + 1);
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    };
+  }
+
+  const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+  const EDGE = 0.35; // 相邻格子墨量差超过它，就算边缘
+
+  /**
+   * 计算一块印版的圆点，返回 [[x, y, r], ...]。纯函数：同样的输入和 seed 得到同样的输出。
+   * opts: { width, height, cell, angle, field, drift = 0, dryBreak = 0, seed = 1 }
+   * 网屏原点固定在画布中心；圆点面积与墨量成正比，墨量 1 时一个圆点的面积等于一格。
+   */
+  function dots(opts) {
+    const W = opts.width, H = opts.height, c = opts.cell, field = opts.field;
+    const drift = opts.drift || 0, dryBreak = opts.dryBreak || 0, seed = opts.seed == null ? 1 : opts.seed;
+    const a = ((opts.angle || 0) * Math.PI) / 180, ca = Math.cos(a), sa = Math.sin(a);
+    const low = valueNoise(seed, Math.max(c * 20, 1));
+    const n = Math.ceil(Math.hypot(W, H) / 2 / c) + 1;
+    const at = (i, j) => [W / 2 + i * c * ca - j * c * sa, H / 2 + i * c * sa + j * c * ca];
+    const out = [];
+    for (let j = -n; j <= n; j++) {
+      for (let i = -n; i <= n; i++) {
+        const [x, y] = at(i, j);
+        if (x < -c || x > W + c || y < -c || y > H + c) continue;
+        let d = clamp01(field(x, y));
+        if (d <= 0) continue;
+        if (dryBreak > 0 && hash(i, j, seed, 2) < dryBreak) {
+          const edge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => {
+            const [nx, ny] = at(i + di, j + dj);
+            return Math.abs(d - clamp01(field(nx, ny))) > EDGE;
+          });
+          if (edge) continue;
+        }
+        if (drift > 0) d = clamp01(d * (1 + drift * (0.7 * low(x, y) + 0.3 * (hash(i, j, seed, 3) * 2 - 1))));
+        const r = c * Math.sqrt(d / Math.PI);
+        if (r >= 0.25) out.push([x, y, r]);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * 把圆点画到画布上。画布按 width × height（CSS 像素）和 dpr 设定尺寸。
+   * opts: { width, height, dpr = 1, color = '#000', offset = [0, 0] }
+   * 页面用 mix-blend-mode: multiply 把各版叠在纸色上；导出海报时按同样顺序合成。
+   */
+  function draw(canvas, list, opts) {
+    const W = opts.width, H = opts.height, dpr = opts.dpr || 1, offset = opts.offset || [0, 0];
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    if (canvas.style) {
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, offset[0] * dpr, offset[1] * dpr);
+    ctx.fillStyle = opts.color || '#000';
+    ctx.beginPath();
+    for (const [x, y, r] of list) {
+      ctx.moveTo(x + r, y);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+
+  /**
+   * 把像素数据 { width, height, data }（RGBA）转成墨量场：越暗墨越多，透明处没有墨。
+   * opts: { width, height, fit = 'cover' | 'contain', invert = false }
+   * width、height 是印版尺寸；图像按 fit 缩放并居中。
+   */
+  function fieldFromPixels(img, opts) {
+    const iw = img.width, ih = img.height, data = img.data;
+    const s = (opts.fit === 'contain' ? Math.min : Math.max)(opts.width / iw, opts.height / ih);
+    const ox = (opts.width - iw * s) / 2, oy = (opts.height - ih * s) / 2;
+    const invert = !!opts.invert;
+    return function (x, y) {
+      const px = Math.floor((x - ox) / s), py = Math.floor((y - oy) / s);
+      if (px < 0 || py < 0 || px >= iw || py >= ih) return 0;
+      const k = (py * iw + px) * 4;
+      // 整数加权，白色正好是 1、黑色正好是 0。
+      const lum = (2126 * data[k] + 7152 * data[k + 1] + 722 * data[k + 2]) / 2550000;
+      return (invert ? lum : 1 - lum) * (data[k + 3] / 255);
+    };
+  }
+
+  /** 浏览器端：把图片或画布读成像素后交给 fieldFromPixels。opts 同上。 */
+  function fieldFromImage(source, opts) {
+    const iw = source.naturalWidth || source.width, ih = source.naturalHeight || source.height;
+    const canvas = document.createElement('canvas');
+    canvas.width = iw;
+    canvas.height = ih;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(source, 0, 0);
+    return fieldFromPixels(ctx.getImageData(0, 0, iw, ih), opts);
+  }
+
+  /**
+   * 浏览器端：字体就绪后按容器的 clientWidth、clientHeight（含内边距、不含边框）调用 render，
+   * 尺寸变化时防抖后再调用；只看尺寸，设备像素比变化时不会重画。
+   * render 收到 { width, height, dpr }，单位为 CSS 像素，dpr 不超过 2。
+   * opts.delay 是防抖毫秒数，默认 100。返回停止监听的函数。
+   */
+  function watch(element, render, opts) {
+    const delay = (opts && opts.delay) ?? 100;
+    let ready = false, timer = 0, last = '', stopped = false;
+    const run = () => {
+      const width = element.clientWidth, height = element.clientHeight;
+      const key = width + 'x' + height;
+      if (stopped || key === last) return;
+      last = key;
+      render({ width, height, dpr: Math.min(root.devicePixelRatio || 1, 2) });
+    };
+    const schedule = () => {
+      if (!ready || stopped) return;
+      clearTimeout(timer);
+      timer = setTimeout(run, delay);
+    };
+    const observer = new ResizeObserver(schedule);
+    observer.observe(element);
+    document.fonts.ready.then(() => { ready = true; schedule(); });
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }
+
+  root.MusekitHalftone = { dots, draw, fieldFromPixels, fieldFromImage, watch };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// 网点与图表：字体就绪后按固定画布尺寸作画，画完把 body.dataset.ready 设为 1（检查脚本用 --ready 等它）。
+(() => {
+  const H = MusekitHalftone;
+  const css = getComputedStyle(document.documentElement);
+  const tok = (n) => css.getPropertyValue(n).trim();
+  const W = parseFloat(tok("--canvas-width")), HH = parseFloat(tok("--canvas-height"));
+  const CELL = parseFloat(tok("--halftone-cell")), ANG = parseFloat(tok("--halftone-angle")), ANGA = parseFloat(tok("--halftone-angle-accent"));
+  const DRIFT = parseFloat(tok("--ink-drift")), DRY = parseFloat(tok("--dry-break")), OFF = parseFloat(tok("--registration-offset"));
+  const INK = tok("--color-ink"), ACC = tok("--color-accent");
+
+  // 在离屏画布上画题材：灰度 = 墨量（g 为 0..1 的墨量）
+  const sketch = (w, h, paint) => {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    const ink = (g) => `rgba(0,0,0,${g})`;
+    paint(ctx, ink);
+    return H.fieldFromImage(c, { width: w, height: h });
+  };
+  // 标题压住网点处只留浅网：文字每一行的外框内墨量不超过 8%
+  const knock = (field, slide, pad = 16) => {
+    const scale = slide.getBoundingClientRect().width / slide.offsetWidth;
+    const origin = slide.getBoundingClientRect();
+    const rects = [];
+    slide.querySelectorAll("[data-knock]").forEach((el) => {
+      const r = document.createRange(); r.selectNodeContents(el);
+      for (const b of r.getClientRects()) rects.push([(b.left - origin.left) / scale - pad, (b.top - origin.top) / scale - pad, (b.right - origin.left) / scale + pad, (b.bottom - origin.top) / scale + pad]);
+    });
+    return (x, y) => {
+      const v = field(x, y);
+      for (const [a, b, c, d] of rects) if (x >= a && x <= c && y >= b && y <= d) return Math.min(v, 0.08);
+      return v;
+    };
+  };
+  // 固定区（页底 52px 加 48px 间隔）里不放网点：小字不与图像碰撞
+  const clearFolio = (field) => (x, y) => (y >= HH - 96 - 52 - 24 ? 0 : field(x, y));
+  const plate = (canvas, field, { accent = false, seed = 1, width = W, height = HH } = {}) => {
+    const list = H.dots({ width, height, cell: CELL, angle: accent ? ANGA : ANG, field, drift: DRIFT, dryBreak: DRY, seed });
+    H.draw(canvas, list, { width, height, dpr: 2, color: accent ? ACC : INK, offset: accent ? [OFF, OFF] : [0, 0] });
+  };
+  const rr = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); };
+  const disc = (ctx, x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
+
+  // 收音机剪影：x,y 为机身左上角，w 为机身宽
+  const radio = (ctx, ink, x, y, w, parts = "all") => {
+    const h = w * 0.62;
+    if (parts === "all" || parts === "body") {
+      ctx.strokeStyle = ink(0.75); ctx.lineWidth = w * 0.05; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(x + w * 0.22, y + 4); ctx.lineTo(x + w * 0.28, y - w * 0.2); ctx.lineTo(x + w * 0.72, y - w * 0.2); ctx.lineTo(x + w * 0.78, y + 4); ctx.stroke();
+      ctx.lineWidth = w * 0.016;
+      ctx.beginPath(); ctx.moveTo(x + w * 0.9, y + 4); ctx.lineTo(x + w * 1.12, y - w * 0.62); ctx.stroke();
+      ctx.fillStyle = ink(0.95); disc(ctx, x + w * 1.12, y - w * 0.62, w * 0.02);
+      ctx.fillStyle = ink(0.5); rr(ctx, x, y, w, h, w * 0.04);
+      ctx.fillStyle = ink(0.12); rr(ctx, x + w * 0.58, y + w * 0.1, w * 0.34, w * 0.15, w * 0.01);
+      ctx.fillStyle = ink(0.9);
+      for (let i = 0; i <= 12; i++) ctx.fillRect(x + w * (0.6 + i * 0.025), y + w * (i % 2 ? 0.14 : 0.12), w * 0.004, w * (i % 2 ? 0.04 : 0.06));
+      disc(ctx, x + w * 0.66, y + w * 0.43, w * 0.06); disc(ctx, x + w * 0.85, y + w * 0.43, w * 0.06);
+      ctx.fillStyle = ink(0.85); ctx.fillRect(x, y + h - w * 0.04, w, w * 0.04);
+    }
+    if (parts === "all" || parts === "body" || parts === "speaker") {
+      const cx = x + w * 0.29, cy = y + w * 0.33, R = w * 0.21;
+      ctx.fillStyle = ink(0.92); disc(ctx, cx, cy, R);
+      ctx.globalCompositeOperation = "destination-out";
+      for (let k = 1; k <= 6; k++) { ctx.lineWidth = w * 0.006; ctx.strokeStyle = "#000"; ctx.beginPath(); ctx.arc(cx, cy, R * k / 7, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.globalCompositeOperation = "source-over";
+    }
+  };
+
+  const art = {
+    "cover-ink": (cv, s) => plate(cv, knock(sketch(W, HH, (ctx, ink) => radio(ctx, ink, 880, 330, 1300, "body")), s), { seed: 3 }),
+    "cover-accent": (cv, s) => plate(cv, knock(sketch(W, HH, (ctx, ink) => {
+      // 副印版只叠在扬声器上：一次叠印
+      const w = 1300, cx = 880 + w * 0.29, cy = 330 + w * 0.33;
+      ctx.fillStyle = ink(0.55); disc(ctx, cx, cy, w * 0.24);
+    }), s), { accent: true, seed: 5 }),
+    "wrench": (cv, s) => {
+      // 开口扳手：开口头在右上，柄斜向左下出画。剪影先画成满墨，再整体降到浅网（墨量 32%）。
+      const f = sketch(W, HH, (ctx) => {
+        ctx.save(); ctx.translate(1600, 330); ctx.rotate(Math.PI * 0.66);
+        ctx.fillStyle = "#000";
+        rr(ctx, 0, -70, 1100, 140, 24);
+        disc(ctx, 0, 0, 220);
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillRect(-300, -80, 300, 160);
+        disc(ctx, -20, 0, 80);
+        ctx.restore();
+      });
+      plate(cv, knock((x, y) => 0.32 * f(x, y), s), { seed: 7 });
+    },
+    "radio-ink": (cv, s) => plate(cv, clearFolio(knock(sketch(W, HH, (ctx, ink) => radio(ctx, ink, 760, 120, 1500, "body")), s)), { seed: 11 }),
+    "radio-acc": (cv, s) => plate(cv, clearFolio(knock(sketch(W, HH, (ctx, ink) => {
+      // 副印版只叠在扬声器上：一次叠印
+      ctx.fillStyle = ink(0.6); disc(ctx, 760 + 1500 * 0.29, 120 + 1500 * 0.33, 1500 * 0.24);
+    }), s)), { accent: true, seed: 12 }),
+    "days": (cv, s) => {
+      // 重复物件场：每格一场修理日，格数取自数据
+      const el = s.querySelector("[data-field]"), box = rel(el, s), n = +el.dataset.field, per = 6, sz = 72, gap = 24;
+      const cells = Array.from({ length: n }, (_, i) => [box.x + (i % per) * (sz + gap), box.y + Math.floor(i / per) * (sz + gap)]);
+      plate(cv, (x, y) => cells.some(([cx, cy]) => x >= cx && x <= cx + sz && y >= cy && y <= cy + sz) ? 0.88 : 0, { seed: 29 });
+    },
+    "seats": (cv, s) => {
+      // 20 个空位：浅网圆点，等新志愿者来填
+      const el = s.querySelector("[data-seats]"), box = rel(el, s), n = +el.dataset.seats, per = 4, d = 80, gap = 32;
+      const x0 = box.x + box.w - (per * d + (per - 1) * gap), y0 = box.y + box.h - (Math.ceil(n / per) * d + (Math.ceil(n / per) - 1) * gap);
+      const cs = Array.from({ length: n }, (_, i) => [x0 + (i % per) * (d + gap) + d / 2, y0 + Math.floor(i / per) * (d + gap) + d / 2]);
+      plate(cv, (x, y) => cs.some(([cx, cy]) => (x - cx) ** 2 + (y - cy) ** 2 <= (d / 2) ** 2) ? 0.3 : 0, { seed: 31 });
+    },
+    "blocks": (cv, s) => {
+      // 主印版色块：带 data-block 的元素按它的墨量铺一块网点
+      const bs = [...s.querySelectorAll("[data-block]")].map((el) => [rel(el, s), +el.dataset.block]);
+      plate(cv, (x, y) => { for (const [b, d] of bs) if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return d; return 0; }, { seed: 37 });
+    },
+    "cat-ink": (cv, s) => drawChart(cv, s, false),
+    "cat-accent": (cv, s) => drawChart(cv, s, true),
+    "stamp": (cv) => {
+      const w = cv.parentElement.offsetWidth, h = cv.parentElement.offsetHeight;
+      plate(cv, (x, y) => (x < 8 || y < 8 || x > w - 8 || y > h - 8) ? 0 : 0.96, { accent: true, seed: 17, width: w, height: h });
+    },
+  };
+
+  // 数据：数字只写在这里，图形和标签由脚本生成
+  const REPAIR = { total: 612, fixed: 451 };
+  const CATS = [["小家电", 41], ["衣物", 22], ["自行车", 18], ["电子产品", 12], ["其他", 7]];
+  const PITCH = 112, BAR = 64;
+  function rel(el, slide) {
+    const s = slide.getBoundingClientRect(), b = el.getBoundingClientRect(), k = s.width / slide.offsetWidth;
+    return { x: (b.left - s.left) / k, y: (b.top - s.top) / k, w: b.width / k, h: b.height / k };
+  }
+  function drawChart(cv, s, accent) {
+    const chart = s.querySelector("[data-chart]"), box = rel(chart, s);
+    const x0 = box.x + 2 * 146, full = 7 * 146 - 24, max = Math.max(...CATS.map((c) => c[1]));
+    const y0 = box.y + (box.h - (CATS.length - 1) * PITCH - BAR) / 2;
+    if (!accent && !chart.children.length) {
+      chart.innerHTML = CATS.map(([name, v], i) => {
+        const len = full * v / max;
+        return `<div class="row" style="top:${Math.round(y0 - box.y + i * PITCH)}px"><span class="cat">${name}</span><span class="val${i === 0 ? " hi" : ""}" style="left:${Math.round(2 * 146 + len + 24)}px">${v}%</span></div>`;
+      }).join("");
+    }
+    plate(cv, (x, y) => {
+      for (let i = 0; i < CATS.length; i++) {
+        const top = y0 + i * PITCH, len = full * CATS[i][1] / max;
+        if (y >= top && y <= top + BAR && x >= x0 && x <= x0 + len) return (i === 0) === accent ? (accent ? 0.9 : 0.4) : 0;
+      }
+      return 0;
+    }, { accent, seed: accent ? 19 : 23 });
+  }
+
+  // 修复率标本：高度按件数比例生成
+  document.querySelectorAll("[data-spec]").forEach((el) => {
+    const { total, fixed } = REPAIR;
+    el.innerHTML = `<div class="lab"><b>${total} 件</b><span>登记物品</span></div><div class="fixed" data-block="0.94" style="height:${(100 * fixed / total).toFixed(2)}%"><div class="lab"><b>${fixed} 件</b><span>修好</span></div></div>`;
+  });
+
+  document.fonts.ready.then(() => {
+    document.querySelectorAll("canvas[data-art]").forEach((cv) => art[cv.dataset.art](cv, cv.closest(".slide")));
+    document.body.dataset.ready = "1";
+  });
+})();
+</script>
+<script>
+// 翻页：起始模板原样
+(() => {
+  const slides = [...document.querySelectorAll(".slide")];
+  const root = document.documentElement;
+  let current = 0;
+  const fit = () => {
+    const css = getComputedStyle(root);
+    const w = parseFloat(css.getPropertyValue("--canvas-width")), h = parseFloat(css.getPropertyValue("--canvas-height"));
+    root.style.setProperty("--fit", Math.min(innerWidth / w, innerHeight / h));
+  };
+  const show = (n) => {
+    current = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle("is-current", i === current));
+    if (location.hash !== `#${current + 1}`) history.replaceState(null, "", `#${current + 1}`);
+  };
+  const fromHash = () => show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+  addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(e.key)) show(current + 1);
+    else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) show(current - 1);
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key === "f" || e.key === "F") (document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen()).catch(() => {});
+    else return;
+    e.preventDefault();
+  });
+  addEventListener("click", (e) => {
+    if (e.target.closest("a, button, input, select, textarea")) return;
+    show(current + (e.clientX > innerWidth / 2 ? 1 : -1));
+  });
+  addEventListener("resize", fit);
+  addEventListener("hashchange", fromHash);
+  fit();
+  fromHash();
+})();
+</script>
+</body>
+</html>

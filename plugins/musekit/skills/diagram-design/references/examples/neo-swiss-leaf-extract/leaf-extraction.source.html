@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>叶片样本提取与并行检测流程</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      :root {
+        --color-paper: #f2f0eb;
+        --color-ink: #111111;
+        --color-ink-muted: #5a5a57;
+        --color-accent: #2f62e8;
+        --font-text: "Inter", "Noto Sans SC", "Helvetica Neue", "Arial", "Source Han Sans SC",
+          "Source Han Sans CN", "PingFang SC", "Microsoft YaHei", sans-serif;
+        --font-mono: "IBM Plex Mono", "Noto Sans SC", "Menlo", "Consolas", "Source Han Sans SC",
+          "Source Han Sans CN", "PingFang SC", "Microsoft YaHei", monospace;
+        --weight-text: 400;
+        --weight-strong: 600;
+        --size-title: 28px;
+        --size-body: 17px;
+        --size-meta: 13px;
+        --leading-title: 1.2;
+        --leading-body: 1.55;
+        --tracking-meta: 0.04em;
+        --rule-width: 1px;
+      }
+      body {
+        margin: 0;
+        background: var(--color-paper);
+        color: var(--color-ink);
+        font-family: var(--font-text);
+        font-weight: var(--weight-text);
+        font-size: var(--size-body);
+        line-height: var(--leading-body);
+        font-variant-numeric: tabular-nums;
+      }
+      h1,
+      h2,
+      p {
+        margin: 0;
+        font-size: inherit;
+        font-weight: inherit;
+      }
+      #art {
+        position: relative;
+        width: 768px;
+        height: 1024px;
+        background: var(--color-paper);
+      }
+      .v {
+        white-space: nowrap;
+      }
+
+      /* 页眉：图题齐左压在左轴 x=48 */
+      header {
+        position: absolute;
+        left: 48px;
+        top: 48px;
+        width: 672px;
+      }
+      header h1 {
+        font-size: var(--size-title);
+        line-height: var(--leading-title);
+        font-weight: var(--weight-strong);
+      }
+      header p {
+        margin-top: 8px;
+        font-size: var(--size-meta);
+        line-height: 1.5;
+        color: var(--color-ink-muted);
+      }
+
+      .body {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* 分区：顶部一条细线，左侧窄栏是两位编号和分区名 */
+      .stage {
+        position: absolute;
+        left: 48px;
+        width: 688px;
+        border-top: var(--rule-width) solid var(--color-ink);
+      }
+      .idx {
+        position: absolute;
+        left: 0;
+        top: 16px;
+        width: 92px;
+      }
+      .idx .no {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: var(--size-meta);
+        line-height: 1.5;
+        letter-spacing: var(--tracking-meta);
+        color: var(--color-ink-muted);
+      }
+      .idx .nm {
+        display: block;
+        font-weight: var(--weight-strong);
+      }
+
+      /* 投入的物料：无框，文字压在一条细线上 */
+      .mat {
+        position: absolute;
+        padding: 0 0 8px;
+        border-bottom: var(--rule-width) solid var(--color-ink);
+        background: var(--color-paper);
+      }
+      .mat h2,
+      .step h2,
+      .end h2 {
+        font-weight: var(--weight-strong);
+      }
+      /* 弃去的一路：墨灰虚线框 */
+      .waste {
+        position: absolute;
+        padding: 16px;
+        border: var(--rule-width) dashed var(--color-ink-muted);
+        background: var(--color-paper);
+        color: var(--color-ink-muted);
+      }
+      .waste h2 {
+        font-weight: var(--weight-strong);
+      }
+
+      /* 操作与中间产物：直角细线框 */
+      .step {
+        position: absolute;
+        padding: 16px;
+        border: var(--rule-width) solid var(--color-ink);
+        background: var(--color-paper);
+      }
+      .meta {
+        font-size: var(--size-meta);
+        line-height: 1.5;
+        color: var(--color-ink-muted);
+      }
+      .cond {
+        display: grid;
+        grid-template-columns: 273px 174px 1fr;
+        margin: 0;
+      }
+      .cond dt {
+        font-size: var(--size-meta);
+        line-height: 1.5;
+        color: var(--color-ink-muted);
+      }
+      .cond dd {
+        margin: 0;
+      }
+      .cond div {
+        margin: 0;
+      }
+
+      /* 终点：墨底纸字 */
+      .end {
+        position: absolute;
+        padding: 16px;
+        border: var(--rule-width) solid var(--color-ink);
+        background: var(--color-ink);
+        color: var(--color-paper);
+      }
+      .end .meta {
+        color: var(--color-paper);
+      }
+
+      .label {
+        position: absolute;
+        padding: 0 8px;
+        background: var(--color-paper);
+        font-size: var(--size-meta);
+        line-height: 1.5;
+        color: var(--color-ink);
+        white-space: nowrap;
+      }
+
+      footer {
+        position: absolute;
+        left: 48px;
+        top: 952px;
+        width: 672px;
+        display: flex;
+        gap: 32px;
+        font-size: var(--size-meta);
+        line-height: 1.5;
+        color: var(--color-ink-muted);
+      }
+      footer span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      footer svg {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="art" data-diagram>
+      <header data-diagram-region="header">
+        <h1>叶片样本提取与并行检测流程</h1>
+        <p>概念示意 · 图形大小不代表实际用量</p>
+      </header>
+
+      <main class="body" data-diagram-region="body">
+        <section class="stage" data-diagram-group="s1" style="top: 144px; height: 248px">
+          <div class="idx"><span class="no">01</span><span class="nm">制备</span></div>
+          <div
+            class="mat"
+            data-diagram-node="sample"
+            data-diagram-title="叶片样本"
+            style="left: 116px; top: 16px; width: 266px"
+          >
+            <h2>叶片样本</h2>
+            <p><span class="v">0.5 g</span></p>
+          </div>
+          <div
+            class="mat"
+            data-diagram-node="buffer"
+            data-diagram-title="提取缓冲液"
+            style="left: 406px; top: 16px; width: 266px"
+          >
+            <h2>提取缓冲液</h2>
+            <p><span class="v">2 mL</span></p>
+          </div>
+          <section
+            class="step"
+            data-diagram-node="grind"
+            data-diagram-title="研磨"
+            style="left: 116px; top: 128px; width: 556px"
+          >
+            <h2>研磨</h2>
+          </section>
+        </section>
+
+        <section class="stage" data-diagram-group="s2" style="top: 392px; height: 136px">
+          <div class="idx"><span class="no">02</span><span class="nm">离心</span></div>
+          <section
+            class="step"
+            data-diagram-node="spin"
+            data-diagram-title="离心"
+            style="left: 116px; top: 16px; width: 556px"
+          >
+            <dl class="cond">
+              <div><dt>温度</dt><dd><span class="v">4 °C</span></dd></div>
+              <div><dt>转速</dt><dd><span class="v">12 000 rpm</span></dd></div>
+              <div><dt>时间</dt><dd><span class="v">10 分钟</span></dd></div>
+            </dl>
+          </section>
+        </section>
+
+        <section class="stage" data-diagram-group="s3" style="top: 528px; height: 136px">
+          <div class="idx"><span class="no">03</span><span class="nm">分离</span></div>
+          <div
+            class="step"
+            data-diagram-node="super"
+            data-diagram-title="上清液"
+            style="left: 116px; top: 16px; width: 440px"
+          >
+            <h2>上清液</h2>
+            <p>转移到新管，进入后续检测</p>
+          </div>
+          <div
+            class="waste"
+            data-diagram-node="pellet"
+            data-diagram-title="沉淀"
+            style="left: 580px; top: 16px; width: 92px"
+          >
+            <h2>沉淀</h2>
+            <p>弃去</p>
+          </div>
+        </section>
+
+        <section class="stage" data-diagram-group="s4" style="top: 664px; height: 144px">
+          <div class="idx"><span class="no">04</span><span class="nm">并行检测</span></div>
+          <article
+            class="step"
+            data-diagram-node="assayA"
+            data-diagram-title="A 份：蛋白浓度测定"
+            style="left: 116px; top: 16px; width: 208px"
+          >
+            <p class="meta">A 份</p>
+            <h2>蛋白浓度测定</h2>
+          </article>
+          <article
+            class="step"
+            data-diagram-node="assayB"
+            data-diagram-title="B 份：酶活性测定"
+            style="left: 348px; top: 16px; width: 208px"
+          >
+            <p class="meta">B 份</p>
+            <h2>酶活性测定</h2>
+          </article>
+        </section>
+
+        <section class="stage" data-diagram-group="s5" style="top: 808px; height: 112px">
+          <div class="idx"><span class="no">05</span><span class="nm">汇总</span></div>
+          <div
+            class="end"
+            data-diagram-node="record"
+            data-diagram-title="同一张记录表"
+            style="left: 116px; top: 16px; width: 440px"
+          >
+            <h2>同一张记录表</h2>
+            <p class="meta">汇总两项结果</p>
+          </div>
+        </section>
+
+        <div class="label" data-diagram-label="e2">加入</div>
+        <div class="label" data-diagram-label="e3">研磨液</div>
+        <div class="label" data-diagram-label="e8">结果</div>
+        <div class="label" data-diagram-label="e9">结果</div>
+      </main>
+
+      <footer data-diagram-region="footer">
+        <span
+          ><svg width="32" height="8" aria-hidden="true">
+            <line x1="0" y1="4" x2="32" y2="4" stroke="#2F62E8" stroke-width="2" /></svg
+          >样本主路径</span
+        >
+        <span
+          ><svg width="32" height="8" aria-hidden="true">
+            <line
+              x1="0"
+              y1="4"
+              x2="32"
+              y2="4"
+              stroke="#5A5A57"
+              stroke-width="1"
+              stroke-dasharray="6 5"
+            /></svg
+          >弃去的一路</span
+        >
+      </footer>
+    </div>
+
+    <script id="diagram-config" type="application/json">
+      {
+        "version": 1,
+        "name": "leaf-extraction",
+        "portDistribution": "spread",
+        "layout": "tidy",
+        "gap": 32,
+        "fixedSize": false,
+        "edges": [
+          { "id": "e1", "from": "sample", "to": "grind", "color": "#2F62E8", "width": 2, "fromPort": { "side": "bottom" }, "toPort": { "side": "top" } },
+          { "id": "e2", "from": "buffer", "to": "grind", "color": "#111111", "width": 1, "fromPort": { "side": "bottom" }, "toPort": { "side": "top" } },
+          { "id": "e3", "from": "grind", "to": "spin", "color": "#2F62E8", "width": 2, "fromPort": { "side": "bottom" }, "toPort": { "side": "top" } },
+          { "id": "e4", "from": "spin", "to": "super", "color": "#2F62E8", "width": 2, "fromPort": { "side": "bottom" }, "toPort": { "side": "top" } },
+          { "id": "e5", "from": "spin", "to": "pellet", "color": "#5A5A57", "width": 1, "dash": "6 5", "fromPort": { "side": "bottom" }, "toPort": { "side": "top" } },
+          { "id": "e6", "from": "super", "to": "assayA", "color": "#2F62E8", "width": 2, "fromPort": { "side": "bottom" }, "toPort": { "side": "top", "at": 0.5 } },
+          { "id": "e7", "from": "super", "to": "assayB", "color": "#2F62E8", "width": 2, "fromPort": { "side": "bottom" }, "toPort": { "side": "top", "at": 0.5 } },
+          { "id": "e8", "from": "assayA", "to": "record", "color": "#111111", "width": 1, "fromPort": { "side": "bottom", "at": 0.5 }, "toPort": { "side": "top" } },
+          { "id": "e9", "from": "assayB", "to": "record", "color": "#111111", "width": 1, "fromPort": { "side": "bottom", "at": 0.5 }, "toPort": { "side": "top" } }
+        ]
+      }
+    </script>
+  </body>
+</html>

@@ -6,7 +6,7 @@ The official plugin marketplace maintained by the Agent Plugkit organization.
 
 Musekit 把「风格」和「场景制作」分成两层：
 
-- **风格库**由 `musepool` 管理：Seed 是按设计元素分类的可复用单元（配色、字体、网格、间距、形态、手法等），Template 是由 Seed 组合而成的风格（目前有新瑞士国际主义、日式留白、编辑衬线、新粗野主义、单色编辑印刷 5 种，均为 draft），写明精神、文法、各场景适配与常见误用；29 个真实作品的拆解记录保留为范例。musepool 按场景检索或组合风格，并解析成一份 `style.md`。
+- **风格库**由 `musepool` 管理：Seed 是按设计元素分类的可复用单元（配色、字体、网格、间距、形态、手法等），Template 是由 Seed 组合而成的风格（目前有新瑞士国际主义、日式留白、编辑衬线、新粗野主义、单色编辑印刷、报纸大版 6 种，均已验收为 verified），写明精神、文法、各场景适配与常见误用；17 个真实作品的拆解记录作为范例。musepool 按场景检索或组合风格，并解析成一份 `style.md`。
 - **场景工作流**负责制作：先写场景 Brief，再从 musepool 取 `style.md`，选结构原型、用风格文法排版，制作后按共享的评审循环检查。用户的品牌规范或既有设计系统会被整理成同形的风格。
 
 | Skill | 用途 |
@@ -15,13 +15,14 @@ Musekit 把「风格」和「场景制作」分成两层：
 | `style-builder` | 新增一套可长期复用的风格：从零创建，或从已有网站、代码库、设计系统中提取 |
 | `web-design` | 设计并实现网站、落地页与 Web App 界面，在浏览器评审 |
 | `graphic-design` | 制作海报、封面和社媒图等单页平面作品 |
+| `slides-design` | 制作演示文稿，交付可翻页的 HTML、PDF 和逐页 PNG |
 | `diagram-design` | 从 Mermaid 或关系说明制作精美图解，共用测量与连线代码，成品内置离线布局编辑和 PNG 导出 |
 | `data-figure` | 把数据做成准确、好看的数据图，学术出版图另守统计与出版规范 |
 | `article-illustration` | 为一整篇文章编排配图，确认后交给图解、平面或数据图 Skill，并把 PNG 插入不改原文的副本 |
 
 `article-illustration` 只编排整篇文章，不替代单张图的场景 Skill，也不做公众号排版。字体只登记可合法获得的开源字体；版权字体作为风格原型登记，并给出开源替代。
 
-完整示例包含[两种风格的官网首页](plugins/musekit/skills/web-design/references/examples.md)、[两种风格的活动海报](plugins/musekit/skills/graphic-design/references/examples.md)、[六种图解](plugins/musekit/skills/diagram-design/references/examples.md)和[学术数据图](plugins/musekit/skills/data-figure/references/examples.md)，各自附输入、选择理由与可编辑源文件；网页和海报示例还记录了评审发现与修正。
+每个制作 Skill 都附制作示例，记录一次完整制作从 Brief 到评审的判断过程，并附可编辑源文件：[官网首页](plugins/musekit/skills/web-design/references/examples.md)和[活动海报](plugins/musekit/skills/graphic-design/references/examples.md)各三种风格，[演示文稿](plugins/musekit/skills/slides-design/references/examples.md)、[图解](plugins/musekit/skills/diagram-design/references/examples.md)、[数据图](plugins/musekit/skills/data-figure/references/examples.md)和[文章配图](plugins/musekit/skills/article-illustration/references/examples.md)各有对应示例。图解另有六种图型的[接入示例](plugins/musekit/skills/diagram-design/references/integration.md)。
 
 Musekit `0.3.0` 的图解成品支持节点查找与直接关系定位，内置按错误和提示分组的布局诊断。点击“编辑布局”可调整模块、分组、连线与标签，按编号定位或删除折点；属性区与对象列表独立滚动，窄窗口使用底部双栏。保存新 HTML 后可离线继续编辑，使用者直接在桌面 Chrome 或 Edge 打开文件。[布局编辑说明](plugins/musekit/skills/diagram-design/references/editor.md)包含保存和 PNG 导出操作。
 
@@ -29,7 +30,7 @@ Musekit `0.3.0` 的图解成品支持节点查找与直接关系定位，内置�
 
 ### 从 0.x 迁移到 1.0
 
-Musekit `1.0.0` 重做了风格层：`ui-design` 改名为 `web-design`；musepool 的 `muse_local.py` 与 `ui`/`graphic`/`information` 分类、Markdown seed 简报不再提供，改用 `scripts/muse.py` 的 `search/show/resolve/compose/check` 与 `style.md`。原 29 个 seed 作为范例保留在 `library/precedents/`，`muse.py show <id>` 仍可查看。不提供旧名称和旧命令的兼容别名。
+Musekit `1.0.0` 重做了风格层：`ui-design` 改名为 `web-design`；musepool 的 `muse_local.py` 与 `ui`/`graphic`/`information` 分类、Markdown seed 简报不再提供，改用 `scripts/muse.py` 的 `search/show/resolve/compose/check` 与 `style.md`。原 29 个 seed 里仍有参考价值的 14 个作为范例保留在 `library/precedents/`（id 改为小写），`muse.py show <id>` 可以查看。不提供旧名称和旧命令的兼容别名。
 
 ### 从旧设计插件迁移
 

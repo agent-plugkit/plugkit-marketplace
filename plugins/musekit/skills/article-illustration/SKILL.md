@@ -7,7 +7,7 @@ description: 为一整篇文章编排配图。识别已有 Mermaid 和确实帮�
 
 编排一篇文章需要哪些图，再交给已有场景 Skill 制作。本 Skill 不重写测量、连线、平面构图或数据图规则。
 
-## 何时使用
+## 范围
 
 进入本 Skill：
 
@@ -39,4 +39,4 @@ description: 为一整篇文章编排配图。识别已有 Mermaid 和确实帮�
 
 交付 `article-illustration/` 目录、已确认的大纲和插好相对路径图片的副本。说明做成了哪些图、哪些失败、原文未被修改。未打开成图不能声称视觉通过。
 
-需要对照一次完整判断时，读取 [制作示例](references/examples.md)。
+完整的判断过程见[制作示例](references/examples.md)。

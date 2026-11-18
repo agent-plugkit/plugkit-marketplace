@@ -57,6 +57,9 @@ overrides:
     size-body: 40px
     size-meta: 24px
 exemplars: [ljwyqi6u, vy3ktwac, yoiov5el]
+examples:
+  diagram: skills/diagram-design/references/examples/neo-swiss-leaf-extract.md
+  data: skills/data-figure/references/examples/neo-swiss-responses.md
 ---
 
 # 新瑞士国际主义

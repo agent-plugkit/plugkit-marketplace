@@ -48,6 +48,7 @@ tokens:
     role: 展示字拉开字距，让每个字单独被看见
   tracking-meta:
     value: "0.2em"
+    role: 元数据与注释的字距，中文同样加
 ---
 
 # 宋体为主的疏朗排印

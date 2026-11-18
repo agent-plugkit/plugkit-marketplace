@@ -23,14 +23,14 @@ style.md 的 frontmatter 是给工具读的值。读取 `tokens` 和 `data` 两�
 | `size-title`、`size-body`、`size-meta` | 图题；副标题、刻度与数值标注；图注与来源。刻度放不下或压过数据时可以退到 `size-meta`，数值标注保持 `size-body` |
 | `rule-width` | 坐标轴线和网格线的线宽。数据线要明显更粗；style.md 没有数据线宽和点径，按目标尺寸自定，写进交付说明 |
 
-style.md 的字号按网页参照尺寸给出（像素）。图按目标宽度导出后会缩放显示，所以按最终展示宽度检查：文章配图在正文宽度下，刻度和标注要和正文差不多大。缩放后太小时，把整套字号按同一比例放大，不只放大其中一个。学术出版用期刊规定的字号（磅），见[学术出版 profile](academic.md)。
+style.md 的字号按网页参照尺寸给出（像素）。图按目标宽度导出后会缩放显示，所以按最终展示宽度检查：文章配图在正文宽度下，数值标注要和正文差不多大；刻度退到 `size-meta` 时，缩放后不小于 12 px。缩放后太小时，把整套字号按同一比例放大，不只放大其中一个。学术出版用期刊规定的字号（磅），见[学术出版 profile](academic.md)。`canvas-width`、`columns`、`margin` 是网页的参照值，数据图不用：画布宽取展示宽度，四周留白按刻度和标注所需，取间距阶梯上的值。
 
 ### matplotlib
 
 - 字体：style.md「字体」一节有每款字体的下载地址。下载字体文件放进作品目录，用 `matplotlib.font_manager.fontManager.addfont(路径)` 注册后再设 `font.family`，不依赖系统里碰巧装了什么字体。不能下载（没有网络或用户没同意）时，按 style.md 的字体栈依次取本机已有的字体；字体栈里需要确认授权的商业字体（例如 Helvetica Neue）会被嵌进 PDF 或转成 SVG 路径，授权不明时跳过，最后回退到 matplotlib 自带的 DejaVu Sans。用 `font_manager.findfont` 打印实际用到的文件，写进交付说明。`.ttc` 字体集合只会读到第一个字面，它可能是最粗的一款，要核对实际字重。`font.family` 写成列表（西文字体在前、中文字体在后），中文才不会显示成方框。导出后检查中文、负号和上下标都正确。
 - 尺寸：`figsize` 以英寸为单位。文章配图按 96 dpi 设计版面：`figsize` = 显示宽度 px ÷ 96，字号 pt = px × 0.75。PNG 导出时 `dpi` = 96 × 倍率，高清屏取 2，例如 680 px 宽的图导出 1360 px；SVG 的原生宽度就是显示宽度。学术出版按毫米设置，见 profile。
 - 样式：去掉上、右两条轴线；网格只留数值方向，线宽用 `rule-width`，颜色用 `ink-muted` 并调低不透明度。
-- 导出：PNG 用 `savefig(..., dpi=..., facecolor=paper)`；SVG 用 `svg.fonttype: "none"` 保留可编辑文字时，打开它的电脑也要装有这些字体，否则改用 `"path"`。
+- 导出：PNG 用 `savefig(..., dpi=..., facecolor=paper)`；SVG 用 `svg.fonttype: "none"` 保留可编辑文字时，打开它的电脑也要装有这些字体，否则改用 `"path"`。`"none"` 不嵌入字体，字体栈里可以留着授权不明的回退字体，栈尾接通用族（`serif` 或 `sans-serif`）；`"path"` 和 PDF 会把字形嵌进文件，只用开源字体。
 
 ## 数据处理
 

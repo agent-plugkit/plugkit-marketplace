@@ -50,6 +50,7 @@ tokens:
     value: "-0.02em"
   tracking-meta:
     value: "0.08em"
+    role: 等宽工具字的字距，只用于西文、数字和符号；中文标签字距为 0
 ---
 
 # 印刷展示体与工具字

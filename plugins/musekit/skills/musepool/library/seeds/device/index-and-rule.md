@@ -13,7 +13,7 @@ tokens:
     role: 两位数编号
   meta-label-width:
     value: 4em
-    role: 元数据表中标签栏的宽度
+    role: 元数据表中标签栏的宽度，em 按标签的字号（`size-meta`）计
 ---
 
 # 索引与分隔线

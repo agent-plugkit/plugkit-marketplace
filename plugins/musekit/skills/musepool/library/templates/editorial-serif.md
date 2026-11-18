@@ -59,6 +59,7 @@ exemplars: [c4aztwoh, b3lygtwe, rvyjrbzh, g26lbsoo]
 examples:
   graphic: skills/graphic-design/references/examples/editorial-serif-long-river.md
   web: skills/web-design/references/examples/editorial-serif-long-river.md
+  data: skills/data-figure/references/examples/editorial-serif-rides.md
 ---
 
 # 编辑衬线
