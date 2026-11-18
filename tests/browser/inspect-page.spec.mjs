@@ -248,6 +248,47 @@ test("layout rules from style.md: each broken rule is named with its reading, th
   expect(report.problems.some((p) => /^sweep .*rule seams fails/.test(p))).toBe(true);
 });
 
+test("a style that follows the system is also shot in dark, and a page that ignores dark or hardcodes light colours is told so", async () => {
+  test.setTimeout(90000);
+  write("scheme-style.md", `\`\`\`css
+:root {
+  color-scheme: light dark;
+  --color-paper: #ffffff;
+  --color-ink: #111111;
+}
+/* 深色：跟随系统 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #121311;
+    --color-ink: #ecebe5;
+  }
+}
+\`\`\`
+`);
+  const page = (css) => `<!doctype html><meta charset="utf-8"><style>
+:root{--color-paper:#ffffff;--color-ink:#111111}
+${css}
+html,body{margin:0;background:var(--color-paper);color:var(--color-ink);font-family:Arial,sans-serif}
+.note{color:#111111}
+.tint{background:color-mix(in srgb, var(--color-ink) 8%, transparent)}
+</style><h1>城市里的植物</h1><p class="note">写死的墨色</p><p class="tint">由墨色调出的浅底</p>`;
+  write("follows.html", page("@media (prefers-color-scheme: dark){:root{--color-paper:#121311;--color-ink:#ecebe5}}"));
+  write("ignores.html", page(""));
+  const run = (name) => inspectPage(parseArgs([join(work, `${name}.html`), "--viewports", "800x600", "--style", join(work, "scheme-style.md"), "--out", join(work, `${name}-review`)]));
+
+  const follows = await run("follows");
+  for (const k of ["fold", "full"]) expect(existsSync(follows.files[`800x600-dark-${k}`])).toBe(true);
+  expect(follows.dark.map((d) => d.same)).toEqual([false]);
+  // The hardcoded ink is on the light palette but not on the dark one; a tint mixed from a token is on both.
+  expect(follows.offPalette).toEqual([]);
+  expect(follows.dark[0].offPalette.map((o) => o.value)).toEqual(["color rgb(17, 17, 17)"]);
+  expect(follows.problems.some((p) => p.startsWith("colour not in style.md (dark) @800x600: color rgb(17, 17, 17)"))).toBe(true);
+  expect(follows.problems.some((p) => /looks the same/.test(p))).toBe(false);
+
+  const ignores = await run("ignores");
+  expect(ignores.dark.map((d) => d.same)).toEqual([true]);
+  expect(ignores.problems.some((p) => p.startsWith("dark scheme looks the same as light @800x600"))).toBe(true);
+});
 
 // Decks are built on the slides-design starter, shrunk to an 800 × 450 canvas to keep the run short.
 const starter = readFileSync(new URL("../../plugins/musekit/skills/slides-design/assets/deck.html", import.meta.url), "utf8")

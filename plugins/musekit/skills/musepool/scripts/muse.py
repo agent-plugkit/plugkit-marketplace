@@ -49,6 +49,8 @@ REQUIRED_TOKENS = {
     "typography": ("font-display", "font-text", "font-cjk", "size-body"),
 }
 LEVELS = {"body": 4.5, "large": 3.0}
+# 同时有这两个变体的 Template 在 web 场景跟随系统深浅色切换。
+SCHEME_VARIANTS = ("light", "dark")
 
 
 class MuseError(Exception):
@@ -329,8 +331,15 @@ def check_section(roles, rules) -> list[str]:
     return out
 
 
+def follows_system(template) -> bool:
+    options = (template.get("variants") or {}).get("options") or []
+    return all(name in options for name in SCHEME_VARIANTS)
+
+
 def template_tokens(lib: Library, template, scene: str | None, variant: str | None):
-    """合并 Seed 的值，依次应用颜色变体与场景覆盖值。返回 (值, 角色, 所属类别)。"""
+    """合并 Seed 的值，依次应用变体与场景覆盖值。返回 (值, 角色, 所属类别)。
+
+    变体名来自颜色 Seed；其他 Seed 也可以按同一个变体名改写自己的 token，例如深色下的阴影。"""
     values, roles, owner = {}, {}, {}
     for category, seed_id in (template.get("seeds") or {}).items():
         seed = lib.seed(seed_id, template)
@@ -347,8 +356,8 @@ def template_tokens(lib: Library, template, scene: str | None, variant: str | No
     if variant:
         if variant not in (variants.get("options") or []):
             raise MuseError(f"没有变体 {variant}（可用：{', '.join(variants.get('options') or [])}）")
-        color = lib.seed(template["seeds"]["color"], template)
-        values.update((color.get("variants") or {}).get(variant) or {})
+        for seed_id in template["seeds"].values():
+            values.update((lib.seed(seed_id, template).get("variants") or {}).get(variant) or {})
     if scene:
         for name, value in ((template.get("overrides") or {}).get(scene) or {}).items():
             if name == "breakpoints":
@@ -451,14 +460,6 @@ def spacing_problems(values, label: str) -> list[str]:
         if size is not None and size not in scale:
             problems.append(f"{label}：{name} {values.get(name)} 不在间距阶梯 {scale} 中")
     return problems
-
-
-def text_pairs(lib: Library, template, values) -> list[tuple[str, str, float, str]]:
-    color = lib.seed(template["seeds"]["color"], template)
-    rows = []
-    for fg, bg, level in color.get("pairs") or []:
-        rows.append((fg, bg, contrast(values[fg], values[bg]), level))
-    return rows
 
 
 def font_stack(lib: Library, family: str, cjk: str | None) -> list[str]:
@@ -615,7 +616,13 @@ def cmd_resolve(args, lib: Library):
     template = lib.template(args.template)
     if args.scene not in template.get("scenes", []):
         raise MuseError(f"{template['id']} 没有声明适用于 {args.scene}")
-    values, roles, owner, variant = template_tokens(lib, template, args.scene, args.variant)
+    # web 不指定变体、风格又有浅色和深色两个变体时，跟随系统：:root 取浅色，深色块只写深色改写的值。
+    auto = args.scene == "web" and not args.variant and follows_system(template)
+    values, roles, owner, variant = template_tokens(lib, template, args.scene, "light" if auto else args.variant)
+    dark_values = template_tokens(lib, template, args.scene, "dark")[0] if auto else {}
+    dark = {name: value for name, value in dark_values.items() if values.get(name) != value}
+    if auto:
+        variant = "auto"
     parts = sections(template["_body"])
     adaptation = sections(parts.get("场景适配", ""), 3).get(args.scene)
     out = ["---", f"template: {template['id']}", f"name: {template['name']}",
@@ -624,6 +631,9 @@ def cmd_resolve(args, lib: Library):
            f"adaptation: {'provided' if adaptation else 'missing'}", "tokens:"]
     for name, value in values.items():
         out.append(f"  {name}: {json.dumps(value, ensure_ascii=False)}")
+    if dark:
+        out.append("dark:")
+        out += [f"  {name}: {json.dumps(value, ensure_ascii=False)}" for name, value in dark.items()]
     data = data_palette(lib.seed(template["seeds"]["color"], template), variant) if args.scene == "data" else None
     if data:
         out.append("data:")
@@ -635,14 +645,28 @@ def cmd_resolve(args, lib: Library):
             out += [f"  {name}:", f"    max-width: {entry['max-width']}"]
             out += [f"    {token}: {json.dumps(value, ensure_ascii=False)}" for token, value in entry["tokens"].items()]
     out += ["---", "", f"# 风格：{template['name']} · {args.scene}", "", "## 来源与状态", ""]
-    out.append(f"- Template `{template['id']}`，来源 {template.get('source', 'library')}，状态 {template['status']}，变体 {variant or '无'}。")
+    shown_variant = "light / dark，跟随系统深浅色切换" if auto else variant or "无"
+    out.append(f"- Template `{template['id']}`，来源 {template.get('source', 'library')}，状态 {template['status']}，变体 {shown_variant}。")
+    if auto:
+        out.append("- 跟随系统深浅色：`:root` 是浅色值，`@media (prefers-color-scheme: dark)` 块改写深色下变化的值（颜色、阴影等）。"
+                   "页面的颜色与阴影都从变量取，不写死；只要一种外观时，用 `--variant light` 或 `--variant dark` 重新解析。")
     if template["status"] != "verified":
         out.append("- 这个风格尚未通过人工确认，交付时说明它是 draft。")
-    css = ["```css", ":root {", *css_variables(lib, values, owner)]
+    css = ["```css", ":root {"]
+    if auto:
+        css.append("  color-scheme: light dark;")
+    elif variant == "dark" and follows_system(template):
+        css.append("  color-scheme: dark;")
+    css += css_variables(lib, values, owner)
     if data:
         for kind, short in zip(DATA_KINDS, ("cat", "seq", "div")):
             css += [f"  --data-{short}-{i}: {color};" for i, color in enumerate(data[kind], 1)]
     css.append("}")
+    if dark:
+        # 写在断点之前：断点改写的值在窄屏上照样生效，和只取一个变体时一致。
+        css += ["/* 深色：跟随系统 */", "@media (prefers-color-scheme: dark) {", "  :root {"]
+        css += ["  " + line for line in css_variables(lib, dark, owner)]
+        css += ["  }", "}"]
     for name, entry in breakpoints.items():
         if not entry["tokens"]:
             css.append(f"/* {name}：max-width {entry['max-width']}，只调整版面，没有 token 变化 */")
@@ -653,10 +677,13 @@ def cmd_resolve(args, lib: Library):
     out += ["", "## Tokens", "", *css, "```", ""]
     out += ["| token | 角色 |", "| --- | --- |"]
     out += [f"| `{name}` | {role} |" for name, role in roles.items() if role]
-    out += ["", "## 文字配对", "", "文字只能按下表放在对应背景上。大字指不小于 24px，或不小于 18.7px 的粗体。", "",
-            "| 文字 | 背景 | 对比 | 可用字号 |", "| --- | --- | --- | --- |"]
-    for fg, bg, ratio, level in text_pairs(lib, template, values):
-        out.append(f"| `{fg}` | `{bg}` | {ratio:.2f}:1 | {'任意字号' if level == 'body' else '仅大字'} |")
+    out += ["", "## 文字配对", "", "文字只能按下表放在对应背景上。大字指不小于 24px，或不小于 18.7px 的粗体。", ""]
+    # 跟随系统时，每组配对在浅色和深色下各列一个对比度。
+    schemes = {"浅色对比": values, "深色对比": dark_values} if auto else {"对比": values}
+    out += [f"| 文字 | 背景 | {' | '.join(schemes)} | 可用字号 |", "| --- | --- | " + "--- | " * len(schemes) + "--- |"]
+    for fg, bg, level in lib.seed(template["seeds"]["color"], template).get("pairs") or []:
+        ratios = " | ".join(f"{contrast(scheme[fg], scheme[bg]):.2f}:1" for scheme in schemes.values())
+        out.append(f"| `{fg}` | `{bg}` | {ratios} | {'任意字号' if level == 'body' else '仅大字'} |")
     out += ["", "未列出的组合不要使用。", ""]
     if data:
         out += ["## 数据色板", "", "按数据要做的事选一组。颜色按顺序取用，不循环、不跳号；同一序列在各面板里用同一个颜色。", "",
@@ -1016,6 +1043,14 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
     for name in REQUIRED_TOKENS.get(category, ()):
         if name not in tokens:
             errors.append(f"{where}：{category} seed 必须定义 {name}")
+    variants = seed.get("variants") or {}
+    if not (isinstance(variants, dict) and all(isinstance(change, dict) for change in variants.values())):
+        errors.append(f"{where}：variants 必须是按变体名给出的 token 改写映射")
+        variants = {}
+    for variant, change in variants.items():
+        unknown = [name for name in change if name not in tokens]
+        if unknown:
+            errors.append(f"{where}：变体 {variant} 改写了不存在的 token {', '.join(unknown)}")
     if category == "typography":
         for name, token in tokens.items():
             if not name.startswith("font-"):
@@ -1048,10 +1083,7 @@ def check_seed(lib: Library, seed, path: Path | None, errors: list[str]):
             errors.append(f"{where}：原型字体 {seed['archetype']} 未登记")
     if category == "color":
         palettes = {"default": {n: t["value"] for n, t in tokens.items() if isinstance(t, dict)}}
-        for variant, change in (seed.get("variants") or {}).items():
-            unknown = [name for name in change if name not in tokens]
-            if unknown:
-                errors.append(f"{where}：变体 {variant} 改写了不存在的 token {', '.join(unknown)}")
+        for variant, change in variants.items():
             palettes[variant] = {**palettes["default"], **change}
         for variant, palette in palettes.items():
             for pair in seed.get("pairs") or []:
@@ -1125,6 +1157,26 @@ def check_template(lib: Library, template, errors: list[str]):
     if any(scene not in SCENES for scene in template.get("scenes") or []):
         errors.append(f"{where}：scenes 含未知场景")
     color = lib.seed(seeds.get("color"), template) if seeds.get("color") else None
+    for category, seed_id in seeds.items():
+        seed = lib.seed(seed_id, template)
+        if not seed or category == "color" or not color or not isinstance(seed.get("variants"), dict):
+            continue
+        for name in seed["variants"]:
+            if name not in (color.get("variants") or {}):
+                errors.append(f"{where}：{seed['id']} 的变体 {name} 不是颜色 Seed {color['id']} 的变体")
+    for name in ((template.get("variants") or {}).get("options") or []) if color else []:
+        if name not in (color.get("variants") or {}):
+            errors.append(f"{where}：变体 {name} 不是颜色 Seed {color['id']} 的变体")
+    if follows_system(template):
+        # 覆盖值排在变体之后，会盖掉深色值：深色下就用错了值。
+        darkened = {name for seed in loaded if isinstance(seed.get("variants"), dict)
+                    for name in (seed["variants"].get("dark") or {})}
+        for scene, entry in (template.get("overrides") or {}).items():
+            entry = entry if isinstance(entry, dict) else {}
+            places = [(scene, entry), *((f"{scene}/{name}", point or {}) for name, point in (entry.get("breakpoints") or {}).items())]
+            for label, tokens in places:
+                for name in sorted(set(tokens) & darkened):
+                    errors.append(f"{where}：{label} 的覆盖值 {name} 也被 dark 变体改写，深色下会被覆盖值盖掉；只留一处")
     if "data" in (template.get("scenes") or []) and color and "data" not in color:
         errors.append(f"{where}：声明了 data 场景，但颜色 Seed {color['id']} 没有数据色板")
     for scene in (template.get("overrides") or {}):

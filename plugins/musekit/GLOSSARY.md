@@ -64,6 +64,10 @@ _Avoid_: 去样式测试
 作品的媒介类别，共五个：`graphic`、`web`、`slides`、`diagram`、`data`。
 _Avoid_: 媒介、类型
 
+**跟随系统深浅色**：
+风格同时有 `light` 和 `dark` 两个变体时，网页按系统设置在浅色和深色之间切换；`style.md` 的 frontmatter 写 `variant: auto`。
+_Avoid_: 暗黑模式、主题切换、dark theme
+
 **场景适配**：
 Template 写给某一个场景的具体做法，优先于通用文法。
 _Avoid_: 场景规则

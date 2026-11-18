@@ -527,6 +527,105 @@ pairs:
   }
 });
 
+const glowSeed = (variants) => `---
+id: glow
+category: depth
+nature: value
+name: 测试阴影
+status: draft
+scenes: [web, graphic]
+affinity: [test]
+conflicts: []
+tokens:
+  shadow:
+    value: "0 8px 24px rgba(0, 0, 0, 0.2)"
+  highlight:
+    value: "inset 0 1px 0 rgba(255, 255, 255, 0.66)"
+${variants}
+---
+
+## 要点
+
+- 测试用。
+`;
+
+test('a light and dark variant pair lets a web page follow the system, and any seed may change with the variant', () => {
+  const duo = (dark) => userSeed('duo', `variants:
+  light:
+    paper: "#FFFFFF"
+  dark:
+${dark}
+pairs:
+  - [ink, paper, body]
+  - [accent, paper, large]`).replace('scenes: [web]', 'scenes: [web, graphic]');
+  const glow = glowSeed(`variants:
+  dark:
+    shadow: "0 8px 24px rgba(0, 0, 0, 0.6)"
+    highlight: "inset 0 1px 0 rgba(255, 255, 255, 0.06)"`);
+  const template = (color, depth) => userTemplate(color).replace('scenes: [web]', 'scenes: [web, graphic]')
+    .replace('seeds:', 'variants:\n  default: light\n  options: [light, dark]\nseeds:')
+    .replace('  spacing: baseline-8', `  spacing: baseline-8\n  depth: ${depth}\noverrides:\n  web:\n    breakpoints:\n      mobile:\n        max-width: 767px\n        columns: 4`);
+  const dir = scratch({
+    'duo.md': duo('    paper: "#121311"\n    ink: "#ECEBE5"\n    accent: "#8FB0FF"'),
+    'glow.md': glow,
+    'style.md': template('duo.md', 'glow.md'),
+    'dim.md': duo('    paper: "#121311"\n    ink: "#3A3A3A"').replace('id: duo', 'id: dim'),
+    'dusk.md': glowSeed('variants:\n  dusk:\n    shadow: "none"').replace('id: glow', 'id: dusk'),
+    'dusk-style.md': template('duo.md', 'dusk.md'),
+    'glare.md': glowSeed('variants:\n  dark:\n    glare: "none"').replace('id: glow', 'id: glare'),
+    // The template offers a variant its colour seed does not have.
+    'dawn-style.md': template('duo.md', 'glow.md').replace('options: [light, dark]', 'options: [light, dark, dawn]'),
+    // A scene override or breakpoint that sets a token the dark variant changes would win in dark too.
+    'pinned-style.md': template('duo.md', 'glow.md').replace('  web:\n', '  web:\n    shadow: none\n'),
+    'narrow-style.md': template('duo.md', 'glow.md').replace('        columns: 4', '        columns: 4\n        highlight: none'),
+  });
+  try {
+    assert.equal(run('check', join(dir, 'style.md')).status, 0, run('check', join(dir, 'style.md')).stdout);
+    const web = cli('resolve', join(dir, 'style.md'), '--scene', 'web');
+    const meta = parse(/^---\n([\s\S]*?)\n---/.exec(web)[1]);
+    assert.equal(meta.variant, 'auto');
+    assert.equal(meta.tokens.paper, '#FFFFFF');
+    assert.equal(meta.tokens.shadow, '0 8px 24px rgba(0, 0, 0, 0.2)');
+    // Only what the dark variant changes goes into the dark block, colour and non-colour alike.
+    assert.deepEqual(meta.dark, { paper: '#121311', ink: '#ECEBE5', accent: '#8FB0FF',
+      shadow: '0 8px 24px rgba(0, 0, 0, 0.6)', highlight: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' });
+    assert.match(web, /:root \{\n  color-scheme: light dark;\n/);
+    assert.match(web, /@media \(prefers-color-scheme: dark\) \{\n  :root \{\n    --color-paper: #121311;\n    --color-ink: #ECEBE5;\n    --color-accent: #8FB0FF;\n    --shadow: 0 8px 24px rgba\(0, 0, 0, 0\.6\);/);
+    // Breakpoints come after the dark block, so on a phone they win as they do for a single variant.
+    assert.ok(web.indexOf('prefers-color-scheme: dark') < web.indexOf('@media (max-width: 767px)'));
+    assert.match(web, /\| 文字 \| 背景 \| 浅色对比 \| 深色对比 \| 可用字号 \|/);
+    assert.match(web, /\| `ink` \| `paper` \| 18\.\d\d:1 \| 1\d\.\d\d:1 \| 任意字号 \|/);
+    assert.match(web, /跟随系统/);
+    // A named variant still pins one appearance, and other scenes resolve the default as before.
+    const dark = cli('resolve', join(dir, 'style.md'), '--scene', 'web', '--variant', 'dark');
+    assert.doesNotMatch(dark, /prefers-color-scheme/);
+    assert.match(dark, /:root \{\n  color-scheme: dark;\n/);
+    assert.match(dark, /--color-paper: #121311;/);
+    assert.match(dark, /--highlight: inset 0 1px 0 rgba\(255, 255, 255, 0\.06\);/);
+    const light = cli('resolve', join(dir, 'style.md'), '--scene', 'web', '--variant', 'light');
+    assert.doesNotMatch(light, /prefers-color-scheme|color-scheme/);
+    const graphic = cli('resolve', join(dir, 'style.md'), '--scene', 'graphic');
+    assert.equal(parse(/^---\n([\s\S]*?)\n---/.exec(graphic)[1]).variant, 'light');
+    assert.doesNotMatch(graphic, /prefers-color-scheme|color-scheme/);
+    assert.match(graphic, /--shadow: 0 8px 24px rgba\(0, 0, 0, 0\.2\);/);
+    const expect = {
+      'dim.md': /dark 中 ink\/paper 对比 1\.\d+ 低于 body 要求 4\.5/,
+      'dusk-style.md': /dusk 的变体 dusk 不是颜色 Seed duo 的变体/,
+      'glare.md': /变体 dark 改写了不存在的 token glare/,
+      'dawn-style.md': /变体 dawn 不是颜色 Seed duo 的变体/,
+      'pinned-style.md': /web 的覆盖值 shadow 也被 dark 变体改写/,
+      'narrow-style.md': /web\/mobile 的覆盖值 highlight 也被 dark 变体改写/,
+    };
+    for (const [file, pattern] of Object.entries(expect)) {
+      const result = run('check', join(dir, file));
+      assert.equal(result.status, 1, file);
+      assert.match(result.stdout, pattern, file);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('scene overrides carry breakpoints, derived column width and text pairs into style.md', () => {
   const web = cli('resolve', 'neo-swiss', '--scene', 'web');
   const meta = parse(/^---\n([\s\S]*?)\n---/.exec(web)[1]);

@@ -10,6 +10,7 @@ import {
   readFacts,
   readStyle,
   sweepSizes,
+  tokensAt,
 } from '../plugins/musekit/scripts/inspect_page.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -52,6 +53,44 @@ test('style.md gives breakpoint edges and the palette', () => {
 @media (max-width: 1100px) { :root { --columns: 8; } }`);
   assert.deepEqual(style.breakpoints, [767, 768, 1100, 1101]);
   assert.deepEqual(style.palette, ['255,248,231', '10,10,10', '255,34,204', '112,49,138', '228,228,222', '28,29,26']);
+});
+
+test('a style that follows the system keeps a dark palette and dark tokens apart from the light ones', () => {
+  const style = readStyle(`## Tokens
+
+\`\`\`css
+:root {
+  color-scheme: light dark;
+  --color-paper: #FFFFFF;
+  --color-ink: #111111;
+  --color-glass: rgba(228, 228, 222, 0.62);
+  --margin: 64px;
+}
+/* 深色：跟随系统 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #121311;
+    --color-glass: rgba(34, 35, 31, 0.64);
+    --shadow: none;
+  }
+}
+/* mobile */
+@media (max-width: 767px) {
+  :root {
+    --margin: 24px;
+  }
+}
+\`\`\`
+`);
+  assert.equal(style.dark, true);
+  assert.deepEqual(style.breakpoints, [767, 768]);
+  assert.deepEqual(style.palette, ['255,255,255', '17,17,17', '228,228,222']);
+  // Dark keeps the light colours it does not replace (ink here) and swaps the rest.
+  assert.deepEqual(style.darkPalette, ['17,17,17', '18,19,17', '34,35,31']);
+  assert.equal(tokensAt(style.tokens, 1440)['color-paper'], '#FFFFFF');
+  assert.deepEqual(tokensAt(style.tokens, 1440, 'dark'), { 'color-paper': '#121311', 'color-ink': '#111111', 'color-glass': 'rgba(34, 35, 31, 0.64)', margin: '64px', shadow: 'none' });
+  assert.equal(tokensAt(style.tokens, 375, 'dark').margin, '24px');
+  assert.equal(readStyle(':root { --color-paper: #FFF; }').dark, false);
 });
 
 test('the sweep covers fixed widths, breakpoint edges, the requested viewports and short screens', () => {

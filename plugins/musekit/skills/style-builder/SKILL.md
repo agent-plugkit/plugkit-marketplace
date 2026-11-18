@@ -55,7 +55,7 @@ Template 用相对自己的路径引用用户 Seed，例如 `color: seeds/color/
 ### 落成
 
 1. **选或写 Seed。** 逐个类别对照库内 Seed（`muse.py list seeds --category <类别>`）：值一致就引用 id；不一致时，用户终点在 `musekit/<id>/seeds/` 里写用户 Seed，维护者终点在风格库里写新 Seed（`status: draft`）。`color`、`typography`、`grid`、`spacing` 是必需类别。
-   - **颜色**：`paper`、`ink`、`accent` 必填；`pairs` 里每一组在每个变体下都要过对比度。成对的浅色和深色 token 做成 `light` 和 `dark` 两个变体，`default` 取用户最常用的外观。每次制作只解析其中一个变体，不支持跟随系统切换的深色网页（见 [ADR 0002](../../docs/adr/0002-dark-tokens-become-color-variants.md)）。
+   - **颜色**：`paper`、`ink`、`accent` 必填；`pairs` 里每一组在每个变体下都要过对比度。成对的浅色和深色 token 做成 `light` 和 `dark` 两个变体，`default` 取用户最常用的外观；阴影、高光这类颜色以外的深色值，写进对应 Seed 自己的 `variants.dark`。有了这两个变体，网页可以跟随系统深浅色切换，海报和演示文稿每次取其中一个（见 [ADR 0002](../../docs/adr/0002-dark-tokens-become-color-variants.md)）。
    - **字体**：字体值只能用注册表里的开源字体（`muse.py list fonts`）。用户指定版权字体时，先问对方有没有授权：有授权，Template 正文写明「有授权时用原字体」，token 仍填开源替代；没有授权，换成注册表登记的开源替代，并写明差异。用户终点不能改注册表：要用的开源字体没登记，或要用的字重不在它的加载地址里时，选注册表里最接近的字体和字重并写明差异；维护者终点可以把它登记进注册表，再跑 `muse.py check --links`。
    - **数据色板**：声明 `data` 场景时，颜色 Seed 必须带 `data` 色板（分类、顺序、发散三组，规则见字段约定的 `color` 一节）。色板从风格自己的用色出发，色数不够就如实写分类数的上限，不为凑数引入风格之外的颜色。做不出色板时不声明 `data`。
 2. **写 Template。** 从零创建用第 2 步确认过的文字稿；项目提取按报告归纳，沿用的部分写明沿用了谁。`scenes` 只写有依据的场景；graphic 和 web 要写 `### graphic`、`### web` 场景适配，并在 `overrides` 里给出海报画布与字号、网页断点。覆盖只能改已有的 token，所以网格 Seed 要同时写 `canvas-width` 和 `canvas-height`（网页参照视口的宽和高），海报再覆盖成自己的画布。用户终点至少写好用户最常用的那个场景。`exemplars` 列 Precedent id，用户 Template 没有就写 `[]`。没写场景适配的已声明场景会解析为「未验证适配」。

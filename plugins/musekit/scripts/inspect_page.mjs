@@ -27,6 +27,9 @@ Both:
   --ready JS            extra condition to wait for, e.g. "document.body.dataset.ready === '1'"
   --browser NAME        chromium (default), chrome or msedge
 
+When style.md follows the system light/dark setting (it has a prefers-color-scheme: dark block), each web viewport
+is also opened in dark and shot as web-<WxH>-dark-fold.png and -dark-full.png; colours on the first viewport are
+checked against the dark palette, and rules that name a colour are measured again. The sweep, keyboard, reduced-motion and flow runs stay in light.
 Layout rules listed under "机检" in style.md are measured on elements marked data-mk="<role>"; unmarked roles are
 reported as not measured.
 Mark intentionally clipped or decorative text (a marquee strip) with data-inspect-ignore. Never mark stickers or
@@ -69,7 +72,19 @@ export function parseArgs(argv) {
   return opts;
 }
 
-// style.md: breakpoint edges become sweep widths; colour tokens become the palette.
+// A style that follows the system light/dark setting redefines some tokens in this block.
+const DARK_BLOCK = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([^}]*)\}\s*\}/;
+
+// Colour tokens are hex or rgb()/rgba(); the page's colours are compared on r,g,b only, as the audit does.
+function colourTokens(text) {
+  const out = [];
+  for (const m of text.matchAll(/--((?:color|data)-[\w-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)) out.push([m[1], hexToRgb(m[2])]);
+  for (const m of text.matchAll(/--((?:color|data)-[\w-]+):\s*rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/g))
+    out.push([m[1], [m[2], m[3], m[4]].map((n) => Math.round(Number(n))).join(",")]);
+  return out;
+}
+
+// style.md: breakpoint edges become sweep widths; colour tokens become the palette, one per scheme.
 export function readStyle(text) {
   const breakpoints = new Set();
   for (const m of text.matchAll(/\((min|max)-width:\s*(\d+)px\)/g)) {
@@ -77,34 +92,41 @@ export function readStyle(text) {
     if (m[1] === "min") breakpoints.add(n - 1).add(n);
     else breakpoints.add(n).add(n + 1);
   }
-  const palette = new Set();
-  // Colour tokens are hex or rgb()/rgba(); the page's colours are compared on r,g,b only, as the audit does.
-  for (const m of text.matchAll(/--(?:color|data)-[\w-]+:\s*(#[0-9a-fA-F]{3,8})\b/g)) palette.add(hexToRgb(m[1]));
-  for (const m of text.matchAll(/--(?:color|data)-[\w-]+:\s*rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/g))
-    palette.add([m[1], m[2], m[3]].map((n) => Math.round(Number(n))).join(","));
-  // Token blocks: the base :root, then each @media block that redefines some of them.
   const vars = (body) => Object.fromEntries([...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  const dark = DARK_BLOCK.exec(text);
+  const light = colourTokens(dark ? text.replace(dark[0], "") : text);
+  const unique = (entries) => [...new Set(entries.map(([, rgb]) => rgb))].filter(Boolean);
+  const replaced = dark ? new Set(Object.keys(vars(dark[1]))) : new Set();
+  const palette = unique(light);
+  // In dark, the light colours the dark block does not replace are still in use.
+  const darkPalette = dark ? unique([...light.filter(([name]) => !replaced.has(name)), ...colourTokens(dark[1])]) : [];
+  // Token blocks in source order: the base :root, the dark block, then each @media block that redefines some of them.
   const css = (/```css\n([\s\S]*?)```/.exec(text) || [])[1] || "";
   const tokens = [];
   const base = /^:root\s*\{([^}]*)\}/m.exec(css);
   if (base) tokens.push({ vars: vars(base[1]) });
+  const darkCss = DARK_BLOCK.exec(css);
+  if (darkCss) tokens.push({ scheme: "dark", vars: vars(darkCss[1]) });
   for (const m of css.matchAll(/@media\s*\((min|max)-width:\s*(\d+)px\)\s*\{\s*:root\s*\{([^}]*)\}\s*\}/g))
     tokens.push({ [m[1]]: Number(m[2]), vars: vars(m[3]) });
   const block = /```json musekit-checks\n([\s\S]*?)```/.exec(text);
   const rules = block ? JSON.parse(block[1]).rules || [] : [];
-  return { breakpoints: [...breakpoints].sort((a, b) => a - b), palette: [...palette].filter(Boolean), tokens, rules };
+  return { breakpoints: [...breakpoints].sort((a, b) => a - b), palette, dark: !!dark, darkPalette, tokens, rules };
 }
 
-// Token values in force at a given width, as the page's own media queries would apply them.
-export function tokensAt(blocks, width) {
+// Token values in force at a given width and colour scheme, as the page's own media queries would apply them.
+export function tokensAt(blocks, width, scheme = "light") {
   const out = {};
-  for (const b of blocks || []) if ((b.max === undefined || width <= b.max) && (b.min === undefined || width >= b.min)) Object.assign(out, b.vars);
+  for (const b of blocks || []) {
+    if (b.scheme && b.scheme !== scheme) continue;
+    if ((b.max === undefined || width <= b.max) && (b.min === undefined || width >= b.min)) Object.assign(out, b.vars);
+  }
   return out;
 }
 
 // Rule thresholds name tokens; turn them into numbers (colours into rgb) for one width.
-export function resolveRules(rules, blocks, width) {
-  const values = tokensAt(blocks, width);
+export function resolveRules(rules, blocks, width, scheme = "light") {
+  const values = tokensAt(blocks, width, scheme);
   return rules.map((rule) => {
     const out = { ...rule, values: {} };
     for (const key of ["max", "min", "tolerance"]) {
@@ -411,7 +433,13 @@ function audit({ facts, palette, canvas, scroll }) {
   const sizes = new Map(), colors = new Map(), offPalette = new Map();
   const pal = new Set(palette);
   const note = (map, key, el) => { const v = map.get(key) || { count: 0, sample: desc(el) }; v.count++; map.set(key, v); };
-  const rgb = (c) => { const m = c.match(/[\d.]+/g); return m ? { key: m.slice(0, 3).join(","), alpha: m.length > 3 ? Number(m[3]) : 1 } : null; };
+  // Computed colours are rgb()/rgba(), or color(srgb r g b / a) with 0–1 channels when they come from color-mix().
+  const rgb = (c) => {
+    const m = c.match(/[\d.]+/g);
+    if (!m) return null;
+    const unit = c.startsWith("color(srgb") ? 255 : 1;
+    return { key: m.slice(0, 3).map((n) => Math.round(Number(n) * unit)).join(","), alpha: m.length > 3 ? Number(m[3]) : 1 };
+  };
   for (const el of document.body.querySelectorAll("*")) {
     if (!visible(el) || ignored(el) || hiddenByClip(el)) continue;
     const cs = getComputedStyle(el);
@@ -658,7 +686,7 @@ async function renderedFonts(page, samples) {
 
 async function openPage(browser, url, viewport, opts, extra = {}) {
   const mobile = !opts.canvas && viewport.width < 600;
-  const context = await browser.newContext({ viewport, deviceScaleFactor: opts.scale, isMobile: mobile, hasTouch: mobile, ...extra });
+  const context = await browser.newContext({ viewport, deviceScaleFactor: opts.scale, isMobile: mobile, hasTouch: mobile, colorScheme: "light", ...extra });
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e.message || e)));
@@ -757,6 +785,14 @@ function summarize(report) {
   }
   for (const f of report.fonts) if (f.fallback.length) p.push(`font fallback: ${f.stack} ${f.weight} rendered with ${f.fallback.join(", ")}`);
   for (const o of report.offPalette) p.push(`colour not in style.md: ${o.value} (${o.count}×, e.g. ${o.sample})`);
+  for (const d of report.dark || []) {
+    if (d.same) p.push(`dark scheme looks the same as light @${d.viewport}: style.md follows the system, so the page should switch with prefers-color-scheme`);
+    for (const o of d.offPalette || []) p.push(`colour not in style.md (dark) @${d.viewport}: ${o.value} (${o.count}×, e.g. ${o.sample})`);
+    for (const r of d.rules || []) {
+      if (r.status === "error") p.push(`layout rule ${r.kind} not measured @${d.viewport} dark: ${r.note}`);
+      if (r.status === "fail") for (const item of r.items.filter((x) => !x.ok)) p.push(`layout rule ${r.kind} fails @${d.viewport} dark: ${item.where} ${itemDetail(r, item)}`);
+    }
+  }
   for (const k of report.keyboard?.stops || []) if (!k.visibleFocus) p.push(`no visible focus change: ${k.element} "${k.label}"`);
   if (report.reducedMotion?.running.length) p.push(`still animating under reduced motion: ${report.reducedMotion.running.join("; ")}`);
   for (const [k, v] of Object.entries(report.flow || {})) if (v.error) p.push(`flow failed @${k}: ${v.error}`);
@@ -867,7 +903,7 @@ export async function inspectPage(opts) {
   const out = resolve(opts.out || join(base, "review"));
   await mkdir(out, { recursive: true });
 
-  let style = { breakpoints: [], palette: [], tokens: [], rules: [] }, stylePath = opts.style ? resolve(opts.style) : join(base, "style.md");
+  let style = { breakpoints: [], palette: [], dark: false, darkPalette: [], tokens: [], rules: [] }, stylePath = opts.style ? resolve(opts.style) : join(base, "style.md");
   try { style = readStyle(await readFile(stylePath, "utf8")); } catch { if (opts.style) throw new Error(`Cannot read --style ${opts.style}`); stylePath = null; }
   const facts = opts.facts ? readFacts(await readFile(resolve(opts.facts), "utf8")) : [];
 
@@ -936,6 +972,21 @@ export async function inspectPage(opts) {
         }
         report.views.push(strip(view));
         report.errors.push(...errors);
+        if (style.dark) {
+          // The same viewport in dark: screenshots, the dark palette and the rules that name a colour.
+          report.dark ||= [];
+          const dark = await openPage(browser, url, vp, opts, { colorScheme: "dark" });
+          const fold = file(`${tag}-dark-fold`, join(out, `web-${tag}-dark-fold.png`));
+          await dark.page.screenshot({ path: fold });
+          await dark.page.screenshot({ path: file(`${tag}-dark-full`, join(out, `web-${tag}-dark-full.png`)), fullPage: true });
+          const entry = { viewport: tag, same: (await readFile(fold)).equals(await readFile(report.files[`${tag}-fold`])) };
+          if (i === 0) entry.offPalette = (await dark.page.evaluate(audit, { ...auditArgs(null, true), facts: [], palette: style.darkPalette })).offPalette;
+          const coloured = style.rules.filter((r) => r.avoid);
+          if (coloured.length) entry.rules = await dark.page.evaluate(measureRules, { rules: resolveRules(coloured, style.tokens, vp.width, "dark"), judgeFill: false, canvas: null });
+          report.dark.push(entry);
+          report.errors.push(...dark.errors);
+          await dark.context.close();
+        }
         if (i === 0) {
           // Keyboard: walk the tab order from the top of the page.
           await page.evaluate(() => { scrollTo(0, 0); document.activeElement?.blur(); });

@@ -17,6 +17,7 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 | `affinity` | 与之相配的风格族，例如 `neo-swiss` |
 | `conflicts` | 不能同时使用的 Seed id 或风格族 |
 | `tokens` | 每个 token 是一个映射：`value` 必填，`role` 说明用途 |
+| `variants` | 可选。按变体名改写本 Seed 的部分 token，只能改已有的 token。变体名来自颜色 Seed，其他类别的 Seed 用同一个名字跟着变，例如深度 Seed 在 `dark` 下换一组阴影 |
 | `tools` | 可选。这个 Seed 要用到的共享制作工具，是路径列表，路径相对插件根，例如 `[assets/halftone.js]`。文件必须在插件的 `assets/` 里。`resolve` 会在这个 Seed 的要点之后写明工具的位置 |
 | `checks` | 可选。要点里能量化的版式规则，交给检查脚本测量，见下方「机检规则」 |
 
@@ -37,7 +38,7 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 
 类别专属字段：
 
-- `color`：必须有 `paper`（背景）、`ink`（正文）、`accent`（强调）三个 token。`variants` 按变体名改写部分 token。`pairs` 列出需要满足对比度的配对 `[前景, 背景, body|large]`，`body` 要求 4.5:1，`large` 要求 3:1，每个变体都要满足。可选的 `data` 给数据图色板，三组都写：`categorical`（3–6 色，每色对纸面至少 3:1，任意两色 OKLab ΔE×100 至少 15，红色盲和绿色盲模拟下至少 8）、`sequential`（3–9 色，由浅到深，最深一色对纸面至少 3:1）、`diverging`（奇数个、至少 5 色，中点是中性色，两臂向两端逐级变深，两端对纸面至少 3:1）。变体换掉的颜色让默认色板不再成立时（例如每个变体是一组不同的油墨），在 `data.variants` 下按变体名给整组替换色板，三组同样都写，同样逐一检查；没列出的变体用默认色板。声明了 `data` 场景的 Template，它的颜色 Seed 必须有 `data`。
+- `color`：必须有 `paper`（背景）、`ink`（正文）、`accent`（强调）三个 token。`variants` 按变体名改写部分 token；Template 能选的变体就是颜色 Seed 的变体，其他 Seed 的 `variants` 只能用这些名字。`pairs` 列出需要满足对比度的配对 `[前景, 背景, body|large]`，`body` 要求 4.5:1，`large` 要求 3:1，每个变体都要满足。可选的 `data` 给数据图色板，三组都写：`categorical`（3–6 色，每色对纸面至少 3:1，任意两色 OKLab ΔE×100 至少 15，红色盲和绿色盲模拟下至少 8）、`sequential`（3–9 色，由浅到深，最深一色对纸面至少 3:1）、`diverging`（奇数个、至少 5 色，中点是中性色，两臂向两端逐级变深，两端对纸面至少 3:1）。变体换掉的颜色让默认色板不再成立时（例如每个变体是一组不同的油墨），在 `data.variants` 下按变体名给整组替换色板，三组同样都写，同样逐一检查；没列出的变体用默认色板。声明了 `data` 场景的 Template，它的颜色 Seed 必须有 `data`。
 - `typography`：必须有 `font-display`、`font-text`、`font-cjk`、`size-body`。字体值必须是注册表里的开源字体，`font-cjk` 必须覆盖汉字。可选的 `archetype` 记录风格原型字体（可以是版权字体，但必须已登记）。
 
 正文必须有 `## 要点`：每条一个短句，说明怎样用、用多少。可以再加 `## 适用与边界`，写限制条件与缺少素材时的退路。两节都会原样进入 `style.md`。
@@ -54,7 +55,7 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 | `status`、`source` | 状态；来源为 `library`、`user` 或 `composed` |
 | `scenes`、`mood` | 适用场景；用于检索的气质词 |
 | `seeds` | 类别到 Seed id 的映射；`color`、`typography`、`grid`、`spacing` 必填 |
-| `variants` | `default` 与 `options`，取值来自颜色 Seed 的变体 |
+| `variants` | `default` 与 `options`，取值来自颜色 Seed 的变体；见下方「跟随系统深浅色」 |
 | `overrides` | 按场景覆盖 token 值，见下方「场景覆盖」 |
 | `exemplars` | Precedent id 列表 |
 | `examples` | 可选。场景到 Workflow 制作示例的映射，路径相对插件根，例如 `web: skills/web-design/references/examples/<名称>.md`；场景必须在 `scenes` 里，文件必须存在。`resolve` 只输出当前场景那一条 |
@@ -78,6 +79,18 @@ token 名在一个 Template 内不能重复。通用名称：颜色用角色名�
 - 间距：用了带 `space-scale` 的间距 Seed 时，每个场景和断点的 `margin`、`gutter` 都必须取自阶梯。
 - 字重：Typography Seed 用到的字重必须出现在对应字体加载地址的 `wght@` 列表里（等宽字体只要求 `weight-text`）。
 - 字号比例：Template 用了带 `ratio-adjacent`、`ratio-display` 的 Seed 时，`check` 会对每个场景和每个断点检查 display/headline、headline/title 不低于 `ratio-adjacent`，display/body 不低于 `ratio-display`。
+
+### 跟随系统深浅色
+
+`light` 和 `dark` 两个变体名留给成对的浅色与深色值。Template 的 `options` 同时有这两个变体时，web 场景不传 `--variant` 就解析为跟随系统：
+
+- frontmatter 写 `variant: auto`，`tokens` 是 `light` 下的值，`dark` 只列深色下变了的 token，颜色和阴影这类非颜色 token 都算。
+- CSS 的 `:root` 先声明 `color-scheme: light dark`，后面紧跟一个 `@media (prefers-color-scheme: dark)` 块改写这些 token，断点块排在它之后，所以窄屏上断点的值照样生效。
+- 「文字配对」表同时列浅色与深色下的对比度；`check` 本来就逐个变体检查 `pairs`，两套都要过。
+- 其他场景、或者 web 传了 `--variant`，都只取一个变体，和以前一样；这类风格单独取 `dark` 时，`:root` 声明 `color-scheme: dark`，让表单控件和滚动条也是深色。
+- 场景覆盖值和断点排在变体之后，所以不能再改 `dark` 变体改写的 token，否则深色下会被盖掉；`check` 会报出来。Template 的 `options` 只能是颜色 Seed 已有的变体。
+
+检查脚本读到 style.md 里的深色块时，在每个网页视口下再用深色打开一次，截首屏和整页；第一个视口按深色调色板检查颜色，见 web-design。
 
 ## 用户 Template
 
