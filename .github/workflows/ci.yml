@@ -35,3 +35,18 @@ jobs:
             printf '%s\n' "$repository_status"
             exit 1
           fi
+
+  agent-wake-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: agent-wake tests
+        run: node --test tests/agent-wake.test.mjs

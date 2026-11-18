@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // agent-wake: run `claude -p` / `codex exec` in the background and wake the owning bot via webhook
-// when the task ends. Linux only, Node 20+, no dependencies. State lives in ~/.agent-wake/<owner>/<id>/.
-import { spawn } from 'node:child_process';
+// when the task ends. Linux and macOS, Node 20+, no dependencies. State lives in ~/.agent-wake/<owner>/<id>/.
+import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -31,23 +31,42 @@ function events(dir) {
   } catch { return []; }
 }
 
-const bootId = () => readFileSync('/proc/sys/kernel/random/boot_id', 'utf8').trim();
+const DARWIN = process.platform === 'darwin';
 
-// /proc/<pid>/stat fields after the command name: [0] state, [19] start time in clock ticks.
+const bootId = () => (DARWIN
+  ? execFileSync('/usr/sbin/sysctl', ['-n', 'kern.bootsessionuuid'], { encoding: 'utf8' })
+  : readFileSync('/proc/sys/kernel/random/boot_id', 'utf8')).trim();
+
+// [state, start] of a process, or [] once it is gone. Linux: /proc/<pid>/stat fields after the command
+// name, [0] state and [19] start time in clock ticks. macOS: ps state and lstart (one-second resolution),
+// with a fixed locale and zone so run, hooks and pending format the start time alike.
 function stat(pid) {
+  if (DARWIN) {
+    try {
+      const out = execFileSync('/bin/ps', ['-o', 'stat=,lstart=', '-p', String(pid)],
+        { encoding: 'utf8', env: { LC_ALL: 'C', TZ: 'UTC' }, stdio: ['ignore', 'pipe', 'ignore'] });
+      const [state, ...start] = out.trim().split(/\s+/);
+      return [state, start.join(' ')];
+    } catch (error) {
+      // ps exits 1 for a missing pid; any other failure must not pass for a dead process.
+      if (error.status === 1) return [];
+      throw error;
+    }
+  }
   try {
     const text = readFileSync(`/proc/${pid}/stat`, 'utf8');
-    return text.slice(text.lastIndexOf(')') + 2).split(' ');
+    const fields = text.slice(text.lastIndexOf(')') + 2).split(' ');
+    return [fields[0], fields[19]];
   } catch { return []; }
 }
 
-const startTime = (pid) => stat(pid)[19] ?? null;
+const startTime = (pid) => stat(pid)[1] ?? null;
 
-// Start time plus boot_id defeats PID reuse; zombie (Z) and dead (X) processes do not count.
+// Start time plus boot id defeats PID reuse; zombie (Z) and dead (X) processes do not count.
 function alive(proc, boot) {
   if (!proc?.start || boot !== bootId()) return false;
-  const fields = stat(proc.pid);
-  return fields[19] === proc.start && !['Z', 'X'].includes(fields[0]);
+  const [state, start] = stat(proc.pid);
+  return start === proc.start && !/^[ZX]/.test(state);
 }
 
 // A signal (recorded, exit.signal or exit code >128) beats any earlier completion; otherwise the last
@@ -139,6 +158,7 @@ function inject(agent, argv, dir, task) {
 
 async function run(args) {
   process.on('SIGHUP', () => {});
+  if (!['linux', 'darwin'].includes(process.platform)) fail('only Linux and macOS are supported');
   const split = args.indexOf('--');
   const argv = split === -1 ? [] : args.slice(split + 1);
   const root = ownerDir(option(args.slice(0, split), '--owner'));
@@ -157,6 +177,10 @@ async function run(args) {
   } else {
     fail('usage: run --owner <botId> -- <claude -p … | codex exec …>');
   }
+  // Without its own start time run would look dead to the hooks, which would finalize too early.
+  const self = { pid: process.pid, start: null };
+  try { self.start = startTime(process.pid); } catch {}
+  if (!self.start) fail('cannot read the start time of this process');
 
   const prompt = process.stdin.isTTY ? '' : readFileSync(0, 'utf8');
   mkdirSync(root, { recursive: true });
@@ -170,7 +194,7 @@ async function run(args) {
   const resumed = hasFlag(argv, '--session-id', '--resume', '-r', '--continue', '-c');
   const task = {
     id, owner, agent, cwd: process.cwd(), argv, boot_id: bootId(),
-    run: { pid: process.pid, start: startTime(process.pid) },
+    run: self,
     session_id: agent === 'claude' && !resumed ? randomUUID() : null,
     created: new Date().toISOString(),
   };
