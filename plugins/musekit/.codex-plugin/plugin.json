@@ -1,14 +1,14 @@
 {
   "name": "musekit",
-  "version": "0.6.4",
-  "description": "设计灵感与场景制作工具箱：本地设计种子库，以及界面、平面、图解、学术图和文章配图编排。",
+  "version": "1.0.0",
+  "description": "设计风格库与场景制作工作流：按设计元素分类的 Seed、组合成风格的 Template，以及网页、平面、演示文稿、图解、数据图和文章配图。",
   "author": {
     "name": "Agent Plugkit"
   },
   "interface": {
     "displayName": "Musekit",
-    "shortDescription": "从灵感到场景作品",
-    "longDescription": "用 Musepool 探索本地设计种子库，再由界面、平面、图解或学术图 Skill 完成制作与检查。文章配图由 article-illustration 编排后交给对应场景。每个场景有自己的方法，也可直接使用用户参考或既有设计系统。",
+    "shortDescription": "从设计风格到场景作品",
+    "longDescription": "Musepool 把按设计元素分类的 Seed 组合成风格 Template，按场景解析成 style.md；网页、平面、演示文稿、图解或数据图工作流用它完成制作与评审。文章配图由 article-illustration 编排后交给对应场景。用户的品牌规范或既有设计系统会被整理成同形的风格。",
     "category": "General",
     "developerName": "Agent Plugkit",
     "capabilities": [
@@ -17,7 +17,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "为这项设计找到合适的灵感，并用对应场景的方法完成作品。",
+      "为这项设计挑一个合适的风格，并用对应场景的工作流完成作品。",
       "为这篇文章安排配图，确认方案后再交给对应场景制作。"
     ]
   },

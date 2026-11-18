@@ -23,8 +23,8 @@
     {
       "name": "musekit",
       "source": "./plugins/musekit",
-      "description": "设计灵感与场景制作工具箱：本地设计种子库，以及界面、平面、图解、学术图和文章配图编排。",
-      "version": "0.6.4",
+      "description": "设计风格库与场景制作工作流：按设计元素分类的 Seed、组合成风格的 Template，以及网页、平面、演示文稿、图解、数据图和文章配图。",
+      "version": "1.0.0",
       "author": {
         "name": "Agent Plugkit"
       },
@@ -34,8 +34,9 @@
         "inspiration",
         "ui",
         "graphic",
+        "slides",
         "diagram",
-        "scientific-figure",
+        "data-figure",
         "article-illustration"
       ]
     },

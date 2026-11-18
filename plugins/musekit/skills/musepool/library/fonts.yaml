@@ -1,0 +1,137 @@
+# Musepool 字体注册表。
+# Typography seed 只能引用 kind: open 的字体；commercial 只作为风格原型登记，并给出开源替代。
+# system 是操作系统自带字体，只能出现在回退栈里。
+# 字段说明见 ../references/schema.md#字体注册表。
+
+fonts:
+  - family: Inter
+    kind: open
+    license: OFL-1.1
+    scripts: [latin, greek, cyrillic]
+    official: "https://rsms.me/inter/"
+    download: "https://github.com/rsms/inter/releases"
+    css: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/inter@5/index.css"
+    fallback: [Inter, "Helvetica Neue", Arial, sans-serif]
+
+  - family: IBM Plex Mono
+    kind: open
+    license: OFL-1.1
+    scripts: [latin]
+    official: "https://www.ibm.com/plex/"
+    download: "https://github.com/IBM/plex/releases"
+    css: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5/index.css"
+    fallback: ["IBM Plex Mono", Menlo, Consolas, monospace]
+
+  - family: Noto Sans SC
+    kind: open
+    license: OFL-1.1
+    scripts: [han-simplified, latin]
+    official: "https://fonts.google.com/noto/specimen/Noto+Sans+SC"
+    download: "https://github.com/notofonts/noto-cjk/releases"
+    css: "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/index.css"
+    fallback: ["Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif]
+    notes: 与思源黑体同一设计，Google Fonts 版本按子集分片加载，适合网页。
+
+  - family: Source Han Sans SC
+    kind: open
+    license: OFL-1.1
+    scripts: [han-simplified, han-traditional, kana, hangul, latin]
+    official: "https://github.com/adobe-fonts/source-han-sans"
+    download: "https://github.com/adobe-fonts/source-han-sans/releases"
+    fallback: ["Source Han Sans SC", "Noto Sans SC", "PingFang SC", sans-serif]
+    notes: 适合本地排版与印刷导出；网页优先用 Noto Sans SC 的分片加载。
+
+  - family: PingFang SC
+    kind: system
+    scripts: [han-simplified, latin]
+    notes: macOS 与 iOS 自带，只用于回退栈。
+
+  - family: Microsoft YaHei
+    kind: system
+    scripts: [han-simplified, latin]
+    notes: Windows 自带，只用于回退栈。
+
+  - family: Helvetica Neue
+    kind: commercial
+    license: proprietary
+    scripts: [latin]
+    official: "https://www.linotype.com/1308886/helvetica-family.html"
+    notes: 瑞士国际主义的原型字体；macOS 自带系统副本，但商用授权需单独确认。
+    alternatives:
+      - family: Inter
+        note: 为屏幕调校，字怀更开、x 高更大；展示字号需收紧字距才接近 Helvetica 的密实感。
+      - family: IBM Plex Sans
+        note: 带一点工业味的 grotesk，末端更方，适合偏技术、偏档案的气质。
+
+  - family: IBM Plex Sans
+    kind: open
+    license: OFL-1.1
+    scripts: [latin, greek, cyrillic]
+    official: "https://www.ibm.com/plex/"
+    download: "https://github.com/IBM/plex/releases"
+    css: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans@5/index.css"
+    fallback: ["IBM Plex Sans", "Helvetica Neue", Arial, sans-serif]
+
+  - family: Noto Serif SC
+    kind: open
+    license: OFL-1.1
+    scripts: [han-simplified, latin]
+    official: "https://fonts.google.com/noto/specimen/Noto+Serif+SC"
+    download: "https://github.com/notofonts/noto-cjk/releases"
+    css: "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/index.css"
+    fallback: ["Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif]
+    notes: 与思源宋体同一设计。
+
+  - family: Source Serif 4
+    kind: open
+    license: OFL-1.1
+    scripts: [latin, greek, cyrillic]
+    official: "https://github.com/adobe-fonts/source-serif"
+    download: "https://github.com/adobe-fonts/source-serif/releases"
+    css: "https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/source-serif-4@5/index.css"
+    fallback: ["Source Serif 4", Georgia, "Times New Roman", serif]
+
+  - family: Archivo
+    kind: open
+    license: OFL-1.1
+    scripts: [latin]
+    official: "https://fonts.google.com/specimen/Archivo"
+    download: "https://github.com/Omnibus-Type/Archivo/releases"
+    css: "https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/archivo@5/index.css"
+    fallback: [Archivo, "Arial Black", Arial, sans-serif]
+
+  - family: Space Mono
+    kind: open
+    license: OFL-1.1
+    scripts: [latin]
+    official: "https://fonts.google.com/specimen/Space+Mono"
+    download: "https://github.com/googlefonts/spacemono"
+    css: "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap"
+    mirrors:
+      - "https://cdn.jsdelivr.net/npm/@fontsource/space-mono@5/index.css"
+    fallback: ["Space Mono", "IBM Plex Mono", Menlo, monospace]
+
+  - family: Tiempos Text
+    kind: commercial
+    license: proprietary
+    scripts: [latin]
+    official: "https://klim.co.nz/retail-fonts/tiempos-text/"
+    notes: 当代编辑衬线的常见原型字体，需向 Klim 购买授权。
+    alternatives:
+      - family: Source Serif 4
+        note: 字怀更开，衬线更方正，小字号更稳；展示字号下略显理性，可用斜体补足文学感。
+

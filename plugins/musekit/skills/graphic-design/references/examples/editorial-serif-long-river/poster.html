@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>长河 春季号发布会 海报</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* style.md（editorial-serif · graphic · burgundy）的 :root，原样接入 */
+:root {
+  --color-paper: #FBF8F3;
+  --color-ink: #1B1916;
+  --color-ink-muted: #6A6157;
+  --color-accent: #8C1D18;
+  --color-on-accent: #FBF8F3;
+  --font-display: "Source Serif 4", "Noto Serif SC", "Georgia", "Times New Roman", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-text: "Source Serif 4", "Noto Serif SC", "Georgia", "Times New Roman", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-cjk: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "IBM Plex Mono", "Noto Serif SC", "Menlo", "Consolas", "Source Han Serif SC", "Songti SC", "SimSun", monospace;
+  --weight-display: 600;
+  --weight-text: 400;
+  --weight-strong: 600;
+  --size-display: 136px;
+  --size-headline: 56px;
+  --size-title: 30px;
+  --size-body: 22px;
+  --size-meta: 15px;
+  --leading-display: 1.0;
+  --leading-display-cjk: 1.15;
+  --leading-headline: 1.12;
+  --leading-title: 1.3;
+  --leading-body: 1.7;
+  --tracking-display: -0.015em;
+  --tracking-meta: 0.06em;
+  --canvas-width: 1080px;
+  --canvas-height: 1440px;
+  --columns: 12;
+  --gutter: 16px;
+  --margin: 64px;
+  --axis-tolerance: 0.02;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --radius: 0;
+  --rule-width: 1px;
+  --rule-state: 2px;
+  --rule-heavy: 6px;
+  --shadow: none;
+  --drop-cap-lines: 3;
+  --rule-short: 48px;
+  --column-width: 64.67px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--color-paper); }
+body { width: var(--canvas-width); height: var(--canvas-height); overflow: hidden; }
+
+.poster {
+  position: relative;
+  width: var(--canvas-width);
+  height: var(--canvas-height);
+  padding: var(--margin);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-cjk);
+  font-weight: var(--weight-text);
+  font-synthesis: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.nowrap { white-space: nowrap; }
+
+/* 书眉：两端对齐，等宽小字，下方一条版心宽细线 */
+.folio {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  height: var(--space-6);           /* 书眉细线落在 y = 112 */
+  border-bottom: var(--rule-width) solid var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--size-body);
+  line-height: var(--leading-title);
+  letter-spacing: var(--tracking-meta);
+  color: var(--color-ink-muted);
+}
+.folio .masthead { color: var(--color-accent); }
+.folio > :last-child { text-align: right; }
+
+/* 标题组：沿画布中轴 */
+.title-group {
+  margin-top: var(--space-10);   /* 天头 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.kicker {
+  font-family: var(--font-mono);
+  font-size: var(--size-body);
+  line-height: var(--leading-title);
+  letter-spacing: var(--tracking-meta);
+  color: var(--color-ink-muted);
+}
+.title {
+  margin-top: var(--space-3);
+  font-family: var(--font-cjk);
+  font-size: var(--size-display);
+  font-weight: var(--weight-display);
+  line-height: var(--leading-display-cjk);
+  white-space: nowrap;
+}
+.rule-short {
+  width: var(--rule-short);
+  height: 0;
+  border-top: var(--rule-width) solid var(--color-ink);
+}
+.title + .rule-short { margin-top: var(--space-6); }
+.deck {
+  margin-top: var(--space-5);
+  font-size: var(--size-title);
+  line-height: var(--leading-body);
+  color: var(--color-ink-muted);
+}
+.deck > span { display: block; white-space: nowrap; position: relative; }
+.deck .event { color: var(--color-ink); }
+/* 示例小标移出文字流，句子本身居中 */
+.tag {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--size-meta);
+  line-height: calc(var(--size-title) * var(--leading-body));   /* 与句子同一行框，垂直居中对齐 */
+  letter-spacing: var(--tracking-meta);
+}
+.deck + .rule-short { margin-top: var(--space-5); }
+.byline {
+  margin-top: var(--space-5);
+  font-size: var(--size-body);
+  line-height: var(--leading-title);
+  letter-spacing: var(--tracking-meta);
+  color: var(--color-ink-muted);
+}
+
+/* 页脚：上方版心宽细线，版权行居中 */
+.footer {
+  margin-top: auto;
+  height: 112px;                    /* 非 token：= 版权行 39 + 示例声明 29 + 上内距 24 + 间距 16 ≈ 108，取 8 的倍数 112，细线落在 y = 1264 */
+  padding-top: var(--space-4);
+  border-top: var(--rule-width) solid var(--color-ink);
+  text-align: center;
+  font-family: var(--font-mono);
+}
+.imprint {
+  font-size: var(--size-title);
+  line-height: var(--leading-title);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+.disclosure {
+  margin-top: var(--space-3);
+  font-size: var(--size-body);
+  line-height: var(--leading-title);
+  letter-spacing: var(--tracking-meta);
+  color: var(--color-ink-muted);
+}
+</style>
+</head>
+<body>
+<main class="poster" aria-label="《长河》文学季刊 春季号发布会海报（虚构示例）">
+  <header class="folio">
+    <span class="masthead nowrap">《长河》文学季刊</span>
+    <span class="nowrap">The Long River Quarterly</span>
+    <span class="nowrap">2027 春季号</span>
+  </header>
+
+  <section class="title-group">
+    <p class="kicker">本期主题</p>
+    <h1 class="title">水边的人</h1>
+    <div class="rule-short" aria-hidden="true"></div>
+    <p class="deck">
+      <span class="event">春季号发布会</span>
+      <span>在河的这一岸，我们读给彼此听。<span class="tag">示例</span></span>
+    </p>
+    <div class="rule-short" aria-hidden="true"></div>
+    <p class="byline">长河编辑部 主办</p>
+  </section>
+
+  <footer class="footer">
+    <p class="imprint"><span class="nowrap">2027.04.18 19:00</span> · <span class="nowrap">旧城图书馆报告厅</span></p>
+    <p class="disclosure">虚构示例：刊物与活动均为虚构，导语为示例文字</p>
+  </footer>
+</main>
+</body>
+</html>

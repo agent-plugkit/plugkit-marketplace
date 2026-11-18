@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080">
+<title>窑开 · 社媒海报</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-paper: #F4F1EA;
+  --color-ink: #1E1D1A;
+  --color-ink-muted: #6B665D;
+  --color-accent: #B83A2E;
+  --color-on-accent: #F4F1EA;
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-text: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-cjk: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --weight-display: 400;
+  --weight-text: 400;
+  --weight-strong: 600;
+  --size-display: 120px;
+  --size-headline: 48px;
+  --size-title: 28px;
+  --size-body: 20px;
+  --size-meta: 15px;
+  --leading-display: 1.3;
+  --leading-display-cjk: 1.3;
+  --leading-headline: 1.45;
+  --leading-title: 1.6;
+  --leading-body: 1.95;
+  --tracking-display: 0.12em;
+  --tracking-meta: 0.2em;
+  --canvas-width: 1080px;
+  --canvas-height: 1440px;
+  --columns: 12;
+  --gutter: 16px;
+  --margin: 96px;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --radius: 0;
+  --rule-width: 1px;
+  --rule-state: 2px;
+  --rule-heavy: 6px;
+  --shadow: none;
+  --seal-size: 40px;
+  --column-width: 59.33px;
+
+  /* 本作品的推导值 */
+  --col-step: calc(var(--column-width) + var(--gutter)); /* 75.33px */
+  --title-size: 352px; /* muse.py fit --vertical：294.3–392.5px 之间取值，整列墨迹约为可用高度的 58% */
+  --title-top: calc(var(--margin) + var(--space-7));   /* y = 160 */
+  /* 副题墨迹顶与「开」字墨迹顶（实测 y = 582）对齐，并取内容区起点起 8 的倍数：96 + 61 × 8 = 584 */
+  --subtitle-top: calc(var(--margin) + 61 * var(--space-unit));
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: var(--canvas-width); height: var(--canvas-height); }
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-text);
+  font-weight: var(--weight-text);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 焦点：竖排标题，落在右侧三分线上（第 7 栏起，中线约 x = 724） */
+.title {
+  position: absolute;
+  left: calc(var(--margin) + 6 * var(--col-step));   /* 第 7 栏，x = 548 */
+  top: var(--title-top);
+  writing-mode: vertical-rl;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--title-size);
+  line-height: 1;   /* 单列竖排：行高只决定列宽，不影响墨迹；取 1 让列宽等于字号 */
+  letter-spacing: var(--tracking-display);
+  white-space: nowrap;
+}
+
+/* 副题：标题左侧一列竖排小字，从第二个字的高度起 */
+.subtitle {
+  position: absolute;
+  left: calc(var(--margin) + 5 * var(--col-step));    /* 第 6 栏，x = 472.7 */
+  top: var(--subtitle-top);
+  writing-mode: vertical-rl;
+  font-size: var(--size-title);
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+  white-space: nowrap;
+}
+
+/* 次要信息：退到左下角，与标题成对角 */
+.info {
+  position: absolute;
+  left: var(--margin);
+  bottom: var(--margin);
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+}
+.info .group + .group { margin-top: var(--space-4); }
+.info p { white-space: nowrap; }
+.info .date { font-weight: var(--weight-strong); }
+.info .muted { color: var(--color-ink-muted); }
+.info .label { color: var(--color-ink-muted); letter-spacing: var(--tracking-meta); margin-left: var(--space-3); }
+
+/* 朱印：压在主办一行旁，印文是主办方的窑名 */
+.host { display: flex; align-items: center; gap: var(--space-4); }
+.seal {
+  flex: none;
+  width: var(--seal-size);
+  height: var(--seal-size);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--size-meta);
+  line-height: 1;
+  writing-mode: vertical-rl;
+  display: flex;
+  flex-direction: column;      /* 竖排下 column 即块方向：两列从右往左排 */
+  justify-content: center;
+  align-items: center;         /* 印文在印面里上下左右居中，四边各留约十分之一 */
+  gap: var(--space-1);
+}
+.seal span { display: block; }
+</style>
+</head>
+<body>
+  <h1 class="title">窑开</h1>
+  <p class="subtitle">北坡窑 2027 秋季柴烧开窑日</p>
+
+  <div class="info">
+    <div class="group">
+      <p class="date">2027.10.23—10.24</p>
+      <p>上午场 10:00—12:00</p>
+      <p>下午场 14:00—16:00</p>
+      <p>两天共四场，每场限 20 人</p>
+    </div>
+    <div class="group">
+      <p>青梅谷 · 北坡窑</p>
+      <div class="host"><p>北坡窑工作室<span class="label">主办</span></p><div class="seal" aria-hidden="true"><span>北坡</span><span>窑</span></div></div>
+    </div>
+    <div class="group">
+      <p class="muted en">Kiln Opening, North Slope 2027</p>
+      <p class="muted">虚构示例活动</p>
+    </div>
+  </div>
+</body>
+</html>

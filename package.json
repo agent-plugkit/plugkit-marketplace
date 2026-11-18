@@ -12,15 +12,14 @@
   "scripts": {
     "build:diagram": "node scripts/build-diagram.mjs",
     "check:diagram": "node scripts/build-diagram.mjs --check",
+    "build:specimens": "node scripts/render-specimens.mjs",
     "test:browser": "playwright test",
     "build:plugins": "agent-plugkit build --all",
     "build:index": "agent-plugkit index",
     "validate": "agent-plugkit validate --all",
     "test:plugins": "node --test tests/*.test.mjs",
     "check:public": "node scripts/check-public-tree.mjs",
-    "sync:seeds": "node scripts/sync-seeds.mjs",
-    "check:seeds": "node scripts/sync-seeds.mjs --check",
-    "check": "npm run check:public && npm run check:seeds && npm run check:diagram && npm run build:plugins && npm run build:index && npm run validate && npm run test:plugins && npm run test:browser",
+    "check": "npm run check:public && npm run check:diagram && npm run build:plugins && npm run build:index && npm run validate && npm run test:plugins && npm run test:browser",
     "release:local": "npm run check && agent-plugkit release-local"
   },
   "devDependencies": {
