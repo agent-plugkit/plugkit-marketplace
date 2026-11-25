@@ -301,6 +301,34 @@ function audit({ facts, palette, canvas, scroll }) {
     for (const r of range.getClientRects()) if (r.width > 1 && r.height > 1) lines.push({ node, el, r });
   }
 
+  // Motion leftovers (web only). settle() has finished every entrance animation, so first-screen text
+  // still at opacity 0 never arrived. Only in-flow blocks count: a closed menu or tooltip is positioned.
+  const invisibleAtRest = [], transitionAll = new Map();
+  if (scroll) {
+    const holders = new Set();
+    const tw0 = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (tw0.nextNode()) {
+      const n = tw0.currentNode, el = n.parentElement;
+      if (!n.textContent.trim() || !el || ["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"].includes(el.tagName)) continue;
+      if (!visible(el) || ignored(el) || hiddenByClip(el) || el.closest("[hidden],[aria-hidden='true'],[inert]")) continue;
+      range.selectNodeContents(n);
+      if (![...range.getClientRects()].some((q) => q.width > 1 && q.height > 1 && q.top < vh && q.bottom > 0 && q.left < vw && q.right > 0)) continue;
+      let holder = null;
+      for (let e = el; e && e !== document.documentElement; e = e.parentElement) if (Number(getComputedStyle(e).opacity) < 0.05) { holder = e; break; }
+      if (!holder || holders.has(holder) || !["static", "relative", "sticky"].includes(getComputedStyle(holder).position)) continue;
+      holders.add(holder);
+      invisibleAtRest.push({ text: snippet(el.textContent), element: desc(holder) });
+    }
+    // The computed default is "all 0s"; only a running duration makes it a real transition: all.
+    for (const el of document.body.querySelectorAll("*")) {
+      const cs = getComputedStyle(el);
+      const props = cs.transitionProperty.split(/,\s*/), durs = cs.transitionDuration.split(/,\s*/);
+      if (!props.some((p, i) => p === "all" && parseFloat(durs[i % durs.length]) > 0)) continue;
+      const key = desc(el).replace(/#[^.]+/, "");
+      transitionAll.set(key, (transitionAll.get(key) || 0) + 1);
+    }
+  }
+
   const clipped = [], outside = [];
   for (const { node, el, r } of lines) {
     const a = clipAncestor(el);
@@ -319,7 +347,8 @@ function audit({ facts, palette, canvas, scroll }) {
   }
 
   // Occlusion: sample three points on each line; the first painted element above the text wins.
-  const paintsAt = (el, x, y) => {
+  // Without withText, only the element's surface counts (background, border, image), not its own text.
+  const paintsAt = (el, x, y, withText = true) => {
     if (opacity(el) < 0.05) return false;
     if (el.tagName === "CANVAS") {
       // A canvas covers only where it has ink.
@@ -338,6 +367,7 @@ function audit({ facts, palette, canvas, scroll }) {
     const b = el.getBoundingClientRect();
     const bw = { l: parseFloat(cs.borderLeftWidth), t: parseFloat(cs.borderTopWidth), r: parseFloat(cs.borderRightWidth), b: parseFloat(cs.borderBottomWidth) };
     if ((bw.l && x < b.left + bw.l) || (bw.r && x > b.right - bw.r) || (bw.t && y < b.top + bw.t) || (bw.b && y > b.bottom - bw.b)) return true;
+    if (!withText) return false;
     const rg = document.createRange();
     for (const n of el.childNodes) {
       if (n.nodeType !== 3 || !n.textContent.trim()) continue;
@@ -358,14 +388,18 @@ function audit({ facts, palette, canvas, scroll }) {
     turned.set(el, r);
     return r;
   };
+  // A line's box at the current scroll position, or null when it is not wholly in the viewport.
+  const liveRect = (line) => {
+    range.selectNodeContents(line.node);
+    const q = [...range.getClientRects()].find((q) => Math.abs(q.left - line.x0) < 1 && Math.abs(q.width - line.r.width) < 1 && Math.abs(q.top + scrollY - line.y0) < 1);
+    return q && q.top >= 0 && q.bottom <= vh && q.left >= 0 && q.right <= vw ? q : null;
+  };
   const tested = new Set();
   const testLines = () => {
     for (const line of lines) {
       if (tested.has(line)) continue;
-      const r = line.node.parentElement && line.r;
-      const live = (() => { range.selectNodeContents(line.node); return [...range.getClientRects()].find((q) => Math.abs(q.left - line.x0) < 1 && Math.abs(q.width - r.width) < 1 && Math.abs(q.top + scrollY - line.y0) < 1); })();
-      const q = live || null;
-      if (!q || q.top < 0 || q.bottom > vh || q.left < 0 || q.right > vw) continue;
+      const q = liveRect(line);
+      if (!q) continue;
       tested.add(line);
       if (rotated(line.el)) continue; // a tilted label's box corners are not text; the label sits on top anyway
       let hits = 0, by = null;
@@ -388,6 +422,44 @@ function audit({ facts, palette, canvas, scroll }) {
       }
     }
   };
+  // Pinned header: a fixed or sticky bar across the top. Occlusion skips pinned elements, since an
+  // opaque bar hiding the page as it scrolls by is normal; body text showing through the bar is not.
+  // Only the bar's surface separates the two: its own links painted over body text are the collision.
+  const underHeader = [];
+  const shown = new Set();
+  const pinned = (el) => ["fixed", "sticky"].includes(getComputedStyle(el).position);
+  const testHeaders = () => {
+    const bars = [...document.body.querySelectorAll("*")].filter((el) => {
+      if (!pinned(el) || ignored(el) || !visible(el)) return false;
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) if (pinned(a)) return false;
+      const b = el.getBoundingClientRect();
+      return b.top <= 1 && b.bottom > 0 && b.width >= vw * 0.5 && b.height < vh * 0.5;
+    });
+    for (const bar of bars) {
+      const b = bar.getBoundingClientRect();
+      for (const line of lines) {
+        if (shown.has(line) || fixed(line.el)) continue;
+        const q = liveRect(line);
+        if (!q) continue;
+        const y = q.top + q.height / 2;
+        if (y <= b.top || y >= b.bottom || q.right <= b.left || q.left >= b.right) continue;
+        const l = Math.max(q.left, b.left), r = Math.min(q.right, b.right);
+        const through = [0.2, 0.5, 0.8].some((f) => {
+          const x = l + (r - l) * f;
+          for (const top of document.elementsFromPoint(x, y)) {
+            if (top === line.el || line.el.contains(top) || top.contains(line.el)) return true;
+            if (bar.contains(top)) { if (paintsAt(top, x, y, false)) return false; continue; }
+            if (!ignored(top) && paintsAt(top, x, y)) return false;
+          }
+          return false;
+        });
+        if (through) {
+          shown.add(line);
+          underHeader.push({ text: snippet(line.node.textContent), element: desc(line.el), header: desc(bar), scrollY: Math.round(scrollY), box: box(q) });
+        }
+      }
+    }
+  };
   for (const line of lines) { line.x0 = line.r.left; line.y0 = line.r.top + scrollY; }
   if (scroll) {
     const H = document.documentElement.scrollHeight;
@@ -395,6 +467,7 @@ function audit({ facts, palette, canvas, scroll }) {
     for (let y = 0; ; y += step) {
       scrollTo(0, Math.min(y, H - vh));
       testLines();
+      testHeaders();
       if (y >= H - vh) break;
     }
     scrollTo(0, 0);
@@ -487,7 +560,8 @@ function audit({ facts, palette, canvas, scroll }) {
     pageHeight: document.documentElement.scrollHeight,
     overflowX: Math.max(0, document.documentElement.scrollWidth - vw),
     overflowCanvas: canvas ? { right: Math.max(0, document.documentElement.scrollWidth - canvas.width), bottom: Math.max(0, document.documentElement.scrollHeight - canvas.height) } : undefined,
-    occlusions, clipped, outside,
+    occlusions, clipped, outside, underHeader, invisibleAtRest,
+    transitionAll: [...transitionAll].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count),
     facts: factReport,
     fontSizes: list(sizes), textColors: list(colors), offPalette: list(offPalette),
     fontSamples: [...samples.values()],
@@ -764,6 +838,11 @@ function summarize(report) {
     if (v.overflowX) p.push(`horizontal overflow ${v.overflowX}px${at(v)}`);
     if (v.overflowCanvas && (v.overflowCanvas.right || v.overflowCanvas.bottom)) p.push(`content runs past the canvas (right ${v.overflowCanvas.right}px, bottom ${v.overflowCanvas.bottom}px)`);
     for (const o of v.occlusions) p.push(`text covered${at(v)}: "${o.text}" (${o.element}) under ${o.by}, ${o.points} points`);
+    const byHeader = new Map();
+    for (const u of v.underHeader || []) byHeader.set(u.header, [...(byHeader.get(u.header) || []), u]);
+    for (const [header, items] of byHeader)
+      p.push(`text shows through the pinned header${at(v)}: "${items[0].text}" (${items[0].element}) at scroll ${items[0].scrollY}px${items.length > 1 ? ` and ${items.length - 1} more lines` : ""}, under ${header} (give the bar a background or a rule once scrolled)`);
+    for (const u of v.invisibleAtRest || []) p.push(`first-screen text invisible after motion settled${at(v)}: "${u.text}" (${u.element} at opacity 0)`);
     for (const c of v.clipped) p.push(`text clipped${at(v)}: "${c.text}" (${c.element}) by ${c.by}`);
     for (const c of v.outside) p.push(`text outside the ${report.mode === "web" ? "viewport" : "canvas"}${at(v)}: "${c.text}" (${c.element})`);
     for (const r of v.rules || []) {
@@ -776,6 +855,9 @@ function summarize(report) {
       else if (f.unmarkedBreak) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" (fine only at a semantic boundary; mark it with | in the facts file)`);
     }
   }
+  // A stylesheet choice, not a layout one: read once, from the first viewport.
+  const ta = report.views[0]?.transitionAll || [];
+  if (ta.length) p.push(`transition: all on ${ta.reduce((n, t) => n + t.count, 0)} elements (${ta.slice(0, 4).map((t) => `${t.value} ×${t.count}`).join(", ")}${ta.length > 4 ? ", …" : ""}): name the properties that change`);
   // Sweep: consecutive widths with the same kinds of finding collapse into one range.
   let run = null;
   const flush = () => {
@@ -787,7 +869,7 @@ function summarize(report) {
   };
   for (const s of report.sweep || []) {
     const kinds = [...new Set((s.ruleFails || []).map((f) => f.split(" ")[0]))];
-    const counts = [s.occlusions && `${s.occlusions} covered`, s.clipped && `${s.clipped} clipped`, s.outside && `${s.outside} outside`, ...kinds.map((k) => `rule ${k} fails`)].filter(Boolean).join(", ");
+    const counts = [s.occlusions && `${s.occlusions} covered`, s.underHeader && `${s.underHeader} under the pinned header`, s.clipped && `${s.clipped} clipped`, s.outside && `${s.outside} outside`, ...kinds.map((k) => `rule ${k} fails`)].filter(Boolean).join(", ");
     const key = `${s.height}|${s.overflowX ? "overflow" : ""}|${counts}`;
     if (run && run.id === key) { run.to = s.width; run.overflow = Math.max(run.overflow, s.overflowX); continue; }
     flush();
@@ -1038,7 +1120,7 @@ export async function inspectPage(opts) {
         const v = await page.evaluate(audit, { ...auditArgs(null, true), facts: [] });
         const rules = style.rules.length ? await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, width), judgeFill: false, canvas: null }) : [];
         const ruleFails = rules.filter((r) => r.status === "fail").map((r) => `${r.kind} ${ruleDetail(r, true)}`);
-        report.sweep.push({ width, height, ruleFails, overflowX: v.overflowX, occlusions: v.occlusions.length, clipped: v.clipped.length, outside: v.outside.length, examples: [...v.occlusions, ...v.clipped, ...v.outside].slice(0, 3).map((x) => `${x.text} (${x.element}${x.by ? " / " + x.by : ""})`) });
+        report.sweep.push({ width, height, ruleFails, overflowX: v.overflowX, occlusions: v.occlusions.length, underHeader: v.underHeader.length, clipped: v.clipped.length, outside: v.outside.length, examples: [...v.occlusions, ...v.underHeader.map((u) => ({ ...u, by: u.header })), ...v.clipped, ...v.outside].slice(0, 3).map((x) => `${x.text} (${x.element}${x.by ? " / " + x.by : ""})`) });
       }
       await sweepPage.context.close();
 

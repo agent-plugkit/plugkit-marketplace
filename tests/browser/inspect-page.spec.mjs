@@ -204,6 +204,66 @@ nav a.on{background:#cc2200}
   expect(await at(135, 45)).toEqual([255, 255, 255]);
 });
 
+test("a pinned header that lets body text show through once scrolled is reported; an opaque or frosted one is not", async () => {
+  test.setTimeout(90000);
+  const page = (header) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+header{position:sticky;top:0;height:60px;display:flex;gap:40px;align-items:center;padding:0 20px;${header}}
+p{margin:0 20px;font-size:18px;line-height:30px}
+</style><header><a>首页</a><a>日程</a><a>报名</a></header>
+<h1 style="margin:20px">标题在导航下方</h1>
+${Array.from({ length: 80 }, (_, i) => `<p>正文第 ${i + 1} 行，滚动时会经过导航</p>`).join("\n")}`;
+  write("bar-clear.html", page(""));
+  write("bar-paper.html", page("background:#fff"));
+  write("bar-glass.html", page("background:rgba(255,255,255,.7);backdrop-filter:blur(12px)"));
+  const run = (name) => inspectPage(parseArgs([join(work, name), "--viewports", "800x600", "--style", join(work, "style.md"), "--out", join(work, `${name}-review`)]));
+
+  const clear = await run("bar-clear.html");
+  const [view] = clear.views;
+  expect(view.underHeader.length).toBeGreaterThan(0);
+  expect(view.underHeader[0].text).toMatch(/^正文第/);
+  expect(view.underHeader[0].header).toBe("header");
+  // The title sits below the bar at the top of the page, so it is never reported.
+  expect(view.underHeader.some((u) => u.text.startsWith("标题"))).toBe(false);
+  expect(clear.problems.some((p) => /^text shows through the pinned header @800x600: "正文第/.test(p))).toBe(true);
+  // Ordinary occlusion still skips pinned elements: the same lines are not also "covered".
+  expect(view.occlusions).toEqual([]);
+
+  for (const name of ["bar-paper.html", "bar-glass.html"]) {
+    const report = await run(name);
+    expect(report.views[0].underHeader).toEqual([]);
+    expect(report.problems.some((p) => p.includes("pinned header"))).toBe(false);
+  }
+});
+
+test("motion leftovers: first-screen text an entrance animation left invisible, and transition: all", async () => {
+  test.setTimeout(90000);
+  write("motion.html", `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+@keyframes rise{to{opacity:1}}
+@keyframes arrive{from{opacity:0}}
+.stuck{opacity:0;animation:rise .3s}
+.arrived{animation:arrive .3s both}
+.menu{position:absolute;top:0;right:0;opacity:0}
+.later{opacity:0;margin-top:2000px}
+.btn{transition:all .2s}
+a{transition:color .2s}
+</style>
+<h1 class="stuck">没有回来的标题</h1>
+<p class="arrived">正常入场的导读</p>
+<div class="menu">收起的菜单</div>
+<button class="btn">报名</button><button class="btn">取消</button>
+<a href="#">链接</a>
+<p class="hidden-note" hidden style="opacity:0">隐藏的说明</p>
+<p class="later">首屏以下还没出现的段落</p>`);
+  const report = await inspectPage(parseArgs([join(work, "motion.html"), "--viewports", "800x600", "--style", join(work, "style.md"), "--out", join(work, "motion-review")]));
+  const [view] = report.views;
+  expect(view.invisibleAtRest).toEqual([{ text: "没有回来的标题", element: "h1.stuck" }]);
+  expect(view.transitionAll).toEqual([{ value: "button.btn", count: 2 }]);
+  expect(report.problems).toContain('first-screen text invisible after motion settled @800x600: "没有回来的标题" (h1.stuck at opacity 0)');
+  expect(report.problems.some((p) => /^transition: all on 2 elements \(button\.btn ×2\)/.test(p))).toBe(true);
+});
+
 test("a web run screenshots each viewport, sweeps widths and walks keyboard, motion and the flow", async ({ page }) => {
   test.setTimeout(90000);
   const out = join(work, "web-review");
