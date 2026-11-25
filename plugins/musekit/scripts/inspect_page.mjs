@@ -31,6 +31,8 @@ Both:
 When style.md follows the system light/dark setting (it has a prefers-color-scheme: dark block), each web viewport
 is also opened in dark and shot as web-<WxH>-dark-fold.png and -dark-full.png; colours on the first viewport are
 checked against the dark palette, and rules that name a colour are measured again. The sweep, keyboard, reduced-motion and flow runs stay in light.
+The short screens the sweep visits (1366x768, 1280x720, 1024x768, 375x667) are also shot at the first screen
+(web-<WxH>-fold.png) unless --viewports already lists them.
 Layout rules listed under "机检" in style.md are measured on elements marked data-mk="<role>"; unmarked roles are
 reported as not measured.
 Mark intentionally clipped or decorative text (a marquee strip) with data-inspect-ignore. Never mark stickers or
@@ -329,21 +331,58 @@ function audit({ facts, palette, canvas, scroll }) {
     }
   }
 
+  // A line's rect is its em box. A display glyph set at line-height 1, or pulled flush with a negative
+  // margin, has an em box that pokes out while its ink stays inside; a line flagged on its em box is
+  // measured again on its ink. Where the ink cannot be measured reliably (vertical text, a transform,
+  // a font the canvas reads differently) the em box stands.
+  const inkCtx = document.createElement("canvas").getContext("2d");
+  const inkOf = (node, el, r) => {
+    const cs = getComputedStyle(el);
+    if (cs.writingMode !== "horizontal-tb") return null;
+    for (let e = el; e; e = e.parentElement) if (getComputedStyle(e).transform !== "none") return null;
+    // The characters on this fragment, not the whole node: a node may run over several lines.
+    const rg = document.createRange();
+    let first = -1, last = -1, x0 = 0, x1 = 0;
+    for (let i = 0; i < node.length; i++) {
+      if (/\s/.test(node.data[i])) continue;
+      rg.setStart(node, i); rg.setEnd(node, i + 1);
+      const q = rg.getBoundingClientRect();
+      const cx = (q.left + q.right) / 2, cy = (q.top + q.bottom) / 2;
+      if (!q.width || cy < r.top || cy > r.bottom || cx < r.left - 1 || cx > r.right + 1) continue;
+      if (first < 0) { first = i; x0 = q.left; }
+      last = i; x1 = q.right;
+    }
+    if (first < 0) return null;
+    let text = node.data.slice(first, last + 1).replace(/\s+/g, " ");
+    if (cs.textTransform === "uppercase") text = text.toUpperCase();
+    else if (cs.textTransform === "lowercase") text = text.toLowerCase();
+    inkCtx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    inkCtx.letterSpacing = cs.letterSpacing === "normal" ? "0px" : cs.letterSpacing;
+    const m = inkCtx.measureText(text);
+    // The canvas must lay the text out as the page did: same advance and same em box height.
+    const spacing = parseFloat(inkCtx.letterSpacing) || 0;
+    if (Math.abs(m.width - spacing - (x1 - x0)) > 2 + 0.02 * (x1 - x0)) return null;
+    if (Math.abs(m.fontBoundingBoxAscent + m.fontBoundingBoxDescent - r.height) > 2) return null;
+    const baseline = r.top + m.fontBoundingBoxAscent;
+    return { left: x0 - m.actualBoundingBoxLeft, right: x0 + m.actualBoundingBoxRight, top: baseline - m.actualBoundingBoxAscent, bottom: baseline + m.actualBoundingBoxDescent };
+  };
+
   const clipped = [], outside = [];
   for (const { node, el, r } of lines) {
+    let ink;
+    const inkRect = () => (ink === undefined ? (ink = inkOf(node, el, r)) : ink) || r;
     const a = clipAncestor(el);
     if (a) {
       const b = a.getBoundingClientRect();
       const cs = getComputedStyle(a);
       const inner = { l: b.left + parseFloat(cs.borderLeftWidth), t: b.top + parseFloat(cs.borderTopWidth), r: b.right - parseFloat(cs.borderRightWidth), b: b.bottom - parseFloat(cs.borderBottomWidth) };
       const scrolls = (k) => ["auto", "scroll"].includes(cs[k]);
-      const outX = !scrolls("overflowX") && (r.left < inner.l - 1 || r.right > inner.r + 1);
-      const outY = !scrolls("overflowY") && (r.top < inner.t - 1 || r.bottom > inner.b + 1);
-      if (outX || outY) { clipped.push({ text: snippet(node.textContent), element: desc(el), by: desc(a), box: box(r) }); continue; }
+      const out = (q) => (!scrolls("overflowX") && (q.left < inner.l - 1 || q.right > inner.r + 1)) || (!scrolls("overflowY") && (q.top < inner.t - 1 || q.bottom > inner.b + 1));
+      if (out(r) && out(inkRect())) { clipped.push({ text: snippet(node.textContent), element: desc(el), by: desc(a), box: box(r) }); continue; }
     }
     const right = canvas ? canvas.width : vw;
-    const past = r.left < -1 || r.right > right + 1 || (canvas && (r.top < -1 || r.bottom > canvas.height + 1));
-    if (past) outside.push({ text: snippet(node.textContent), element: desc(el), box: box(r) });
+    const past = (q) => q.left < -1 || q.right > right + 1 || (canvas && (q.top < -1 || q.bottom > canvas.height + 1));
+    if (past(r) && past(inkRect())) outside.push({ text: snippet(node.textContent), element: desc(el), box: box(r) });
   }
 
   // Occlusion: sample three points on each line; the first painted element above the text wins.
@@ -507,10 +546,17 @@ function audit({ facts, palette, canvas, scroll }) {
     const out = { text: fact, count: at.length, exact };
     if (at.length) {
       const [sn] = chars[at[0]], [en] = chars[at[0] + key.length - 1];
-      out.lines = lineCount(at[0], key.length);
-      // Broken inside a part, not only at a marked place.
-      let from = at[0];
-      out.unmarkedBreak = parts.some((part) => { const n = part && lineCount(from, part.length); from += part.length; return n > 1; });
+      // Every occurrence is measured: a fact that holds in the hero may still break in the footer.
+      const runs = at.map((start) => {
+        let from = start;
+        // Broken inside a part, not only at a marked place.
+        const unmarked = parts.some((part) => { const n = part && lineCount(from, part.length); from += part.length; return n > 1; });
+        return { lines: lineCount(start, key.length), unmarked, element: chars[start][0].parentElement };
+      });
+      const worst = runs.find((r) => r.unmarked) || runs.reduce((a, b) => (b.lines > a.lines ? b : a));
+      out.lines = worst.lines;
+      out.unmarkedBreak = worst.unmarked;
+      if (worst.unmarked) out.breaksIn = desc(worst.element);
       out.fontSize = Math.round(Math.max(...[sn, en].map((n) => parseFloat(getComputedStyle(n.parentElement).fontSize))));
       if (canvas) out.shownAt = Object.fromEntries([0.25, 0.35].map((k) => [k, +(out.fontSize * k).toFixed(1)]));
     }
@@ -543,15 +589,15 @@ function audit({ facts, palette, canvas, scroll }) {
   }
   const list = (map) => [...map].map(([value, v]) => ({ value, ...v })).sort((a, b) => b.count - a.count);
 
-  // Font samples: mark a few elements per font stack so the CDP pass can ask what rendered.
-  // Leaf elements first: the CDP query reports fonts for all text below the node.
+  // Font samples: mark a few elements per font stack so the CDP pass can ask what rendered their own text.
   const samples = new Map();
   const textEls = [...document.body.querySelectorAll("*")].filter((el) => visible(el) && !hiddenByClip(el) && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
-  for (const el of [...textEls.filter((e) => !e.children.length), ...textEls.filter((e) => e.children.length)]) {
+  for (const el of textEls) {
     const cs = getComputedStyle(el);
     const key = `${cs.fontFamily}|${cs.fontWeight}|${cs.fontStyle}`;
-    const s = samples.get(key) || { family: cs.fontFamily, weight: cs.fontWeight, style: cs.fontStyle, ids: [] };
-    if (s.ids.length < 3 && !el.hasAttribute("data-inspect-font")) { const id = `f${samples.size}-${s.ids.length}`; el.setAttribute("data-inspect-font", id); s.ids.push(id); }
+    // Each stack keeps the number it was given when first seen, so two stacks never share an id.
+    const s = samples.get(key) || { n: samples.size, family: cs.fontFamily, weight: cs.fontWeight, style: cs.fontStyle, ids: [] };
+    if (s.ids.length < 3 && !el.hasAttribute("data-inspect-font")) { const id = `f${s.n}-${s.ids.length}`; el.setAttribute("data-inspect-font", id); s.ids.push(id); }
     samples.set(key, s);
   }
 
@@ -611,7 +657,8 @@ function measureRules({ rules, judgeFill, canvas }) {
     const out = { kind: rule.kind, status: "pass", items: [], threshold: rule.values?.min ?? rule.values?.max ?? rule.values?.tolerance ?? rule.count ?? null };
     results.push(out);
     if (rule.unresolved) { out.status = "error"; out.note = `token ${rule.unresolved} not found in style.md`; continue; }
-    const need = [rule.group, rule.item, rule.main, rule.text, rule.box, rule.over, rule.than].filter(Boolean);
+    // An optional reference (a key figure a work may not have) may be missing from the whole page.
+    const need = [rule.group, rule.item, rule.main, rule.text, rule.box, rule.over, rule.of, rule.optional ? null : rule.than].filter(Boolean);
     const missing = need.filter((role) => !all(role).length);
     if (missing.length) { out.status = "unmarked"; out.note = `no element marked data-mk="${missing.join('", "')}"`; continue; }
     const fail = (item) => { item.ok = false; out.status = "fail"; };
@@ -700,6 +747,33 @@ function measureRules({ rules, judgeFill, canvas }) {
         out.items.push(item);
         if (dev > v.tolerance + 0.0005) fail(item);
       }
+    } else if (rule.kind === "area") {
+      out.threshold = `${v.min}–${v.max}`;
+      for (const el of all(rule.item)) {
+        const of = el.parentElement?.closest(sel(rule.of));
+        const item = { where: name(el), ok: true };
+        out.items.push(item);
+        if (!of) { item.note = `not inside data-mk="${rule.of}"`; fail(item); continue; }
+        // Only the part inside its container counts: a strip that bleeds past the frame edge is cut there.
+        const a = rect(el), b = rect(of);
+        const w = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+        const h = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+        item.ratio = r2((w * h) / (b.width * b.height));
+        if (item.ratio < v.min - 0.005 || item.ratio > v.max + 0.005) fail(item);
+      }
+    } else if (rule.kind === "scale") {
+      const size = (el) => parseFloat(getComputedStyle(el).fontSize);
+      for (const g of all(rule.group)) {
+        const refs = own(rule.than, rule.group, g);
+        if (!refs.length) continue;
+        const limit = Math.max(...refs.map(size));
+        for (const el of own(rule.item, rule.group, g)) {
+          const item = { where: name(el), size: Math.round(size(el)), than: Math.round(limit), ratio: r2(size(el) / limit), ok: true };
+          out.items.push(item);
+          if (item.ratio < v.min - 0.005) fail(item);
+        }
+      }
+      if (!out.items.length) { out.status = "info"; out.note = `no ${rule.item} shares a ${rule.group} with data-mk="${rule.than}": nothing compared`; }
     } else if (rule.kind === "max-size") {
       const limit = Math.max(...all(rule.than).map((el) => parseFloat(getComputedStyle(el).fontSize)));
       for (const el of all(rule.item)) {
@@ -758,20 +832,39 @@ async function renderedFonts(page, samples) {
   await cdp.send("DOM.enable");
   await cdp.send("CSS.enable");
   const { root } = await cdp.send("DOM.getDocument", { depth: -1 });
+  const byId = new Map();
+  const index = (n) => { byId.set(n.nodeId, n); (n.children || []).forEach(index); };
+  index(root);
+  // A webfont's own name says little: a variable file reports its default instance ("Noto Sans SC Thin").
+  // What the page loaded for the family does: the weights of its faces that finished loading.
+  const loaded = await page.evaluate(() => {
+    const m = {};
+    for (const f of document.fonts) if (f.status === "loaded") (m[f.family.replace(/^["']|["']$/g, "").toLowerCase()] ||= new Set()).add(f.weight);
+    return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, [...v].sort((a, b) => parseFloat(a) - parseFloat(b))]));
+  });
   const out = [];
   for (const s of samples) {
     const used = new Map();
+    // A self-hosted file may carry another name inside ("codicon" declared as "Icons"); when the stack
+    // has a single webfont the page loaded, a webfont rendering this stack can only be that one.
+    const webfonts = s.family.split(",").map((f) => f.trim().replace(/^["']|["']$/g, "")).filter((f) => loaded[f.toLowerCase()]);
     for (const id of s.ids) {
       const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector: `[data-inspect-font="${id}"]` });
       if (!nodeId) continue;
-      const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId });
-      for (const f of fonts) {
-        const name = fontLabel(f.familyName, f.isCustomFont, s.family);
-        const v = used.get(name) || { name, custom: f.isCustomFont, glyphs: 0, faces: [] };
-        v.glyphs += f.glyphCount;
-        // The face name as the font reports it, kept for the report: a static file of the wrong weight shows here.
-        if (!v.faces.includes(f.familyName)) v.faces.push(f.familyName);
-        used.set(name, v);
+      // Asked of the element, the query also counts the text of its child elements, set in other stacks;
+      // asked of each of its own text nodes, it answers for this stack only.
+      const texts = (byId.get(nodeId)?.children || []).filter((c) => c.nodeType === 3 && c.nodeValue.trim());
+      for (const t of texts) {
+        const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId: t.nodeId });
+        for (const f of fonts) {
+          let name = fontLabel(f.familyName, f.isCustomFont, s.family);
+          if (f.isCustomFont && !loaded[name.toLowerCase()] && webfonts.length === 1) name = webfonts[0];
+          const v = used.get(name) || { name, custom: f.isCustomFont, glyphs: 0, ...(f.isCustomFont ? { loadedWeights: loaded[name.toLowerCase()] || [] } : { faces: [] }) };
+          v.glyphs += f.glyphCount;
+          // A system font's face name is reliable: a fallback to a lighter or bolder face shows here.
+          if (v.faces && !v.faces.includes(f.familyName)) v.faces.push(f.familyName);
+          used.set(name, v);
+        }
       }
     }
     const stack = s.family.split(",").map((f) => f.trim().replace(/^["']|["']$/g, "").toLowerCase());
@@ -816,13 +909,15 @@ function itemDetail(r, item) {
   if (r.kind === "covers") return `covers ${item.covers} panels (want ${r.threshold})${item.onAvoided ? `, sits on ${item.onAvoided.join(", ")}` : ""}`;
   if (r.kind === "axis") return `off axis by ${item.deviation} (max ${r.threshold})`;
   if (r.kind === "max-size") return `${item.size}px (limit ${item.limit}px)`;
+  if (r.kind === "area") return `area ${item.ratio} (${r.threshold})`;
+  if (r.kind === "scale") return `${item.size}px, ${item.ratio}× ${item.than}px (min ${r.threshold}×)`;
   return "";
 }
 function ruleDetail(r, failingOnly = false) {
-  if (r.status === "unmarked" || r.status === "error") return r.note;
+  if (r.status === "unmarked" || r.status === "error" || (r.note && !r.items.length)) return r.note;
   const items = failingOnly ? r.items.filter((x) => !x.ok) : r.items;
-  const val = (x) => x.note || (r.kind === "seams" ? `${x.gaps.join("–")}px` : r.kind === "covers" ? `${x.covers}${x.onAvoided ? "!" : ""}` : r.kind === "axis" ? x.deviation : r.kind === "max-size" ? `${x.size}px` : x.ratio);
-  const limit = { seams: `≤${r.threshold}px`, dominant: `≥${r.threshold}`, fill: `≥${r.threshold}`, covers: `=${r.threshold}`, axis: `≤${r.threshold}`, "max-size": "≤ limit" }[r.kind];
+  const val = (x) => x.note || (r.kind === "seams" ? `${x.gaps.join("–")}px` : r.kind === "covers" ? `${x.covers}${x.onAvoided ? "!" : ""}` : r.kind === "axis" ? x.deviation : r.kind === "max-size" ? `${x.size}px` : r.kind === "scale" ? `${x.ratio}×` : x.ratio);
+  const limit = { seams: `≤${r.threshold}px`, dominant: `≥${r.threshold}`, fill: `≥${r.threshold}`, covers: `=${r.threshold}`, axis: `≤${r.threshold}`, "max-size": "≤ limit", area: r.threshold, scale: `≥${r.threshold}×` }[r.kind];
   const mark = { pass: "ok", fail: "FAIL", info: "values only" }[r.status];
   return `${items.map(val).join(", ")} (${limit}) ${mark}`;
 }
@@ -852,7 +947,7 @@ function summarize(report) {
     }
     for (const f of v.facts) {
       if (!f.count) p.push(`fact missing${at(v)}: "${f.text}"`);
-      else if (f.unmarkedBreak) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" (fine only at a semantic boundary; mark it with | in the facts file)`);
+      else if (f.unmarkedBreak) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" in ${f.breaksIn} (fine only at a semantic boundary; mark it with | in the facts file)`);
     }
   }
   // A stylesheet choice, not a layout one: read once, from the first viewport.
@@ -883,7 +978,7 @@ function summarize(report) {
     });
     for (const f of report.facts) {
       if (!f.count) p.push(`fact missing from every slide: "${f.text}"`);
-      for (const a of (f.at || []).filter((x) => x.unmarkedBreak)) p.push(`fact breaks across ${a.lines} lines @slide ${a.slide}: "${f.text}" (fine only at a semantic boundary; mark it with | in the facts file)`);
+      for (const a of (f.at || []).filter((x) => x.unmarkedBreak)) p.push(`fact breaks across ${a.lines} lines @slide ${a.slide}: "${f.text}" in ${a.breaksIn} (fine only at a semantic boundary; mark it with | in the facts file)`);
     }
     if (report.pdf.pages !== report.views.length) p.push(`PDF has ${report.pdf.pages} pages for ${report.views.length} slides: give each slide break-after: page and @page the canvas size`);
     // PDF sizes are whole points, so a canvas side can read 1px off.
@@ -971,7 +1066,7 @@ async function inspectSlides({ browser, url, opts, out, at, name, facts, style, 
       total.slides.push(n);
       total.exact = total.exact || f.exact;
       // Each slide keeps its own reading: a fact can be a broken title on one slide and a footer on the next.
-      (total.at ||= []).push({ slide: n, lines: f.lines, unmarkedBreak: f.unmarkedBreak, fontSize: f.fontSize });
+      (total.at ||= []).push({ slide: n, lines: f.lines, unmarkedBreak: f.unmarkedBreak, ...(f.breaksIn && { breaksIn: f.breaksIn }), fontSize: f.fontSize });
     });
     view.facts = [];
     const png = file(`slide-${n}`, join(dir, `${String(n).padStart(2, "0")}.png`));
@@ -1124,6 +1219,17 @@ export async function inspectPage(opts) {
       }
       await sweepPage.context.close();
 
+      // The short screens get a first-screen shot of their own, opened fresh as the listed viewports are;
+      // one already listed in --viewports has it.
+      for (const [width, height] of SHORT_VIEWPORTS) {
+        const tag = `${width}x${height}`;
+        if (report.files[`${tag}-fold`]) continue;
+        const { page, context, errors } = await openPage(browser, url, { width, height }, opts);
+        await page.screenshot({ path: file(`${tag}-fold`, join(out, `web-${tag}-fold.png`)) });
+        report.errors.push(...errors);
+        await context.close();
+      }
+
       // Reduced motion.
       {
         const vp = opts.viewports[0];
@@ -1191,7 +1297,7 @@ function printSummary(report) {
   const lines = [`report: ${report.files.report}`];
   for (const [k, v] of Object.entries(report.files)) if (k !== "report" && !k.startsWith("slide-")) lines.push(`${k}: ${v}`);
   if (report.mode === "slides") lines.push(`slides: ${report.views.length} PNG in ${dirname(report.files["slide-1"])}; PDF ${report.pdf.pages} pages`);
-  lines.push(`fonts (requested → rendered): ${report.fonts.map((f) => `${f.stack.split(",")[0]} ${f.weight} → ${f.rendered.map((r) => `${r.name}${r.custom ? " [webfont]" : " [system]"}`).join(" + ") || "none"}`).join("; ")}`);
+  lines.push(`fonts (requested → rendered): ${report.fonts.map((f) => `${f.stack.split(",")[0]} ${f.weight} → ${f.rendered.map((r) => `${r.name}${r.custom ? ` [webfont${r.loadedWeights?.length ? ` ${r.loadedWeights.join("/")}` : ""}]` : " [system]"}`).join(" + ") || "none"}`).join("; ")}`);
   const facts = report.facts || report.views[0]?.facts || [];
   // On a deck each slide where a fact appears is listed with its size there.
   const where = (f) => (f.at ? ` on ${f.at.map((a) => `${a.slide} (${a.fontSize}px)`).join(", ")}` : f.fontSize ? ` ${f.fontSize}px` : "");

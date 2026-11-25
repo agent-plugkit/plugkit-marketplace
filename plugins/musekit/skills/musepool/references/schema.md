@@ -156,6 +156,8 @@ checks:
 | `covers` | `item` `over` `count`，可选 `avoid` | 每个 item 压住几个 over（按 item 实际在最上层的点取样）；avoid 是颜色 token，压在这种底色上也算不合格 |
 | `axis` | `item` `tolerance`，可选 `field` | item 每一行中点离中轴的偏差，按版面宽度计；在 field 里时以 field 的中线为轴 |
 | `max-size` | `item` `than` | item 的字号不大于 than |
+| `area` | `item` `of` `min` `max` | 每个 item 落在所在 of 里的面积占 of 的比例 |
+| `scale` | `group` `item` `than` `min`，可选 `optional` | 每个 group 里 item 的字号与同组最大的 than 之比；组里没有 than 时不比较。整页都没有 than 时报 not measured；than 是可有可无的元素（如关键数字）时写 `optional: true`，整页没有就只写一句说明，不算发现 |
 
 - 阈值写 token 名或数字。token 名在检查时按视口宽度取 style.md 里对应断点的值，所以手机上用手机断点的值；不为阈值另造数字。
 - 只写要点或本场景适配里明文规定的规则。「约三分之一」这类没有 token 的说法不写成规则。

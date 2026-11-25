@@ -55,6 +55,23 @@ tokens:
     role: 大号数字收紧，tabular numbers
   tracking-title:
     value: "-0.01em"
+checks:
+  roles:
+    glyph: 纱面上的巨字
+    title: 纱面上组的标题或署名（size-title 粗体）
+    figure: 纱面下组的关键数字（size-figure）；没有就不标
+  rules:
+    - kind: scale
+      group: veil
+      item: glyph
+      than: title
+      min: 6
+    - kind: scale
+      group: veil
+      item: glyph
+      than: figure
+      min: 2
+      optional: true
 ---
 
 # 一个巨字与怪诞体小字

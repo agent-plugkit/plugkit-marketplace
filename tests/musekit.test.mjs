@@ -269,6 +269,16 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
   // The template's own web rule is not on the poster.
   assert.deepEqual(block(cli('resolve', 'neo-brutalism', '--scene', 'graphic')).map((r) => r.kind), ['seams', 'dominant', 'fill', 'covers']);
   assert.deepEqual(block(cli('resolve', 'editorial-serif', '--scene', 'graphic')).map((r) => r.kind), ['axis']);
+  // Veiled frame: the veil's share of its frame between two tokens, and the glyph's scale over title and figure.
+  const veiled = cli('resolve', 'veiled-frame', '--scene', 'web', '--variant', 'bright');
+  assert.deepEqual(block(veiled), [
+    { kind: 'scale', group: 'veil', item: 'glyph', than: 'title', min: 6 },
+    { kind: 'scale', group: 'veil', item: 'glyph', than: 'figure', min: 2, optional: true },
+    { kind: 'area', item: 'veil', of: 'frame', min: 'veil-min', max: 'veil-max' },
+  ]);
+  assert.match(veiled, /每块 `veil` 落在所在 `frame` 里的面积，占 `frame` 的 `veil-min` 到 `veil-max`/);
+  assert.match(veiled, /组里没有 `figure` 时不比较；整件作品没有 `figure` 时这条不适用/);
+  assert.doesNotMatch(veiled, /整件作品没有 `title`/);
   // Only the scenes the page inspector serves get the section.
   assert.doesNotMatch(cli('resolve', 'neo-brutalism', '--scene', 'diagram'), /## 机检/);
   assert.doesNotMatch(cli('resolve', 'neo-swiss', '--scene', 'web'), /## 机检/);
@@ -280,6 +290,8 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
     'param.md': rules('    - kind: seams\n      group: box\n      item: box'),
     'extra.md': rules('    - kind: seams\n      group: box\n      item: box\n      max: 3\n      side: left'),
     'count.md': rules('    - kind: covers\n      item: box\n      over: box\n      count: two'),
+    'area.md': rules('    - kind: area\n      item: box\n      of: box\n      min: 0.2'),
+    'flag.md': rules('    - kind: scale\n      group: box\n      item: box\n      than: box\n      min: 2\n      optional: yes please'),
     'shape.md': userSeed('brand', 'checks:\n  rules: []'),
   });
   try {
@@ -288,6 +300,8 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
     assert.match(run('check', join(dir, 'param.md')).stdout, /seams 缺少参数 max/);
     assert.match(run('check', join(dir, 'extra.md')).stdout, /seams 不认识参数 side/);
     assert.match(run('check', join(dir, 'count.md')).stdout, /covers 的 count 必须是整数/);
+    assert.match(run('check', join(dir, 'area.md')).stdout, /area 缺少参数 max/);
+    assert.match(run('check', join(dir, 'flag.md')).stdout, /scale 的 optional 必须是 true 或 false/);
     assert.match(run('check', join(dir, 'shape.md')).stdout, /checks 必须有 roles/);
   } finally {
     rmSync(dir, { recursive: true, force: true });

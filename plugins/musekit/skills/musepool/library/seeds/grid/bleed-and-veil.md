@@ -30,6 +30,16 @@ tokens:
   veil-max:
     value: 0.45
     role: 纱面占画框面积的上限
+checks:
+  roles:
+    frame: 每个画框：海报整张、网页首屏和每章开头的满幅照片容器，列表里的每个小画框也标
+    veil: 画框里的那块纱面
+  rules:
+    - kind: area
+      item: veil
+      of: frame
+      min: veil-min
+      max: veil-max
 ---
 
 # 出血照片与一块锚定的纱面

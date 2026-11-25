@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { inspectPage, parseArgs } from "../../plugins/musekit/scripts/inspect_page.mjs";
 
@@ -85,6 +86,8 @@ const rulesStyle = `## Tokens
   --dominant-ratio: 2;
   --fill-ratio: 0.9;
   --axis-tolerance: 0.02;
+  --veil-min: 0.2;
+  --veil-max: 0.45;
 }
 /* mobile */
 @media (max-width: 767px) {
@@ -105,6 +108,11 @@ ${JSON.stringify({ rules: [
   { kind: "axis", item: "axis", field: "axis-field", tolerance: "axis-tolerance" },
   { kind: "max-size", item: "title", than: "hero" },
   { kind: "max-size", item: "ghost", than: "hero" },
+  { kind: "area", item: "veil", of: "frame", min: "veil-min", max: "veil-max" },
+  { kind: "scale", group: "veil", item: "glyph", than: "vtitle", min: 6 },
+  { kind: "scale", group: "veil", item: "glyph", than: "figure", min: 2 },
+  { kind: "scale", group: "veil", item: "glyph", than: "caption", min: 2, optional: true },
+  { kind: "scale", group: "veil", item: "glyph", than: "subtitle", min: 6 },
 ] })}
 \`\`\`
 `;
@@ -115,6 +123,9 @@ body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
 #w2{grid-template-columns:3fr 1fr}
 .panel{border:3px solid #111;height:160px;position:relative;padding:0 10px}
 .ink{background:#111;color:#fff}
+.vframe{position:relative;width:100%;max-width:600px;height:300px;margin-bottom:20px}
+.veil{position:absolute;top:0;height:100%}
+.veil p{margin:0;line-height:1}
 .sticker{position:absolute;margin:0;background:#ffcc00;border:3px solid #111;width:80px;height:40px;transform:rotate(-6deg)}
 #s1{left:10px;top:10px}
 #s2{left:calc(75% - 40px);top:60px}
@@ -129,7 +140,11 @@ h2,h1{margin:0;white-space:nowrap}
   <div class="panel ink" data-mk="panel"></div>
   <p class="sticker" id="s2" data-mk="sticker">压</p>
 </section>
-<div style="width:600px"><p data-mk="axis">齐左的一行，不在中轴上</p></div>`;
+<div style="width:600px"><p data-mk="axis">齐左的一行，不在中轴上</p></div>
+<div class="vframe" data-mk="frame"><div class="veil" style="right:0;width:40%" data-mk="veil">
+  <p data-mk="glyph" style="font-size:120px">字</p><p data-mk="vtitle" style="font-size:20px">标题</p><p data-mk="figure" style="font-size:72px">4</p>
+</div></div>
+<div class="vframe" data-mk="frame"><div class="veil" style="left:-33.333%;width:83.333%;text-align:right" data-mk="veil"><p data-mk="glyph" style="font-size:100px">纱</p></div></div>`;
 
 
 test("a canvas run exports the PNG and reports what is covered, past the canvas and missing", async () => {
@@ -165,8 +180,9 @@ html,body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
 h1{margin:0;width:200px;font-size:40px}
 p{margin:0;width:70px;font-size:30px}
 h2{margin:0;font-size:20px}
-</style><h1>河岸图书节 2027</h1><p>城市里的植物</p><h2>南门<br>书房</h2>`);
-  write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n南门|书房\n");
+</style><h1>河岸图书节 2027</h1><p>城市里的植物</p><h2>南门<br>书房</h2>
+<h3 style="margin:0;font-size:20px">书房二楼</h3><small style="display:block;width:30px;font-size:20px">书房二楼</small>`);
+  write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n南门|书房\n书房二楼\n");
   const report = await inspectPage(parseArgs([join(work, "marked.html"), "--canvas", "400x300", "--scale", "2", "--facts", join(work, "marked-facts.txt"), "--out", join(work, "marked-review")]));
   expect(png(report.files.png)).toEqual({ width: 800, height: 600 });
   expect(png(report.files["at-0.25"])).toEqual({ width: 100, height: 75 });
@@ -176,6 +192,59 @@ h2{margin:0;font-size:20px}
   // A mark with no space beside it still matches the text broken there.
   expect(facts["南门|书房"]).toMatchObject({ count: 1, exact: true, lines: 2, unmarkedBreak: false });
   expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"城市里的植物"'))).toBe(true);
+  // Every occurrence counts: one line in the heading, broken in the narrow note, and the note is named.
+  expect(facts["书房二楼"]).toMatchObject({ count: 2, unmarkedBreak: true, breaksIn: "small" });
+  expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"书房二楼" in small'))).toBe(true);
+});
+
+test("fonts are read per stack from each element's own text, and a webfont reports the weights the page loaded", async () => {
+  test.setTimeout(60000);
+  // A real webfont file: the icon font Playwright ships, drawn through its private-use code points.
+  const icons = join(dirname(createRequire(import.meta.url).resolve("playwright-core/package.json")), "lib/vite/traceViewer");
+  copyFileSync(join(icons, readdirSync(icons).find((f) => /^codicon.*\.ttf$/.test(f))), join(work, "probe.ttf"));
+  write("fonts.html", `<!doctype html><meta charset="utf-8"><style>
+@font-face{font-family:"Probe Face";src:url(probe.ttf);font-weight:700}
+html,body{margin:0;background:#fff;color:#111}
+h1{margin:0;font:700 40px "Probe Face",monospace}
+span{font:400 20px Georgia,serif}
+</style><h1>&#xEA60;&#xEA61; <span>serif inside</span></h1>`);
+  const report = await inspectPage(parseArgs([join(work, "fonts.html"), "--canvas", "600x200", "--out", join(work, "fonts-review")]));
+  const probe = report.fonts.find((f) => f.stack.includes("Probe Face"));
+  const serif = report.fonts.find((f) => f.stack.includes("Georgia"));
+  expect(probe.rendered.find((r) => r.custom)).toMatchObject({ name: "Probe Face", glyphs: 2, loadedWeights: ["700"] });
+  // The serif child is its own stack, not part of the heading's.
+  const serifNames = serif.rendered.map((r) => r.name);
+  expect(serifNames.length).toBeGreaterThan(0);
+  expect(probe.rendered.some((r) => serifNames.includes(r.name))).toBe(false);
+  expect(serif.rendered.every((r) => !r.custom && r.faces.length)).toBe(true);
+
+  // Stacks met in the order A B A C C B: each keeps its own samples, none borrows another stack's element.
+  const p = (family) => `<p style="margin:0;font:20px ${family}">${family} sample</p>`;
+  write("stacks.html", `<!doctype html><meta charset="utf-8"><body style="margin:0">${["monospace", "serif", "monospace", "sans-serif", "sans-serif", "serif"].map(p).join("")}`);
+  const stacks = await inspectPage(parseArgs([join(work, "stacks.html"), "--canvas", "600x200", "--out", join(work, "stacks-review")]));
+  const names = Object.fromEntries(stacks.fonts.map((f) => [f.stack, f.rendered.map((r) => r.name)]));
+  expect(Object.keys(names).sort()).toEqual(["monospace", "sans-serif", "serif"]);
+  expect(names.serif.some((n) => names["sans-serif"].includes(n) || names.monospace.includes(n))).toBe(false);
+});
+
+test("a display glyph whose em box pokes out of its frame is not clipped while its ink is inside; cut ink still is", async () => {
+  test.setTimeout(60000);
+  write("glyph.html", `<!doctype html><meta charset="utf-8"><style>
+html,body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+.frame{position:absolute;left:0;width:560px;overflow:hidden}
+#a{top:0;height:200px}
+#a p{margin:0;font-size:200px;line-height:1}
+#b{top:300px;height:60px}
+#b p{margin:0;font-size:60px;line-height:1;position:relative;top:8px}
+#c{top:420px;left:20px;margin:0;font-size:60px;line-height:1;position:absolute;right:-30px;text-align:right}
+</style><div class="frame" id="a"><p>HE</p></div><div class="frame" id="b"><p>gypsy</p></div><p id="c">EH</p>`);
+  const report = await inspectPage(parseArgs([join(work, "glyph.html"), "--canvas", "600x500", "--out", join(work, "glyph-review")]));
+  const [view] = report.views;
+  // HE at line-height 1: the em box runs past the 200px frame, the capitals do not.
+  // gypsy: the descenders are cut by the frame's bottom edge, so it stays reported.
+  expect(view.clipped.map((c) => c.text)).toEqual(["gypsy"]);
+  // EH: the box runs past the canvas by 30px, and so does the ink.
+  expect(view.outside.map((c) => c.text)).toEqual(["EH"]);
 });
 
 test("the fold is shot after scroll-driven state has settled back at the top", async ({ page }) => {
@@ -273,6 +342,10 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   for (const tag of ["1024x700", "375x700"])
     for (const k of ["fold", "full", "full-gray"]) expect(existsSync(report.files[`${tag}-${k}`])).toBe(true);
   expect(png(report.files["375x700-fold"]).width).toBe(375);
+  // The short screens the sweep visits get a first-screen shot each, without being listed.
+  for (const tag of ["1366x768", "1280x720", "1024x768", "375x667"]) expect(existsSync(report.files[`${tag}-fold`])).toBe(true);
+  expect(png(report.files["375x667-fold"])).toEqual({ width: 375, height: 667 });
+  expect(report.files["375x667-full"]).toBeUndefined();
   // The page scrolls smoothly; the fold is still shot at the very top, not partway back.
   const top = readFileSync(report.files["1024x700-fold"]).toString("base64");
   await page.setContent(`<img id="i" src="data:image/png;base64,${top}">`);
@@ -352,6 +425,19 @@ test("layout rules from style.md: each broken rule is named with its reading, th
   expect(report.problems.some((p) => p.startsWith("layout rule dominant fails @1024x900: section#w1"))).toBe(true);
   expect(report.problems.some((p) => p.startsWith("layout rule dominant fails @375x900"))).toBe(false);
   expect(report.problems.some((p) => /^sweep .*rule seams fails/.test(p))).toBe(true);
+  // Area counts only the part of a veil inside its frame: the second one bleeds a third past the edge.
+  expect(kind(d, "area").items.map((i) => [i.ratio, i.ok])).toEqual([[0.4, true], [0.5, false]]);
+  expect(report.problems).toContain('layout rule area fails @1024x900: div.veil "纱" area 0.5 (0.2–0.45)');
+  // Scale compares within a veil, and only where the reference is there: the second veil has no title or figure.
+  expect(kind(d, "scale", 0).items.map((i) => [i.size, i.than, i.ratio, i.ok])).toEqual([[120, 20, 6, true]]);
+  expect(kind(d, "scale", 1).items.map((i) => [i.ratio, i.ok])).toEqual([[1.67, false]]);
+  expect(report.problems.some((p) => p.startsWith('layout rule scale fails @1024x900: p "字" 120px, 1.67× 72px (min 2×)'))).toBe(true);
+  // An optional reference missing everywhere: nothing compared, which is said but is not a finding.
+  expect(kind(d, "scale", 2)).toMatchObject({ status: "info", items: [] });
+  expect(report.problems.some((p) => p.includes("caption"))).toBe(false);
+  // A required one missing everywhere is not measured, never a silent pass.
+  expect(kind(d, "scale", 3)).toMatchObject({ status: "unmarked" });
+  expect(report.problems).toContain('layout rule scale not measured @1024x900: no element marked data-mk="subtitle"');
 });
 
 test("a style that follows the system is also shot in dark, and a page that ignores dark or hardcodes light colours is told so", async () => {
@@ -454,8 +540,8 @@ test("a deck run checks each slide alone, counts facts over the deck and exports
 
   expect(report.facts.map((f) => [f.text, f.count, f.slides])).toEqual([["城市里的植物", 2, [1, 4]], ["2027.03.06 14:30", 1, [2]], ["南门书房", 0, []]]);
   // Each slide keeps its own reading: broken over two lines in the 20px column on slide 4 only.
-  expect(report.facts[0].at).toEqual([{ slide: 1, lines: 1, unmarkedBreak: false, fontSize: 48 }, { slide: 4, lines: 2, unmarkedBreak: true, fontSize: 20 }]);
-  expect(report.problems.some((p) => p.startsWith('fact breaks across 2 lines @slide 4: "城市里的植物"'))).toBe(true);
+  expect(report.facts[0].at).toEqual([{ slide: 1, lines: 1, unmarkedBreak: false, fontSize: 48 }, { slide: 4, lines: 2, unmarkedBreak: true, breaksIn: "p", fontSize: 20 }]);
+  expect(report.problems.some((p) => p.startsWith('fact breaks across 2 lines @slide 4: "城市里的植物" in p'))).toBe(true);
   expect(report.problems.some((p) => /breaks across .* @slide 1:/.test(p))).toBe(false);
   expect(report.problems).toContain('fact missing from every slide: "南门书房"');
   expect(report.problems.some((p) => p.startsWith('text covered @slide 2: "2027.03.06 14:30"'))).toBe(true);
