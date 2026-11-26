@@ -791,7 +791,7 @@ ${overrides}
 
 test('every library template resolves for each declared scene and ranks by curated mood words', () => {
   const ids = readdirSync(join(library, 'templates')).filter((name) => name.endsWith('.md')).map((name) => name.slice(0, -3));
-  assert.deepEqual(new Set(ids), new Set(['neo-swiss', 'japanese-ma', 'editorial-serif', 'neo-brutalism', 'mono-print', 'broadsheet', 'frosted-grid', 'veiled-frame']));
+  assert.deepEqual(new Set(ids), new Set(['neo-swiss', 'japanese-ma', 'editorial-serif', 'neo-brutalism', 'mono-print', 'broadsheet', 'frosted-grid', 'veiled-frame', 'dark-stage']));
   for (const id of ids) {
     const meta = frontmatter(join(library, `templates/${id}.md`));
     assert.ok(existsSync(join(library, `templates/${id}.png`)), `${id} specimen`);

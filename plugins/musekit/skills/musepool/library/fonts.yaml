@@ -109,10 +109,11 @@ fonts:
     scripts: [latin]
     official: "https://fonts.google.com/specimen/Archivo"
     download: "https://github.com/Omnibus-Type/Archivo/releases"
-    css: "https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap"
+    css: "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap"
     mirrors:
       - "https://cdn.jsdelivr.net/npm/@fontsource/archivo@5/index.css"
     fallback: [Archivo, "Arial Black", Arial, sans-serif]
+    notes: 可变字体，带字宽轴（wdth 62–125）和字重轴；加宽字形用 font-stretch 取。
 
   - family: Space Mono
     kind: open
