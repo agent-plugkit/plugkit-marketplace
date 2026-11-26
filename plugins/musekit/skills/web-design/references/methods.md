@@ -58,7 +58,7 @@ style.md 的本场景适配主要按桌面和手机写。两者之间和高度�
 
 ## 任务路径脚本
 
-检查脚本的 `--flow` 接收一个 ES 模块，默认导出一个异步函数，参数是 `{ page, viewport, shot, check, log }`。`page` 是已经加载好、字体就绪的 Playwright 页面；`viewport.tag` 形如 `375x812`，桌面和手机的操作不同时按它分支。`shot(名字, { fullPage, selector })` 把截图存成 `review/flow-<视口>-<名字>.png`；`check(名字)` 在当前状态下重做遮挡、裁切和溢出检查，结果进报告；`log(...)` 记一行文字。脚本出错时，报告记下错误，其他检查照常完成。
+检查脚本的 `--flow` 接收一个 ES 模块，默认导出一个异步函数，参数是 `{ page, viewport, shot, check, tabs, log }`。`page` 是已经加载好、字体就绪的 Playwright 页面；`viewport.tag` 形如 `375x812`，桌面和手机的操作不同时按它分支。`shot(名字, { fullPage, selector })` 把截图存成 `review/flow-<视口>-<名字>.png`；`check(名字)` 在当前状态下重做遮挡、裁切和溢出检查，结果进报告；`tabs(名字)` 从当前焦点起按 Tab 走一圈，记下每一站和焦点是否可见（检查脚本自己只在第一个和最后一个视口的初始状态走一遍，展开的菜单、出错或完成后的表单要在这里走）；`log(...)` 记一行文字。脚本出错时，报告记下错误，其他检查照常完成。
 
 ```js
 export default async ({ page, shot, check, log }) => {

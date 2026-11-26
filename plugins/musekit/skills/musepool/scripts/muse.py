@@ -259,6 +259,8 @@ CHECK_KINDS = {
     "max-size": {"roles": ("item", "than")},
     "area": {"roles": ("item", "of"), "thresholds": ("min", "max")},
     "scale": {"roles": ("group", "item", "than"), "thresholds": ("min",), "flags": ("optional",)},
+    "sink": {"roles": ("item", "over"), "optional_roles": ("every",), "thresholds": ("min", "max")},
+    "backdrop": {"roles": ("item",), "colors": ("ceiling",), "required": ("ceiling",)},
 }
 CHECK_TEXT = {
     "seams": "每面 `{group}` 里相邻两块 `{item}` 的间隙不超过 `{max}`",
@@ -269,6 +271,8 @@ CHECK_TEXT = {
     "max-size": "`{item}` 的字号不大于 `{than}`",
     "area": "每块 `{item}` 落在所在 `{of}` 里的面积，占 `{of}` 的 `{min}` 到 `{max}`",
     "scale": "每个 `{group}` 里 `{item}` 的字号至少是同组最大的 `{than}` 的 `{min}` 倍；组里没有 `{than}` 时不比较{optional}",
+    "sink": "`{over}` 压住 `{item}` 最深的一列占整个词笔画高的 `{min}` 到 `{max}`，逐字量{every}",
+    "backdrop": "`{item}` 里每行文字底下最亮的约 5% 像素不亮于 `{ceiling}`；装饰层和自带底色的按钮不算",
 }
 
 
@@ -282,7 +286,7 @@ def check_rule_problems(rule) -> list[str]:
     known = {"kind", *spec.get("roles", ()), *spec.get("optional_roles", ()), *spec.get("thresholds", ()),
              *spec.get("ints", ()), *spec.get("colors", ()), *spec.get("flags", ())}
     problems = [f"{rule['kind']} 不认识参数 {key}" for key in rule if key not in known]
-    for key in (*spec.get("roles", ()), *spec.get("thresholds", ()), *spec.get("ints", ())):
+    for key in (*spec.get("roles", ()), *spec.get("thresholds", ()), *spec.get("ints", ()), *spec.get("required", ())):
         if rule.get(key) in (None, ""):
             problems.append(f"{rule['kind']} 缺少参数 {key}")
     for key in spec.get("flags", ()):
@@ -333,6 +337,7 @@ def check_section(roles, rules) -> list[str]:
             "avoid": f"，不压在底色为 `{rule['avoid']}` 的板上" if rule.get("avoid") else "",
             "field": f"；标了 `{rule['field']}` 的元素里以它的中线为轴，其余以画布或视口的中线为轴" if rule.get("field") else "",
             "optional": f"；整件作品没有 `{rule['than']}` 时这条不适用" if rule.get("optional") else "",
+            "every": f"；同时标了 `{rule['every']}` 的前景（横贯画框）要压住每一个字，其余前景只要压住其中一段" if rule.get("every") else "",
         }
         out.append("- " + CHECK_TEXT[rule["kind"]].format_map({**rule, **extra}) + "。")
     out += ["", "```json musekit-checks", json.dumps({"rules": rules}, ensure_ascii=False), "```", ""]

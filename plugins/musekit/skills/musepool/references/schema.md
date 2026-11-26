@@ -157,11 +157,14 @@ checks:
 | `axis` | `item` `tolerance`，可选 `field` | item 每一行中点离中轴的偏差，按版面宽度计；在 field 里时以 field 的中线为轴 |
 | `max-size` | `item` `than` | item 的字号不大于 than |
 | `area` | `item` `of` `min` `max` | 每个 item 落在所在 of 里的面积占 of 的比例 |
+| `sink` | `item` `over` `min` `max`，可选 `every` | over 压住 item 的深度：逐字取被压得最深的一列，占整个词的笔画高的比例。最深的那个字在 min–max 之间，没有字超过 max；over 同时标了 every 的角色时，每个字都要在 min–max 之间。截图量，见下方 |
+| `backdrop` | `item` `ceiling` | item 里每行文字底下的照片亮度：文字设成透明后截图，取每行外框里第 95 百分位的亮度，不亮于颜色 token ceiling。装饰层（`aria-hidden`、`data-inspect-ignore`）和自带底色的元素（按钮）不算。截图量，见下方 |
 | `scale` | `group` `item` `than` `min`，可选 `optional` | 每个 group 里 item 的字号与同组最大的 than 之比；组里没有 than 时不比较。整页都没有 than 时报 not measured；than 是可有可无的元素（如关键数字）时写 `optional: true`，整页没有就只写一句说明，不算发现 |
 
 - 阈值写 token 名或数字。token 名在检查时按视口宽度取 style.md 里对应断点的值，所以手机上用手机断点的值；不为阈值另造数字。
 - 只写要点或本场景适配里明文规定的规则。「约三分之一」这类没有 token 的说法不写成规则。
 - `check` 校验种类、参数、角色是否在同一 Template 的 Seed 或场景规则里声明过，以及阈值 token 是否存在。
 - `resolve` 只在 `graphic`、`web` 和 `slides` 场景输出「机检」一节：角色说明、规则的中文描述和一段 `json musekit-checks` 机读块。
+- `sink` 和 `backdrop` 靠截图量：海报和网页的每个视口、宽度扫描里都量，量完把页面原样复位；演示文稿上报「not measured」；深色复测不带这两条规则，只在浅色下量。
 - 检查脚本对没有标记的角色报「not measured」，不当作通过。演示文稿逐页测量：某个角色只在部分页面出现时，没有它的页面不报，整份都没有才报。
 

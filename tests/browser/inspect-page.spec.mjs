@@ -65,11 +65,12 @@ button:focus{outline:none}
   );
   write(
     "flow.mjs",
-    `export default async ({ page, shot, check, log }) => {
+    `export default async ({ page, shot, check, tabs, log }) => {
   await page.click("#go");
   log("message", await page.textContent("#msg"));
   await shot("done");
   await check("after submit");
+  await tabs("after submit");
 };`,
   );
 });
@@ -180,7 +181,7 @@ html,body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
 h1{margin:0;width:200px;font-size:40px}
 p{margin:0;width:70px;font-size:30px}
 h2{margin:0;font-size:20px}
-</style><h1>河岸图书节 2027</h1><p>城市里的植物</p><h2>南门<br>书房</h2>
+</style><div aria-hidden="true" data-inspect-ignore style="position:absolute;left:0;bottom:0;font-size:48px;white-space:nowrap">城市里的植物</div><h1>河岸图书节 2027</h1><p>城市里的植物</p><h2>南门<br>书房</h2>
 <h3 style="margin:0;font-size:20px">书房二楼</h3><small style="display:block;width:30px;font-size:20px">书房二楼</small>`);
   write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n南门|书房\n书房二楼\n");
   const report = await inspectPage(parseArgs([join(work, "marked.html"), "--canvas", "400x300", "--scale", "2", "--facts", join(work, "marked-facts.txt"), "--out", join(work, "marked-review")]));
@@ -192,6 +193,9 @@ h2{margin:0;font-size:20px}
   // A mark with no space beside it still matches the text broken there.
   expect(facts["南门|书房"]).toMatchObject({ count: 1, exact: true, lines: 2, unmarkedBreak: false });
   expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"城市里的植物"'))).toBe(true);
+  // A wordmark repeats the fact as decoration at display size: the size it is read at is reported beside it.
+  expect(facts["城市里的植物"]).toMatchObject({ count: 2, fontSize: 48, textSize: 30 });
+  expect(facts["河岸图书节 |2027"].textSize).toBeUndefined();
   // Every occurrence counts: one line in the heading, broken in the narrow note, and the note is named.
   expect(facts["书房二楼"]).toMatchObject({ count: 2, unmarkedBreak: true, breaksIn: "small" });
   expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"书房二楼" in small'))).toBe(true);
@@ -388,6 +392,10 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
 
   expect(report.fonts.some((f) => f.stack.includes("Missing Webfont") && f.fallback.length)).toBe(true);
   expect(report.keyboard.stops.map((s) => [s.label, s.visibleFocus])).toEqual([["第一个链接", true], ["报名", false], ["邮箱", true]]);
+  // The last viewport walks its own tab order, and its findings name it.
+  expect(report.keyboard.more.map((m) => m.viewport)).toEqual(["375x700"]);
+  expect(report.keyboard.more[0].stops.map((s) => s.label)).toEqual(["第一个链接", "报名", "邮箱"]);
+  expect(report.problems).toContain('no visible focus change @375x700: button#go "报名"');
   expect(report.reducedMotion.running.some((r) => r.includes("spin") && r.includes("infinite"))).toBe(true);
 
   const flow = report.flow["1024x700"];
@@ -395,6 +403,9 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   expect(flow.log).toEqual(["message 完成"]);
   expect(existsSync(join(out, "flow-1024x700-done.png"))).toBe(true);
   expect(flow.checks[0].label).toBe("after submit");
+  // tabs() walks on from where the path left focus: the clicked button first.
+  expect(flow.keyboard["after submit"].map((s) => s.label)).toEqual(["邮箱", "第一个链接", "报名"]);
+  expect(report.problems).toContain('no visible focus change in flow @1024x700 "after submit": button#go "报名"');
   expect(Object.keys(report.flow)).toEqual(["1024x700", "375x700"]);
   expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).problems).toEqual(report.problems);
 });
@@ -440,6 +451,119 @@ test("layout rules from style.md: each broken rule is named with its reading, th
   // A required one missing everywhere is not measured, never a silent pass.
   expect(kind(d, "scale", 3)).toMatchObject({ status: "unmarked" });
   expect(report.problems).toContain('layout rule scale not measured @1024x900: no element marked data-mk="subtitle"');
+});
+
+test("shot rules: a foreground's cut into the wordmark, and the photo's brightness under a frame's text; the poster is left as it was", async () => {
+  test.setTimeout(120000);
+  const style = `\`\`\`css
+:root {
+  --color-paper: #0d0c0b;
+  --color-ink: #efe9e1;
+  --color-edge-floor: #383430;
+  --mark-sink-min: 0.2;
+  --mark-sink-max: 0.33;
+}
+\`\`\`
+
+\`\`\`json musekit-checks
+${JSON.stringify({ rules: [
+  { kind: "sink", item: "mark", over: "front", every: "across", min: "mark-sink-min", max: "mark-sink-max" },
+  { kind: "backdrop", item: "frame", ceiling: "edge-floor" },
+] })}
+\`\`\`
+`;
+  // Each front is placed from the mark's measured ink: its top edge cuts a set share of the ink height,
+  // over all of the word or over its first letter only.
+  const frame = (top, cut, span, across) => `<div class="fr" data-mk="frame" style="top:${top}px">
+  <span class="mk" data-mk="mark" aria-hidden="true" data-inspect-ignore>HE</span>
+  <div class="front" data-mk="front${across ? " across" : ""}" data-cut="${cut}" data-span="${span}"></div></div>`;
+  const page = (marks) => `<!doctype html><meta charset="utf-8"><style>
+html,body{margin:0;background:#0d0c0b;color:#efe9e1;font-family:Arial,sans-serif}
+.fr{position:absolute;left:0;width:600px;height:160px;overflow:hidden;background:#1a1816}
+.mk{position:absolute;left:40px;top:20px;font:700 100px/1 Arial,sans-serif;color:#efe9e1}
+.front{position:absolute;left:0;bottom:0;background:#3a5060}
+.lit{position:absolute;left:0;top:560px;width:600px;height:120px;background:linear-gradient(#fff 50%,#1a1816 50%)}
+.lit h2{margin:0;padding:8px 20px;font-size:20px}
+.lit a{position:absolute;left:300px;top:8px;background:#0d0c0b;padding:4px 8px;color:#efe9e1}
+.dark{position:absolute;left:0;top:700px;width:600px;height:60px;background:#111}
+.dark p{margin:0;padding:8px 20px}
+</style>${marks ? frame(0, 0.25, "word", true) + frame(180, 0.25, "first", true) + frame(360, 0.25, "first", false) : ""}
+<div class="lit" data-mk="frame"><h2>亮处的标题</h2><a href="#">按钮</a></div>
+<div class="dark" data-mk="frame"><p>暗处的说明</p></div>
+<script>
+const g = document.createElement("canvas").getContext("2d");
+for (const f of document.querySelectorAll(".front")) {
+  const mk = f.parentElement.querySelector(".mk"), cs = getComputedStyle(mk);
+  g.font = cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+  const m = g.measureText("HE"), A = m.fontBoundingBoxAscent, D = m.fontBoundingBoxDescent, size = parseFloat(cs.fontSize);
+  const base = mk.offsetTop + (size - (A + D)) / 2 + A, inkTop = base - m.actualBoundingBoxAscent, inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  f.style.top = inkTop + inkH * (1 - Number(f.dataset.cut)) + "px";
+  f.style.width = f.dataset.span === "word" ? "600px" : (mk.offsetLeft + g.measureText("H").width) + "px";
+}
+</script>`;
+  write("shots.html", page(true));
+  write("shots-style.md", style);
+  const report = await inspectPage(parseArgs([join(work, "shots.html"), "--canvas", "600x780", "--style", join(work, "shots-style.md"), "--out", join(work, "shots-review")]));
+  const [sink, backdrop] = report.views[0].rules;
+  // Across the word: both letters cut by a quarter. Across, over the first letter only: E is not cut, which
+  // an across front may not leave. A single object over the first letter: one letter cut is enough.
+  expect(sink.items.map((i) => [i.every, i.ok])).toEqual([[true, true], [true, false], [false, true]]);
+  for (const i of sink.items) expect(i.max).toBeGreaterThanOrEqual(0.22), expect(i.max).toBeLessThanOrEqual(0.28);
+  expect(sink.items[1].depths).toMatch(/^H 0\.2\d, E 0$/);
+  expect(report.problems.some((p) => p.startsWith('layout rule sink fails: span "HE" cut H 0.2'))).toBe(true);
+  // The marks are decoration and are not read for brightness; the bright title is, the button on its own
+  // ground is not, and the dark caption passes.
+  const lit = backdrop.items.find((i) => i.where.startsWith("div.lit"));
+  expect(lit).toMatchObject({ line: "亮处的标题", ok: false });
+  expect(lit.ratio).toBeGreaterThan(20);
+  expect(backdrop.items.find((i) => i.where.startsWith("div.dark"))).toMatchObject({ ok: true });
+  expect(backdrop.items.filter((i) => i.where.startsWith("div.fr")).every((i) => i.ok && i.note)).toBe(true);
+  expect(report.problems.some((p) => p.startsWith('layout rule backdrop fails: div.lit under "亮处的标题"'))).toBe(true);
+
+  // Measuring takes shots with the page changed; the exported poster is the page as it was.
+  const withRules = readFileSync(report.files.png);
+  write("shots-plain-style.md", ":root { --color-paper: #0d0c0b; }\n");
+  const plain = await inspectPage(parseArgs([join(work, "shots.html"), "--canvas", "600x780", "--style", join(work, "shots-plain-style.md"), "--out", join(work, "shots-plain")]));
+  expect(readFileSync(plain.files.png).equals(withRules)).toBe(true);
+});
+
+test("backdrop on a web page: a chapter frame taller than the screen is read where its title sits, under a pinned bar, and the page is put back", async () => {
+  test.setTimeout(120000);
+  write("chapters-style.md", `\`\`\`css
+:root {
+  --color-paper: #0d0c0b;
+  --color-ink: #efe9e1;
+  --color-edge-floor: #383430;
+}
+\`\`\`
+
+\`\`\`json musekit-checks
+${JSON.stringify({ rules: [{ kind: "backdrop", item: "frame", ceiling: "edge-floor" }] })}
+\`\`\`
+`);
+  const chapter = (id, ground) => `<section id="${id}" class="ch" data-mk="frame"><div class="ground" style="background:${ground}"></div><h2>贴底的章节标题</h2></section>`;
+  write("chapters.html", `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#0d0c0b;color:#efe9e1;font-family:Arial,sans-serif}
+header{position:sticky;top:0;z-index:2;height:48px;background:#0d0c0b;border-bottom:1px solid #333}
+header a{color:#efe9e1;margin:0 16px;line-height:48px}
+header a:focus{outline:none;color:#ffcc00}
+.hero{height:552px;background:#16130f;position:relative}
+.hero p{margin:0;position:absolute;left:24px;bottom:24px}
+.ch{position:relative;height:1200px;background:#16130f;overflow:hidden}
+.ground{position:absolute;left:0;right:0;bottom:0;height:160px}
+.ch h2{position:absolute;left:24px;bottom:40px;margin:0;font-size:24px}
+</style><header><a href="#a">一</a><a href="#b">二</a></header>
+<section class="hero" data-mk="frame"><p>首屏底部的说明</p></section>
+${chapter("bright", "#f4efe6")}${chapter("dark", "#120f0c")}<div style="height:400px"></div>`);
+  const report = await inspectPage(parseArgs([join(work, "chapters.html"), "--viewports", "800x600", "--style", join(work, "chapters-style.md"), "--out", join(work, "chapters-review")]));
+  const [backdrop] = report.views[0].rules;
+  expect(backdrop.items.map((i) => [i.where, i.ok])).toEqual([["section.hero", true], ["section#bright.ch", false], ["section#dark.ch", true]]);
+  expect(backdrop.items[1].line).toBe("贴底的章节标题");
+  // The pinned bar was hidden for the shot, not read as the title's ground.
+  expect(backdrop.items[1].ratio).toBeGreaterThan(20);
+  // Put back: the links' colour-change focus still shows on the walk that follows the measurement.
+  expect(report.keyboard.stops.map((s) => s.visibleFocus)).toEqual([true, true]);
+  expect(report.problems.some((p) => p.startsWith('layout rule backdrop fails @800x600: section#bright.ch under "贴底的章节标题"'))).toBe(true);
 });
 
 test("a style that follows the system is also shot in dark, and a page that ignores dark or hardcodes light colours is told so", async () => {
@@ -517,6 +641,7 @@ ${JSON.stringify({ rules: [
   { kind: "seams", group: "wall", item: "panel", max: "rule-width" },
   { kind: "covers", item: "sticker", over: "panel", count: 2 },
   { kind: "max-size", item: "ghost", than: "hero" },
+  { kind: "backdrop", item: "wall", ceiling: "ink" },
 ] })}
 \`\`\`
 `;
@@ -550,7 +675,9 @@ test("a deck run checks each slide alone, counts facts over the deck and exports
   expect(report.problems.some((p) => p.startsWith('text clipped @slide 3: "出画布的一行字很长"'))).toBe(true);
   expect(report.problems.some((p) => p.startsWith("text below size-meta (16px) @slide 3: 12px"))).toBe(true);
   // Rules measured where their roles are; a role on no slide at all is reported once.
-  expect(report.views[0].rules.map((r) => r.status)).toEqual(["pass", "pass", "unmarked"]);
+  expect(report.views[0].rules.map((r) => r.status)).toEqual(["pass", "pass", "unmarked", "error"]);
+  // A rule read off screenshots is not measured on slides, and says so rather than passing.
+  expect(report.problems).toContain("layout rule backdrop not measured @slide 1: backdrop is measured on posters and web pages, not on slides");
   expect(report.problems).toContain('layout rule max-size not measured on any slide: no element marked data-mk="ghost", "hero"');
   expect(report.problems.some((p) => /seams|covers/.test(p))).toBe(false);
 });

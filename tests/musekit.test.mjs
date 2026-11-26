@@ -279,6 +279,11 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
   assert.match(veiled, /每块 `veil` 落在所在 `frame` 里的面积，占 `frame` 的 `veil-min` 到 `veil-max`/);
   assert.match(veiled, /组里没有 `figure` 时不比较；整件作品没有 `figure` 时这条不适用/);
   assert.doesNotMatch(veiled, /整件作品没有 `title`/);
+  // Dark stage: rules read off screenshots, the foreground's cut and the brightness under the frame's text.
+  const stage = cli('resolve', 'dark-stage', '--scene', 'web', '--variant', 'ember');
+  assert.deepEqual(block(stage).map((r) => r.kind), ['fill', 'sink', 'backdrop']);
+  assert.deepEqual(block(stage)[2], { kind: 'backdrop', item: 'frame', ceiling: 'edge-floor' });
+  assert.match(stage, /同时标了 `across` 的前景（横贯画框）要压住每一个字/);
   // Only the scenes the page inspector serves get the section.
   assert.doesNotMatch(cli('resolve', 'neo-brutalism', '--scene', 'diagram'), /## 机检/);
   assert.doesNotMatch(cli('resolve', 'neo-swiss', '--scene', 'web'), /## 机检/);
@@ -291,6 +296,7 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
     'extra.md': rules('    - kind: seams\n      group: box\n      item: box\n      max: 3\n      side: left'),
     'count.md': rules('    - kind: covers\n      item: box\n      over: box\n      count: two'),
     'area.md': rules('    - kind: area\n      item: box\n      of: box\n      min: 0.2'),
+    'ceiling.md': rules('    - kind: backdrop\n      item: box'),
     'flag.md': rules('    - kind: scale\n      group: box\n      item: box\n      than: box\n      min: 2\n      optional: yes please'),
     'shape.md': userSeed('brand', 'checks:\n  rules: []'),
   });
@@ -302,6 +308,7 @@ test('layout rules declared by seeds and templates reach style.md as roles, rule
     assert.match(run('check', join(dir, 'count.md')).stdout, /covers 的 count 必须是整数/);
     assert.match(run('check', join(dir, 'area.md')).stdout, /area 缺少参数 max/);
     assert.match(run('check', join(dir, 'flag.md')).stdout, /scale 的 optional 必须是 true 或 false/);
+    assert.match(run('check', join(dir, 'ceiling.md')).stdout, /backdrop 缺少参数 ceiling/);
     assert.match(run('check', join(dir, 'shape.md')).stdout, /checks 必须有 roles/);
   } finally {
     rmSync(dir, { recursive: true, force: true });

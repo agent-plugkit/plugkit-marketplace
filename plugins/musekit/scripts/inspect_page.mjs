@@ -19,7 +19,7 @@ Slide deck (one HTML, every slide a fixed canvas):
                         exports <name>-slides/01.png…, <name>.pdf and an overview sheet in colour and grey
 Web page:
   --viewports LIST      e.g. 1440x900,768x1024,375x812 (the default)
-  --flow FILE.mjs       optional task path; default export async ({ page, viewport, shot, check, log })
+  --flow FILE.mjs       optional task path; default export async ({ page, viewport, shot, check, tabs, log })
 Both:
   --out DIR             screenshots and report.json (default: review/ next to the HTML)
   --facts FILE          one exact fact per line; counted in the rendered text. A "|" marks where the fact may
@@ -34,7 +34,8 @@ checked against the dark palette, and rules that name a colour are measured agai
 The short screens the sweep visits (1366x768, 1280x720, 1024x768, 375x667) are also shot at the first screen
 (web-<WxH>-fold.png) unless --viewports already lists them.
 Layout rules listed under "机检" in style.md are measured on elements marked data-mk="<role>"; unmarked roles are
-reported as not measured.
+reported as not measured. sink and backdrop are read off screenshots on posters and web pages (each viewport and the
+sweep), not on slides or in the dark run.
 Mark intentionally clipped or decorative text (a marquee strip) with data-inspect-ignore. Never mark stickers or
 other overlays with it: an ignored element is no longer checked for covering text.
 Requires Playwright in the current working directory and an installed browser.
@@ -139,10 +140,11 @@ export function resolveRules(rules, blocks, width, scheme = "light") {
       if (Number.isFinite(n)) out.values[key] = n;
       else out.unresolved = `${rule[key]}`;
     }
-    if (rule.avoid) {
-      const rgb = values[`color-${rule.avoid}`] && hexToRgb(values[`color-${rule.avoid}`]);
-      if (rgb) out.values.avoid = rgb;
-      else out.unresolved = `color-${rule.avoid}`;
+    for (const key of ["avoid", "ceiling"]) {
+      if (!rule[key]) continue;
+      const rgb = values[`color-${rule[key]}`] && hexToRgb(values[`color-${rule[key]}`]);
+      if (rgb) out.values[key] = rgb;
+      else out.unresolved = `color-${rule[key]}`;
     }
     return out;
   });
@@ -552,7 +554,6 @@ async function audit({ facts, palette, canvas, scroll }) {
     const exact = [fact.replace(/\|/g, ""), fact.replace(/\s*\|\s*/g, " ")].some((t) => spoken.includes(t));
     const out = { text: fact, count: at.length, exact };
     if (at.length) {
-      const [sn] = chars[at[0]], [en] = chars[at[0] + key.length - 1];
       // Every occurrence is measured: a fact that holds in the hero may still break in the footer.
       const runs = at.map((start) => {
         let from = start;
@@ -564,7 +565,13 @@ async function audit({ facts, palette, canvas, scroll }) {
       out.lines = worst.lines;
       out.unmarkedBreak = worst.unmarked;
       if (worst.unmarked) out.breaksIn = desc(worst.element);
-      out.fontSize = Math.round(Math.max(...[sn, en].map((n) => parseFloat(getComputedStyle(n.parentElement).fontSize))));
+      const sizeAt = (start) => Math.round(Math.max(...[chars[start][0], chars[start + key.length - 1][0]].map((n) => parseFloat(getComputedStyle(n.parentElement).fontSize))));
+      out.fontSize = sizeAt(at[0]);
+      // A wordmark repeats a fact as decoration (aria-hidden or data-inspect-ignore) at display size; the size
+      // the fact is read at is that of its first occurrence as text.
+      const decor = (start) => !!chars[start][0].parentElement.closest('[aria-hidden="true"],[data-inspect-ignore]');
+      const asText = at.find((start) => !decor(start));
+      if (decor(at[0]) && asText !== undefined) out.textSize = sizeAt(asText);
       if (canvas) out.shownAt = Object.fromEntries([0.25, 0.35].map((k) => [k, +(out.fontSize * k).toFixed(1)]));
     }
     return out;
@@ -781,6 +788,9 @@ function measureRules({ rules, judgeFill, canvas }) {
         }
       }
       if (!out.items.length) { out.status = "info"; out.note = `no ${rule.item} shares a ${rule.group} with data-mk="${rule.than}": nothing compared`; }
+    } else if (rule.kind === "sink" || rule.kind === "backdrop") {
+      // Measured on screenshots by the runner (shotRules); a run that cannot take them says so.
+      out.status = "deferred";
     } else if (rule.kind === "max-size") {
       const limit = Math.max(...all(rule.than).map((el) => parseFloat(getComputedStyle(el).fontSize)));
       for (const el of all(rule.item)) {
@@ -793,6 +803,23 @@ function measureRules({ rules, judgeFill, canvas }) {
     }
   }
   return results;
+}
+
+// Presses Tab until the order comes back to its first stop. From the top, focus starts at the document;
+// otherwise it starts where the page left it (a task path that just opened a menu).
+async function walkTabs(page, fromTop) {
+  if (fromTop) await page.evaluate(() => { scrollTo(0, 0); document.activeElement?.blur(); });
+  const stops = [];
+  // Past the last stop focus leaves the document; a walk that started mid-page lets it come round once.
+  let wrapped = fromTop;
+  for (let n = 0; n < 60; n++) {
+    await page.keyboard.press("Tab");
+    const s = await page.evaluate(keyboardStop);
+    if (!s && !wrapped) { wrapped = true; continue; }
+    if (!s || (stops.length && s.element === stops[0].element && s.label === stops[0].label)) break;
+    stops.push(s);
+  }
+  return stops;
 }
 
 function keyboardStop() {
@@ -832,6 +859,184 @@ export function fontLabel(name, custom, stack) {
   const families = stack.split(",").map((f) => f.trim().replace(/^["']|["']$/g, ""));
   const match = families.filter((f) => name.toLowerCase().startsWith(f.toLowerCase())).sort((a, b) => b.length - a.length)[0];
   return match || name;
+}
+
+// Rules read off screenshots. measureRules leaves them "deferred"; this takes the shots and fills them in.
+//   sink      how deep a foreground layer cuts into a wordmark: a shot of the wordmark alone, white on
+//             black, and one with the foreground over it; per character, the deepest covered column,
+//             as a share of the word's ink height.
+//   backdrop  how bright the photo is under the text of a frame: the frame's text made transparent,
+//             then the 95th-percentile luminance under each line, against a colour token.
+// The page is put back exactly as it was: a poster is exported after its rules are measured.
+async function shotRules(page, rules, results, { canvas }) {
+  for (const [i, rule] of rules.entries()) {
+    const out = results[i];
+    if (!out || out.status !== "deferred") continue;
+    out.status = "pass";
+    const count = await page.evaluate((s) => [...document.querySelectorAll(s)].filter((e) => e.checkVisibility()).length, `[data-mk~="${rule.item}"]`);
+    for (let k = 0; k < count; k++) {
+      const item = rule.kind === "sink" ? await sinkOne(page, rule, k, canvas) : await backdropOne(page, rule, k, canvas);
+      if (!item) continue;
+      out.items.push(item);
+      if (!item.ok) out.status = "fail";
+    }
+    if (rule.kind === "backdrop") out.threshold = `≤ ${rule.ceiling}`;
+    else out.threshold = `${rule.values.min}–${rule.values.max}`;
+  }
+}
+
+// Isolates one element for a shot: marks it, injects a style, optionally scrolls it into view and hides
+// what is pinned to the viewport outside it. Returns the shot as base64 and a function that undoes all of it.
+async function isolate(page, { role, k, css, canvas, pinned }) {
+  await page.evaluate(({ role, k, css, canvas, pinned }) => {
+    const el = [...document.querySelectorAll(`[data-mk~="${role}"]`)].filter((e) => e.checkVisibility())[k];
+    el.setAttribute("data-inspect-target", "");
+    const st = document.createElement("style");
+    st.id = "__inspect_shot";
+    st.textContent = css;
+    document.head.append(st);
+    window.__inspectRestore = { y: scrollY, hidden: [] };
+    if (!canvas) {
+      // Bring into view what is measured: the element itself, or for a frame taller than the screen, the
+      // text in it (a chapter title pinned to the frame's bottom edge).
+      let r = el.getBoundingClientRect();
+      if (r.height > innerHeight) {
+        const rg = document.createRange(), boxes = [];
+        const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        while (tw.nextNode()) if (tw.currentNode.textContent.trim() && tw.currentNode.parentElement.checkVisibility()) { rg.selectNodeContents(tw.currentNode); boxes.push(...rg.getClientRects()); }
+        if (boxes.length) r = { top: Math.min(...boxes.map((b) => b.top)), bottom: Math.max(...boxes.map((b) => b.bottom)) };
+      }
+      if (r.top < 0 || r.bottom > innerHeight) {
+        const tall = r.bottom - r.top > innerHeight;
+        scrollTo(0, Math.max(0, scrollY + (tall ? r.top : r.bottom - innerHeight)));
+      }
+    }
+    if (pinned) for (const e of document.body.querySelectorAll("*")) {
+      const p = getComputedStyle(e).position;
+      if ((p === "fixed" || p === "sticky") && !e.contains(el) && !el.contains(e)) { window.__inspectRestore.hidden.push([e, e.style.visibility]); e.style.visibility = "hidden"; }
+    }
+  }, { role, k, css, canvas, pinned });
+  const clip = canvas ? { x: 0, y: 0, ...canvas } : undefined;
+  const shot = async () => (await page.screenshot({ clip, animations: "disabled" })).toString("base64");
+  const restore = () => page.evaluate(() => {
+    document.getElementById("__inspect_shot")?.remove();
+    document.querySelector("[data-inspect-target]")?.removeAttribute("data-inspect-target");
+    document.documentElement.classList.remove("__inspect_nofront");
+    const r = window.__inspectRestore;
+    for (const [e, v] of r.hidden) e.style.visibility = v;
+    scrollTo(0, r.y);
+    delete window.__inspectRestore;
+  });
+  return { shot, restore };
+}
+
+async function sinkOne(page, rule, k, canvas) {
+  const quiet = "transition:none!important;animation:none!important";
+  const css = `html,body{background:#000!important}*{visibility:hidden!important;${quiet}}` +
+    `[data-inspect-target],[data-inspect-target] *{visibility:visible!important;color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important;background:transparent!important}` +
+    `[data-mk~="${rule.over}"],[data-mk~="${rule.over}"] *{visibility:visible!important}` +
+    `html.__inspect_nofront [data-mk~="${rule.over}"],html.__inspect_nofront [data-mk~="${rule.over}"] *{visibility:hidden!important}`;
+  const { shot, restore } = await isolate(page, { role: rule.item, k, css, canvas, pinned: false });
+  try {
+    await page.evaluate(() => document.documentElement.classList.add("__inspect_nofront"));
+    const alone = await shot();
+    await page.evaluate(() => document.documentElement.classList.remove("__inspect_nofront"));
+    const covered = await shot();
+    return await page.evaluate(async ({ alone, covered, rule }) => {
+      const load = (s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = "data:image/png;base64," + s; });
+      const pixels = async (s) => { const i = await load(s); const c = document.createElement("canvas"); c.width = i.width; c.height = i.height; const g = c.getContext("2d"); g.drawImage(i, 0, 0); return g.getImageData(0, 0, i.width, i.height).data; };
+      const [A, B] = [await pixels(alone), await pixels(covered)];
+      const W = (await load(alone)).width, H = A.length / 4 / W, scale = W / innerWidth;
+      const ink = (x, y) => { const i = (y * W + x) * 4; return A[i] > 200 && A[i + 1] > 200 && A[i + 2] > 200; };
+      const hidden = (x, y) => { const i = (y * W + x) * 4; return Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]) > 60; };
+      const el = document.querySelector("[data-inspect-target]");
+      const chars = [], rg = document.createRange(), tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      while (tw.nextNode()) for (let j = 0; j < tw.currentNode.length; j++) {
+        if (/\s/.test(tw.currentNode.data[j])) continue;
+        rg.setStart(tw.currentNode, j); rg.setEnd(tw.currentNode, j + 1);
+        const q = rg.getBoundingClientRect();
+        chars.push({ ch: tw.currentNode.data[j], x0: Math.max(0, Math.floor(q.left * scale)), x1: Math.min(W - 1, Math.ceil(q.right * scale) - 1) });
+      }
+      // The word's ink height is the denominator: an o and an N cut by the same edge read the same.
+      let top = H, bottom = -1;
+      for (const c of chars) for (let x = c.x0; x <= c.x1; x++) for (let y = 0; y < H; y++) if (ink(x, y)) { if (y < top) top = y; if (y > bottom) bottom = y; }
+      const word = bottom - top + 1;
+      for (const c of chars) {
+        let deepest = 0, seen = false;
+        for (let x = c.x0; x <= c.x1; x++) {
+          let low = -1;
+          for (let y = bottom; y >= top; y--) if (ink(x, y)) { low = y; break; }
+          if (low < 0) continue;
+          seen = true;
+          let run = 0;
+          for (let y = low; y >= top; y--) { if (!ink(x, y)) continue; if (!hidden(x, y)) break; run = low - y + 1; }
+          deepest = Math.max(deepest, run);
+        }
+        c.depth = seen && word > 0 ? Math.round((deepest / word) * 100) / 100 : null;
+      }
+      const r = el.getBoundingClientRect();
+      const fronts = [...document.querySelectorAll(`[data-mk~="${rule.over}"]`)].filter((f) => { const q = f.getBoundingClientRect(); return q.right > r.left && q.left < r.right && q.bottom > r.top && q.top < r.bottom; });
+      const every = !!rule.every && fronts.some((f) => f.matches(`[data-mk~="${rule.every}"]`));
+      const measured = chars.filter((c) => c.depth !== null);
+      const max = Math.max(0, ...measured.map((c) => c.depth));
+      const v = rule.values, over = (d) => d > v.max + 0.005, under = (d) => d < v.min - 0.005;
+      const ok = measured.length > 0 && !measured.some((c) => over(c.depth)) && (every ? !measured.some((c) => under(c.depth)) : !under(max));
+      const t = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 12);
+      return { where: `${el.tagName.toLowerCase()}${t ? ` "${t}"` : ""}`, every, depths: measured.map((c) => `${c.ch} ${c.depth}`).join(", "), max, ok };
+    }, { alone, covered, rule });
+  } finally {
+    await restore();
+  }
+}
+
+async function backdropOne(page, rule, k, canvas) {
+  const css = `*{transition:none!important;animation:none!important}` +
+    `[data-inspect-target] *{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;text-decoration-color:transparent!important;caret-color:transparent!important}`;
+  const { shot, restore } = await isolate(page, { role: rule.item, k, css, canvas, pinned: true });
+  try {
+    const image = await shot();
+    return await page.evaluate(async ({ image, ceiling }) => {
+      const img = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = "data:image/png;base64," + image; });
+      const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+      const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+      const D = g.getImageData(0, 0, img.width, img.height).data, W = img.width, H = img.height, scale = W / innerWidth;
+      const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+      const lum = (r, gg, b) => 0.2126 * lin(r) + 0.7152 * lin(gg) + 0.0722 * lin(b);
+      const ceil = lum(...ceiling.split(",").map(Number));
+      const frame = document.querySelector("[data-inspect-target]");
+      // Text on its own surface (a button, a chip) is read against that surface, not the photo.
+      const onSurface = (e) => {
+        for (let a = e; a && a !== frame; a = a.parentElement) {
+          const cs = getComputedStyle(a), bg = (cs.backgroundColor.match(/[\d.]+/g) || []).map(Number);
+          if ((bg.length === 4 ? bg[3] : bg.length ? 1 : 0) > 0.5 || cs.backgroundImage !== "none") return true;
+        }
+        return false;
+      };
+      let worst = null, skipped = 0;
+      const tw = document.createTreeWalker(frame, NodeFilter.SHOW_TEXT), rg = document.createRange();
+      while (tw.nextNode()) {
+        const n = tw.currentNode, e = n.parentElement;
+        if (!n.textContent.trim() || !e.checkVisibility() || e.closest('[aria-hidden="true"],[data-inspect-ignore]') || onSurface(e)) continue;
+        rg.selectNodeContents(n);
+        for (const q of rg.getClientRects()) {
+          const x0 = Math.max(0, Math.floor(q.left * scale)), x1 = Math.min(W - 1, Math.ceil(q.right * scale) - 1);
+          const y0 = Math.max(0, Math.floor(q.top * scale)), y1 = Math.min(H - 1, Math.ceil(q.bottom * scale) - 1);
+          if (x1 <= x0 || y1 <= y0) { skipped++; continue; }
+          const ls = [];
+          for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const i = (y * W + x) * 4; ls.push(lum(D[i], D[i + 1], D[i + 2])); }
+          ls.sort((a, b) => a - b);
+          const p95 = ls[Math.floor(ls.length * 0.95)];
+          if (!worst || p95 > worst.p95) worst = { p95, text: n.textContent.replace(/\s+/g, " ").trim().slice(0, 16) };
+        }
+      }
+      const t = frame.tagName.toLowerCase() + (frame.id ? "#" + frame.id : "") + ([...frame.classList].slice(0, 2).map((x) => "." + x).join(""));
+      if (!worst) return { where: t, note: skipped ? "its text is outside the shot" : "no text in it", ok: true };
+      const ratio = Math.round((worst.p95 / ceil) * 100) / 100;
+      return { where: t, ratio, line: worst.text, ok: worst.p95 <= ceil * 1.02 };
+    }, { image, ceiling: rule.values.ceiling });
+  } finally {
+    await restore();
+  }
 }
 
 async function renderedFonts(page, samples) {
@@ -918,13 +1123,15 @@ function itemDetail(r, item) {
   if (r.kind === "max-size") return `${item.size}px (limit ${item.limit}px)`;
   if (r.kind === "area") return `area ${item.ratio} (${r.threshold})`;
   if (r.kind === "scale") return `${item.size}px, ${item.ratio}× ${item.than}px (min ${r.threshold}×)`;
+  if (r.kind === "sink") return `cut ${item.depths} (${r.threshold}${item.every ? ", every character" : ""})`;
+  if (r.kind === "backdrop") return `under "${item.line}" ${item.ratio}× the ${r.threshold.replace("≤ ", "")} luminance (max 1×)`;
   return "";
 }
 function ruleDetail(r, failingOnly = false) {
   if (r.status === "unmarked" || r.status === "error" || (r.note && !r.items.length)) return r.note;
   const items = failingOnly ? r.items.filter((x) => !x.ok) : r.items;
-  const val = (x) => x.note || (r.kind === "seams" ? `${x.gaps.join("–")}px` : r.kind === "covers" ? `${x.covers}${x.onAvoided ? "!" : ""}` : r.kind === "axis" ? x.deviation : r.kind === "max-size" ? `${x.size}px` : r.kind === "scale" ? `${x.ratio}×` : x.ratio);
-  const limit = { seams: `≤${r.threshold}px`, dominant: `≥${r.threshold}`, fill: `≥${r.threshold}`, covers: `=${r.threshold}`, axis: `≤${r.threshold}`, "max-size": "≤ limit", area: r.threshold, scale: `≥${r.threshold}×` }[r.kind];
+  const val = (x) => x.note || (r.kind === "seams" ? `${x.gaps.join("–")}px` : r.kind === "covers" ? `${x.covers}${x.onAvoided ? "!" : ""}` : r.kind === "axis" ? x.deviation : r.kind === "max-size" ? `${x.size}px` : r.kind === "scale" ? `${x.ratio}×` : r.kind === "sink" ? x.max : r.kind === "backdrop" ? `${x.ratio}×` : x.ratio);
+  const limit = { seams: `≤${r.threshold}px`, dominant: `≥${r.threshold}`, fill: `≥${r.threshold}`, covers: `=${r.threshold}`, axis: `≤${r.threshold}`, "max-size": "≤ limit", area: r.threshold, scale: `≥${r.threshold}×`, sink: r.threshold, backdrop: `${r.threshold} = 1×` }[r.kind];
   const mark = { pass: "ok", fail: "FAIL", info: "values only" }[r.status];
   return `${items.map(val).join(", ")} (${limit}) ${mark}`;
 }
@@ -1004,6 +1211,7 @@ function summarize(report) {
     }
   }
   for (const k of report.keyboard?.stops || []) if (!k.visibleFocus) p.push(`no visible focus change: ${k.element} "${k.label}"`);
+  for (const m of report.keyboard?.more || []) for (const k of m.stops) if (!k.visibleFocus) p.push(`no visible focus change @${m.viewport}: ${k.element} "${k.label}"`);
   if (report.reducedMotion?.running.length) p.push(`still animating under reduced motion: ${report.reducedMotion.running.join("; ")}`);
   for (const [k, v] of Object.entries(report.flow || {})) if (v.error) p.push(`flow failed @${k}: ${v.error}`);
   for (const e of report.errors) p.push(`page error: ${e}`);
@@ -1050,7 +1258,10 @@ async function inspectSlides({ browser, url, opts, out, at, name, facts, style, 
       const r = document.querySelector(`[data-inspect-slide="${k}"]`).getBoundingClientRect();
       return { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
     }, n);
-    if (rules.length) view.rules = await page.evaluate(measureRules, { rules, judgeFill: true, canvas: opts.canvas });
+    if (rules.length) {
+      view.rules = await page.evaluate(measureRules, { rules, judgeFill: true, canvas: opts.canvas });
+      for (const r of view.rules) if (r.status === "deferred") Object.assign(r, { status: "error", note: `${r.kind} is measured on posters and web pages, not on slides` });
+    }
     if (report.minSize) view.small = view.fontSizes.filter((f) => parseFloat(f.value) < report.minSize - 0.5);
     for (const f of await renderedFonts(page, view.fontSamples)) {
       const key = `${f.stack}|${f.weight}|${f.style}`;
@@ -1073,7 +1284,7 @@ async function inspectSlides({ browser, url, opts, out, at, name, facts, style, 
       total.slides.push(n);
       total.exact = total.exact || f.exact;
       // Each slide keeps its own reading: a fact can be a broken title on one slide and a footer on the next.
-      (total.at ||= []).push({ slide: n, lines: f.lines, unmarkedBreak: f.unmarkedBreak, ...(f.breaksIn && { breaksIn: f.breaksIn }), fontSize: f.fontSize });
+      (total.at ||= []).push({ slide: n, lines: f.lines, unmarkedBreak: f.unmarkedBreak, ...(f.breaksIn && { breaksIn: f.breaksIn }), fontSize: f.fontSize, ...(f.textSize && { textSize: f.textSize }) });
     });
     view.facts = [];
     const png = file(`slide-${n}`, join(dir, `${String(n).padStart(2, "0")}.png`));
@@ -1144,7 +1355,11 @@ export async function inspectPage(opts) {
     } else if (opts.canvas) {
       const { page, context, errors } = await openPage(browser, url, opts.canvas, opts);
       const view = await page.evaluate(audit, auditArgs(opts.canvas, false));
-      if (style.rules.length) view.rules = await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, opts.canvas.width), judgeFill: true, canvas: opts.canvas });
+      if (style.rules.length) {
+        const rules = resolveRules(style.rules, style.tokens, opts.canvas.width);
+        view.rules = await page.evaluate(measureRules, { rules, judgeFill: true, canvas: opts.canvas });
+        await shotRules(page, rules, view.rules, { canvas: opts.canvas });
+      }
       report.fonts = await renderedFonts(page, view.fontSamples);
       report.offPalette = view.offPalette;
       report.views.push(strip(view));
@@ -1176,7 +1391,11 @@ export async function inspectPage(opts) {
         await page.screenshot({ path: file(`${tag}-full-gray`, join(out, `web-${tag}-full-gray.png`)), fullPage: true });
         await ungray(page);
         const view = await page.evaluate(audit, auditArgs(null, true));
-        if (style.rules.length) view.rules = await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, vp.width), judgeFill: i === 0, canvas: null });
+        if (style.rules.length) {
+          const rules = resolveRules(style.rules, style.tokens, vp.width);
+          view.rules = await page.evaluate(measureRules, { rules, judgeFill: i === 0, canvas: null });
+          await shotRules(page, rules, view.rules, { canvas: null });
+        }
         if (i === 0) {
           report.fonts = await renderedFonts(page, view.fontSamples);
           report.offPalette = view.offPalette;
@@ -1198,19 +1417,12 @@ export async function inspectPage(opts) {
           report.errors.push(...dark.errors);
           await dark.context.close();
         }
-        if (i === 0) {
-          // Keyboard: walk the tab order from the top of the page.
-          await page.evaluate(() => { scrollTo(0, 0); document.activeElement?.blur(); });
-          const stops = [];
-          for (let n = 0; n < 60; n++) {
-            await page.keyboard.press("Tab");
-            const s = await page.evaluate(keyboardStop);
-            if (!s || (stops.length && s.element === stops[0].element && s.label === stops[0].label)) break;
-            stops.push(s);
-          }
-          report.keyboard = { stops };
-          sweepPage = { page, context };
-        } else await context.close();
+        // Keyboard: walk the tab order from the top of the page, on the first viewport and on the last one
+        // (a phone layout swaps the navigation for a menu button).
+        if (i === 0) report.keyboard = { viewport: tag, stops: await walkTabs(page, true), more: [] };
+        else if (i === opts.viewports.length - 1) report.keyboard.more.push({ viewport: tag, stops: await walkTabs(page, true) });
+        if (i === 0) sweepPage = { page, context };
+        else await context.close();
       }
 
       // Width sweep: one page, resized in place.
@@ -1220,7 +1432,9 @@ export async function inspectPage(opts) {
         await page.setViewportSize({ width, height });
         await page.evaluate(settle, false);
         const v = await page.evaluate(audit, { ...auditArgs(null, true), facts: [] });
-        const rules = style.rules.length ? await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, width), judgeFill: false, canvas: null }) : [];
+        const resolved = resolveRules(style.rules, style.tokens, width);
+        const rules = style.rules.length ? await page.evaluate(measureRules, { rules: resolved, judgeFill: false, canvas: null }) : [];
+        await shotRules(page, resolved, rules, { canvas: null });
         const ruleFails = rules.filter((r) => r.status === "fail").map((r) => `${r.kind} ${ruleDetail(r, true)}`);
         report.sweep.push({ width, height, ruleFails, overflowX: v.overflowX, occlusions: v.occlusions.length, underHeader: v.underHeader.length, clipped: v.clipped.length, outside: v.outside.length, examples: [...v.occlusions, ...v.underHeader.map((u) => ({ ...u, by: u.header })), ...v.clipped, ...v.outside].slice(0, 3).map((x) => `${x.text} (${x.element}${x.by ? " / " + x.by : ""})`) });
       }
@@ -1259,7 +1473,7 @@ export async function inspectPage(opts) {
           const tag = `${vp.width}x${vp.height}`;
           const { page, context, errors } = await openPage(browser, url, vp, opts);
           await page.evaluate(() => document.getElementById("__inspect_pe")?.remove());
-          const entry = { log: [], shots: [], checks: [] };
+          const entry = { log: [], shots: [], checks: [], keyboard: {} };
           report.flow[tag] = entry;
           const shot = async (label, { fullPage = false, selector } = {}) => {
             const path = join(out, `flow-${tag}-${label}.png`);
@@ -1276,7 +1490,9 @@ export async function inspectPage(opts) {
             return v;
           };
           try {
-            await flow({ page, viewport: { ...vp, tag }, shot, check, log: (...m) => entry.log.push(m.join(" ")) });
+            // tabs(label): the tab order in the state the path has reached (a menu just opened, a form submitted).
+            const tabs = async (label) => (entry.keyboard[label] = await walkTabs(page, false));
+            await flow({ page, viewport: { ...vp, tag }, shot, check, tabs, log: (...m) => entry.log.push(m.join(" ")) });
           } catch (e) {
             entry.error = String(e.message || e).split("\n")[0];
           }
@@ -1295,6 +1511,8 @@ export async function inspectPage(opts) {
     for (const o of c.clipped) report.problems.push(`text clipped in flow @${k} "${c.label}": "${o.text}" by ${o.by}`);
     if (c.overflowX) report.problems.push(`horizontal overflow in flow @${k} "${c.label}": ${c.overflowX}px`);
   }
+  for (const [k, v] of Object.entries(report.flow || {})) for (const [label, stops] of Object.entries(v.keyboard || {}))
+    for (const s of stops) if (!s.visibleFocus) report.problems.push(`no visible focus change in flow @${k} "${label}": ${s.element} "${s.label}"`);
   report.problems = [...new Set(report.problems)];
   await writeFile(file("report", join(out, "report.json")), JSON.stringify(report, null, 2) + "\n");
   return report;
@@ -1307,7 +1525,7 @@ function printSummary(report) {
   lines.push(`fonts (requested → rendered): ${report.fonts.map((f) => `${f.stack.split(",")[0]} ${f.weight} → ${f.rendered.map((r) => `${r.name}${r.custom ? ` [webfont${r.loadedWeights?.length ? ` ${r.loadedWeights.join("/")}` : ""}]` : " [system]"}`).join(" + ") || "none"}`).join("; ")}`);
   const facts = report.facts || report.views[0]?.facts || [];
   // On a deck each slide where a fact appears is listed with its size there.
-  const where = (f) => (f.at ? ` on ${f.at.map((a) => `${a.slide} (${a.fontSize}px)`).join(", ")}` : f.fontSize ? ` ${f.fontSize}px` : "");
+  const where = (f) => (f.at ? ` on ${f.at.map((a) => `${a.slide} (${a.fontSize}px)`).join(", ")}` : f.fontSize ? ` ${f.fontSize}px${f.textSize ? ` (as text ${f.textSize}px)` : ""}` : "");
   if (facts.length) lines.push(`facts: ${facts.map((f) => `"${f.text}" ×${f.count}${where(f)}${f.shownAt ? ` (${f.shownAt["0.35"]}px at 0.35)` : ""}`).join("; ")}`);
   for (const v of report.views) {
     // On a deck, a rule whose roles are not on this slide is left out of the slide's line.
