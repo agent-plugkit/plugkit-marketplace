@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>冬夜篝火朗读会 · 社媒海报</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root {
+  --color-paper: #0D0C0B;
+  --color-ink: #EFE9E1;
+  --color-ink-muted: #9A938B;
+  --color-accent: #F2924C;
+  --color-on-accent: #0D0C0B;
+  --color-edge-floor: #383430;
+  --color-rule: rgba(239, 233, 225, 0.16);
+  --font-display: "Archivo", "Noto Sans SC", "Arial Black", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --stretch-display: 125%;
+  --weight-display: 500;
+  --weight-display-cjk: 700;
+  --font-text: "Archivo", "Noto Sans SC", "Arial Black", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-cjk: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --weight-text: 400;
+  --weight-strong: 600;
+  --size-display: 300px;
+  --size-title: 34px;
+  --size-edge: 26px;
+  --size-body: 26px;
+  --size-meta: 24px;
+  --leading-display: 0.9;
+  --leading-title: 1.25;
+  --leading-edge: 1.45;
+  --leading-body: 1.65;
+  --leading-meta: 1.4;
+  --tracking-display: -0.02em;
+  --tracking-edge: 0.02em;
+  --canvas-width: 1080px;
+  --canvas-height: 1440px;
+  --columns: 12;
+  --gutter: 24px;
+  --margin: 64px;
+  --mark-fill: 0.6;
+  --mark-sink-min: 0.2;
+  --mark-sink-max: 0.33;
+  --shade-top: 0.16;
+  --shade-bottom: 0.24;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --column-width: 57.33px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-text); font-variant-numeric: tabular-nums; }
+.poster { position: relative; width: 1080px; height: 1440px; overflow: hidden; }
+.poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+/* contour 0.6486 of the 1075×1440 photo, scaled to cover 1080 wide: y ≈ 935 */
+.mark { position: absolute; left: 0; right: 0; top: 710px; margin: 0; text-align: center; white-space: nowrap; line-height: 1;
+  font-family: var(--font-cjk); font-weight: var(--weight-display-cjk); font-size: 312px; letter-spacing: 0.08em; text-indent: 0.08em; }
+.shade { position: absolute; left: 0; right: 0; }
+.shade.t { top: 0; height: calc(var(--shade-top) * 100%); background: linear-gradient(to bottom, var(--color-paper) 40%, rgb(13 12 11 / 0)); }
+.shade.b { bottom: 0; height: calc(var(--shade-bottom) * 100%); background: linear-gradient(to top, var(--color-paper) 40%, rgb(13 12 11 / 0)); }
+.edge { position: absolute; left: var(--margin); right: var(--margin); font-size: var(--size-edge); line-height: var(--leading-edge); letter-spacing: var(--tracking-edge); }
+.top { top: var(--margin); display: flex; justify-content: space-between; align-items: flex-start; }
+.top h1 { margin: 0; font: inherit; font-weight: var(--weight-strong); }
+.top h1 span, .top p span { display: block; font-family: var(--font-text); font-weight: var(--weight-text); }
+.top p { margin: 0; text-align: right; font-weight: var(--weight-strong); }
+.bottom { bottom: var(--margin); display: grid; grid-template-columns: auto auto auto; justify-content: space-between; gap: var(--space-3) var(--gutter); font-size: var(--size-body); }
+.bottom p { margin: 0; }
+.bottom b { display: block; font-weight: var(--weight-strong); color: var(--color-accent); }
+.bottom .note { grid-column: 1 / -1; }
+.nw { white-space: nowrap; }
+</style></head><body>
+<div class="poster" data-mk="frame">
+  <img src="poster-photo.jpg" alt="冬夜林间，篝火在一根横倒的木头后面燃烧">
+  <span class="mark" data-mk="mark" aria-hidden="true" data-inspect-ignore>篝火</span>
+  <img src="poster-fg.png" alt="" data-mk="front across">
+  <div class="shade t" aria-hidden="true"></div><div class="shade b" aria-hidden="true"></div>
+  <header class="edge top"><h1>冬夜篝火朗读会<span lang="en">Fireside Readings on a Winter Night</span></h1><p>主办<span>松间读书会</span></p></header>
+  <footer class="edge bottom"><p><b>日期</b><span class="nw">2027.12.18 周六</span> <span class="nw">19:00—21:30</span></p><p><b>地点</b>白桦坡营地 东草坪</p><p><b>名额</b><span class="nw">听众 40 席</span> · <span class="nw">朗读 12 位</span></p><p class="note">虚构示例活动 · 照片由 AI 生成</p></footer>
+</div>
+</body></html>

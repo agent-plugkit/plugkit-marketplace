@@ -19,7 +19,7 @@ Slide deck (one HTML, every slide a fixed canvas):
                         exports <name>-slides/01.png…, <name>.pdf and an overview sheet in colour and grey
 Web page:
   --viewports LIST      e.g. 1440x900,768x1024,375x812 (the default)
-  --flow FILE.mjs       optional task path; default export async ({ page, viewport, shot, check, log })
+  --flow FILE.mjs       optional task path; default export async ({ page, viewport, shot, check, tabs, log })
 Both:
   --out DIR             screenshots and report.json (default: review/ next to the HTML)
   --facts FILE          one exact fact per line; counted in the rendered text. A "|" marks where the fact may
@@ -31,8 +31,11 @@ Both:
 When style.md follows the system light/dark setting (it has a prefers-color-scheme: dark block), each web viewport
 is also opened in dark and shot as web-<WxH>-dark-fold.png and -dark-full.png; colours on the first viewport are
 checked against the dark palette, and rules that name a colour are measured again. The sweep, keyboard, reduced-motion and flow runs stay in light.
+The short screens the sweep visits (1366x768, 1280x720, 1024x768, 375x667) are also shot at the first screen
+(web-<WxH>-fold.png) unless --viewports already lists them.
 Layout rules listed under "机检" in style.md are measured on elements marked data-mk="<role>"; unmarked roles are
-reported as not measured.
+reported as not measured. sink and backdrop are read off screenshots on posters and web pages (each viewport and the
+sweep), not on slides or in the dark run.
 Mark intentionally clipped or decorative text (a marquee strip) with data-inspect-ignore. Never mark stickers or
 other overlays with it: an ignored element is no longer checked for covering text.
 Requires Playwright in the current working directory and an installed browser.
@@ -137,10 +140,11 @@ export function resolveRules(rules, blocks, width, scheme = "light") {
       if (Number.isFinite(n)) out.values[key] = n;
       else out.unresolved = `${rule[key]}`;
     }
-    if (rule.avoid) {
-      const rgb = values[`color-${rule.avoid}`] && hexToRgb(values[`color-${rule.avoid}`]);
-      if (rgb) out.values.avoid = rgb;
-      else out.unresolved = `color-${rule.avoid}`;
+    for (const key of ["avoid", "ceiling"]) {
+      if (!rule[key]) continue;
+      const rgb = values[`color-${rule[key]}`] && hexToRgb(values[`color-${rule[key]}`]);
+      if (rgb) out.values[key] = rgb;
+      else out.unresolved = `color-${rule[key]}`;
     }
     return out;
   });
@@ -241,7 +245,7 @@ async function settle(fullReveal) {
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 }
 
-function audit({ facts, palette, canvas, scroll }) {
+async function audit({ facts, palette, canvas, scroll }) {
   // The layout viewport: a phone that zooms out to fit wide content keeps its own width here.
   const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
   const ignored = (el) => !!el.closest("[data-inspect-ignore]");
@@ -301,25 +305,91 @@ function audit({ facts, palette, canvas, scroll }) {
     for (const r of range.getClientRects()) if (r.width > 1 && r.height > 1) lines.push({ node, el, r });
   }
 
+  // Motion leftovers (web only). settle() has finished every entrance animation, so first-screen text
+  // still at opacity 0 never arrived. Only in-flow blocks count: a closed menu or tooltip is positioned.
+  const invisibleAtRest = [], transitionAll = new Map();
+  if (scroll) {
+    const holders = new Set();
+    const tw0 = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (tw0.nextNode()) {
+      const n = tw0.currentNode, el = n.parentElement;
+      if (!n.textContent.trim() || !el || ["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"].includes(el.tagName)) continue;
+      if (!visible(el) || ignored(el) || hiddenByClip(el) || el.closest("[hidden],[aria-hidden='true'],[inert]")) continue;
+      range.selectNodeContents(n);
+      if (![...range.getClientRects()].some((q) => q.width > 1 && q.height > 1 && q.top < vh && q.bottom > 0 && q.left < vw && q.right > 0)) continue;
+      let holder = null;
+      for (let e = el; e && e !== document.documentElement; e = e.parentElement) if (Number(getComputedStyle(e).opacity) < 0.05) { holder = e; break; }
+      if (!holder || holders.has(holder) || !["static", "relative", "sticky"].includes(getComputedStyle(holder).position)) continue;
+      holders.add(holder);
+      invisibleAtRest.push({ text: snippet(el.textContent), element: desc(holder) });
+    }
+    // The computed default is "all 0s"; only a running duration makes it a real transition: all.
+    for (const el of document.body.querySelectorAll("*")) {
+      const cs = getComputedStyle(el);
+      const props = cs.transitionProperty.split(/,\s*/), durs = cs.transitionDuration.split(/,\s*/);
+      if (!props.some((p, i) => p === "all" && parseFloat(durs[i % durs.length]) > 0)) continue;
+      const key = desc(el).replace(/#[^.]+/, "");
+      transitionAll.set(key, (transitionAll.get(key) || 0) + 1);
+    }
+  }
+
+  // A line's rect is its em box. A display glyph set at line-height 1, or pulled flush with a negative
+  // margin, has an em box that pokes out while its ink stays inside; a line flagged on its em box is
+  // measured again on its ink. Where the ink cannot be measured reliably (vertical text, a transform,
+  // a font the canvas reads differently) the em box stands.
+  const inkCtx = document.createElement("canvas").getContext("2d");
+  const inkOf = (node, el, r) => {
+    const cs = getComputedStyle(el);
+    if (cs.writingMode !== "horizontal-tb") return null;
+    for (let e = el; e; e = e.parentElement) if (getComputedStyle(e).transform !== "none") return null;
+    // The characters on this fragment, not the whole node: a node may run over several lines.
+    const rg = document.createRange();
+    let first = -1, last = -1, x0 = 0, x1 = 0;
+    for (let i = 0; i < node.length; i++) {
+      if (/\s/.test(node.data[i])) continue;
+      rg.setStart(node, i); rg.setEnd(node, i + 1);
+      const q = rg.getBoundingClientRect();
+      const cx = (q.left + q.right) / 2, cy = (q.top + q.bottom) / 2;
+      if (!q.width || cy < r.top || cy > r.bottom || cx < r.left - 1 || cx > r.right + 1) continue;
+      if (first < 0) { first = i; x0 = q.left; }
+      last = i; x1 = q.right;
+    }
+    if (first < 0) return null;
+    let text = node.data.slice(first, last + 1).replace(/\s+/g, " ");
+    if (cs.textTransform === "uppercase") text = text.toUpperCase();
+    else if (cs.textTransform === "lowercase") text = text.toLowerCase();
+    inkCtx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    inkCtx.letterSpacing = cs.letterSpacing === "normal" ? "0px" : cs.letterSpacing;
+    const m = inkCtx.measureText(text);
+    // The canvas must lay the text out as the page did: same advance and same em box height.
+    const spacing = parseFloat(inkCtx.letterSpacing) || 0;
+    if (Math.abs(m.width - spacing - (x1 - x0)) > 2 + 0.02 * (x1 - x0)) return null;
+    if (Math.abs(m.fontBoundingBoxAscent + m.fontBoundingBoxDescent - r.height) > 2) return null;
+    const baseline = r.top + m.fontBoundingBoxAscent;
+    return { left: x0 - m.actualBoundingBoxLeft, right: x0 + m.actualBoundingBoxRight, top: baseline - m.actualBoundingBoxAscent, bottom: baseline + m.actualBoundingBoxDescent };
+  };
+
   const clipped = [], outside = [];
   for (const { node, el, r } of lines) {
+    let ink;
+    const inkRect = () => (ink === undefined ? (ink = inkOf(node, el, r)) : ink) || r;
     const a = clipAncestor(el);
     if (a) {
       const b = a.getBoundingClientRect();
       const cs = getComputedStyle(a);
       const inner = { l: b.left + parseFloat(cs.borderLeftWidth), t: b.top + parseFloat(cs.borderTopWidth), r: b.right - parseFloat(cs.borderRightWidth), b: b.bottom - parseFloat(cs.borderBottomWidth) };
       const scrolls = (k) => ["auto", "scroll"].includes(cs[k]);
-      const outX = !scrolls("overflowX") && (r.left < inner.l - 1 || r.right > inner.r + 1);
-      const outY = !scrolls("overflowY") && (r.top < inner.t - 1 || r.bottom > inner.b + 1);
-      if (outX || outY) { clipped.push({ text: snippet(node.textContent), element: desc(el), by: desc(a), box: box(r) }); continue; }
+      const out = (q) => (!scrolls("overflowX") && (q.left < inner.l - 1 || q.right > inner.r + 1)) || (!scrolls("overflowY") && (q.top < inner.t - 1 || q.bottom > inner.b + 1));
+      if (out(r) && out(inkRect())) { clipped.push({ text: snippet(node.textContent), element: desc(el), by: desc(a), box: box(r) }); continue; }
     }
     const right = canvas ? canvas.width : vw;
-    const past = r.left < -1 || r.right > right + 1 || (canvas && (r.top < -1 || r.bottom > canvas.height + 1));
-    if (past) outside.push({ text: snippet(node.textContent), element: desc(el), box: box(r) });
+    const past = (q) => q.left < -1 || q.right > right + 1 || (canvas && (q.top < -1 || q.bottom > canvas.height + 1));
+    if (past(r) && past(inkRect())) outside.push({ text: snippet(node.textContent), element: desc(el), box: box(r) });
   }
 
   // Occlusion: sample three points on each line; the first painted element above the text wins.
-  const paintsAt = (el, x, y) => {
+  // Without withText, only the element's surface counts (background, border, image), not its own text.
+  const paintsAt = (el, x, y, withText = true) => {
     if (opacity(el) < 0.05) return false;
     if (el.tagName === "CANVAS") {
       // A canvas covers only where it has ink.
@@ -338,11 +408,17 @@ function audit({ facts, palette, canvas, scroll }) {
     const b = el.getBoundingClientRect();
     const bw = { l: parseFloat(cs.borderLeftWidth), t: parseFloat(cs.borderTopWidth), r: parseFloat(cs.borderRightWidth), b: parseFloat(cs.borderBottomWidth) };
     if ((bw.l && x < b.left + bw.l) || (bw.r && x > b.right - bw.r) || (bw.t && y < b.top + bw.t) || (bw.b && y > b.bottom - bw.b)) return true;
+    if (!withText) return false;
     const rg = document.createRange();
     for (const n of el.childNodes) {
       if (n.nodeType !== 3 || !n.textContent.trim()) continue;
       rg.selectNodeContents(n);
-      for (const q of rg.getClientRects()) if (x >= q.left && x <= q.right && y >= q.top && y <= q.bottom) return true;
+      for (const q of rg.getClientRects()) {
+        if (!(x >= q.left && x <= q.right && y >= q.top && y <= q.bottom)) continue;
+        // Text covers where its ink is: at a tight line-height the next line's em box overlaps this one.
+        const k = inkOf(n, el, q);
+        if (!k || (x >= k.left && x <= k.right && y >= k.top && y <= k.bottom)) return true;
+      }
     }
     return false;
   };
@@ -358,14 +434,18 @@ function audit({ facts, palette, canvas, scroll }) {
     turned.set(el, r);
     return r;
   };
+  // A line's box at the current scroll position, or null when it is not wholly in the viewport.
+  const liveRect = (line) => {
+    range.selectNodeContents(line.node);
+    const q = [...range.getClientRects()].find((q) => Math.abs(q.left - line.x0) < 1 && Math.abs(q.width - line.r.width) < 1 && Math.abs(q.top + scrollY - line.y0) < 1);
+    return q && q.top >= 0 && q.bottom <= vh && q.left >= 0 && q.right <= vw ? q : null;
+  };
   const tested = new Set();
   const testLines = () => {
     for (const line of lines) {
       if (tested.has(line)) continue;
-      const r = line.node.parentElement && line.r;
-      const live = (() => { range.selectNodeContents(line.node); return [...range.getClientRects()].find((q) => Math.abs(q.left - line.x0) < 1 && Math.abs(q.width - r.width) < 1 && Math.abs(q.top + scrollY - line.y0) < 1); })();
-      const q = live || null;
-      if (!q || q.top < 0 || q.bottom > vh || q.left < 0 || q.right > vw) continue;
+      const q = liveRect(line);
+      if (!q) continue;
       tested.add(line);
       if (rotated(line.el)) continue; // a tilted label's box corners are not text; the label sits on top anyway
       let hits = 0, by = null;
@@ -388,16 +468,62 @@ function audit({ facts, palette, canvas, scroll }) {
       }
     }
   };
+  // Pinned header: a fixed or sticky bar across the top. Occlusion skips pinned elements, since an
+  // opaque bar hiding the page as it scrolls by is normal; body text showing through the bar is not.
+  // Only the bar's surface separates the two: its own links painted over body text are the collision.
+  const underHeader = [];
+  const shown = new Set();
+  const pinned = (el) => ["fixed", "sticky"].includes(getComputedStyle(el).position);
+  const testHeaders = () => {
+    const bars = [...document.body.querySelectorAll("*")].filter((el) => {
+      if (!pinned(el) || ignored(el) || !visible(el)) return false;
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) if (pinned(a)) return false;
+      const b = el.getBoundingClientRect();
+      return b.top <= 1 && b.bottom > 0 && b.width >= vw * 0.5 && b.height < vh * 0.5;
+    });
+    for (const bar of bars) {
+      const b = bar.getBoundingClientRect();
+      for (const line of lines) {
+        if (shown.has(line) || fixed(line.el)) continue;
+        const q = liveRect(line);
+        if (!q) continue;
+        const y = q.top + q.height / 2;
+        if (y <= b.top || y >= b.bottom || q.right <= b.left || q.left >= b.right) continue;
+        const l = Math.max(q.left, b.left), r = Math.min(q.right, b.right);
+        const through = [0.2, 0.5, 0.8].some((f) => {
+          const x = l + (r - l) * f;
+          for (const top of document.elementsFromPoint(x, y)) {
+            if (top === line.el || line.el.contains(top) || top.contains(line.el)) return true;
+            if (bar.contains(top)) { if (paintsAt(top, x, y, false)) return false; continue; }
+            if (!ignored(top) && paintsAt(top, x, y)) return false;
+          }
+          return false;
+        });
+        if (through) {
+          shown.add(line);
+          underHeader.push({ text: snippet(line.node.textContent), element: desc(line.el), header: desc(bar), scrollY: Math.round(scrollY), box: box(q) });
+        }
+      }
+    }
+  };
   for (const line of lines) { line.x0 = line.r.left; line.y0 = line.r.top + scrollY; }
   if (scroll) {
     const H = document.documentElement.scrollHeight;
     const step = Math.max(200, Math.floor(vh * 0.75));
+    // A bar that gains its background in a scroll handler does so a frame after the scroll:
+    // wait for it, and finish the transition it starts, before reading what shows through.
+    const scrolled = async (top) => {
+      scrollTo(0, top);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      for (const a of document.getAnimations()) if (a.effect?.getComputedTiming?.().endTime !== Infinity) a.finish();
+    };
     for (let y = 0; ; y += step) {
-      scrollTo(0, Math.min(y, H - vh));
+      await scrolled(Math.min(y, H - vh));
       testLines();
+      testHeaders();
       if (y >= H - vh) break;
     }
-    scrollTo(0, 0);
+    await scrolled(0);
   } else testLines();
 
   // Facts: whitespace-insensitive search over visible text, with the lines each match spans.
@@ -433,12 +559,24 @@ function audit({ facts, palette, canvas, scroll }) {
     const exact = [fact.replace(/\|/g, ""), fact.replace(/\s*\|\s*/g, " ")].some((t) => spoken.includes(t));
     const out = { text: fact, count: at.length, exact };
     if (at.length) {
-      const [sn] = chars[at[0]], [en] = chars[at[0] + key.length - 1];
-      out.lines = lineCount(at[0], key.length);
-      // Broken inside a part, not only at a marked place.
-      let from = at[0];
-      out.unmarkedBreak = parts.some((part) => { const n = part && lineCount(from, part.length); from += part.length; return n > 1; });
-      out.fontSize = Math.round(Math.max(...[sn, en].map((n) => parseFloat(getComputedStyle(n.parentElement).fontSize))));
+      // Every occurrence is measured: a fact that holds in the hero may still break in the footer.
+      const runs = at.map((start) => {
+        let from = start;
+        // Broken inside a part, not only at a marked place.
+        const unmarked = parts.some((part) => { const n = part && lineCount(from, part.length); from += part.length; return n > 1; });
+        return { lines: lineCount(start, key.length), unmarked, element: chars[start][0].parentElement };
+      });
+      const worst = runs.find((r) => r.unmarked) || runs.reduce((a, b) => (b.lines > a.lines ? b : a));
+      out.lines = worst.lines;
+      out.unmarkedBreak = worst.unmarked;
+      if (worst.unmarked) out.breaksIn = desc(worst.element);
+      const sizeAt = (start) => Math.round(Math.max(...[chars[start][0], chars[start + key.length - 1][0]].map((n) => parseFloat(getComputedStyle(n.parentElement).fontSize))));
+      out.fontSize = sizeAt(at[0]);
+      // A wordmark repeats a fact as decoration (aria-hidden or data-inspect-ignore) at display size; the size
+      // the fact is read at is that of its first occurrence as text.
+      const decor = (start) => !!chars[start][0].parentElement.closest('[aria-hidden="true"],[data-inspect-ignore]');
+      const asText = at.find((start) => !decor(start));
+      if (decor(at[0]) && asText !== undefined) out.textSize = sizeAt(asText);
       if (canvas) out.shownAt = Object.fromEntries([0.25, 0.35].map((k) => [k, +(out.fontSize * k).toFixed(1)]));
     }
     return out;
@@ -470,15 +608,15 @@ function audit({ facts, palette, canvas, scroll }) {
   }
   const list = (map) => [...map].map(([value, v]) => ({ value, ...v })).sort((a, b) => b.count - a.count);
 
-  // Font samples: mark a few elements per font stack so the CDP pass can ask what rendered.
-  // Leaf elements first: the CDP query reports fonts for all text below the node.
+  // Font samples: mark a few elements per font stack so the CDP pass can ask what rendered their own text.
   const samples = new Map();
   const textEls = [...document.body.querySelectorAll("*")].filter((el) => visible(el) && !hiddenByClip(el) && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
-  for (const el of [...textEls.filter((e) => !e.children.length), ...textEls.filter((e) => e.children.length)]) {
+  for (const el of textEls) {
     const cs = getComputedStyle(el);
     const key = `${cs.fontFamily}|${cs.fontWeight}|${cs.fontStyle}`;
-    const s = samples.get(key) || { family: cs.fontFamily, weight: cs.fontWeight, style: cs.fontStyle, ids: [] };
-    if (s.ids.length < 3 && !el.hasAttribute("data-inspect-font")) { const id = `f${samples.size}-${s.ids.length}`; el.setAttribute("data-inspect-font", id); s.ids.push(id); }
+    // Each stack keeps the number it was given when first seen, so two stacks never share an id.
+    const s = samples.get(key) || { n: samples.size, family: cs.fontFamily, weight: cs.fontWeight, style: cs.fontStyle, ids: [] };
+    if (s.ids.length < 3 && !el.hasAttribute("data-inspect-font")) { const id = `f${s.n}-${s.ids.length}`; el.setAttribute("data-inspect-font", id); s.ids.push(id); }
     samples.set(key, s);
   }
 
@@ -487,7 +625,8 @@ function audit({ facts, palette, canvas, scroll }) {
     pageHeight: document.documentElement.scrollHeight,
     overflowX: Math.max(0, document.documentElement.scrollWidth - vw),
     overflowCanvas: canvas ? { right: Math.max(0, document.documentElement.scrollWidth - canvas.width), bottom: Math.max(0, document.documentElement.scrollHeight - canvas.height) } : undefined,
-    occlusions, clipped, outside,
+    occlusions, clipped, outside, underHeader, invisibleAtRest,
+    transitionAll: [...transitionAll].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count),
     facts: factReport,
     fontSizes: list(sizes), textColors: list(colors), offPalette: list(offPalette),
     fontSamples: [...samples.values()],
@@ -513,13 +652,19 @@ function measureRules({ rules, judgeFill, canvas }) {
   const area = (el) => { const r = rect(el); return r.width * r.height; };
   const r2 = (n) => Math.round(n * 100) / 100;
   // Text lines of an element: fragments that overlap vertically by half belong to one line.
+  // A tag hung outside the line with position: absolute (a 「示例」 label at the end of a centred line)
+  // is not part of the line: it neither moves the line's centre nor adds to its width.
+  const hung = (n, el) => {
+    for (let e = n.parentElement; e && e !== el; e = e.parentElement) if (["absolute", "fixed"].includes(getComputedStyle(e).position)) return true;
+    return false;
+  };
   const textLines = (el) => {
     const frags = [];
     const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     const rg = document.createRange();
     while (w.nextNode()) {
       const n = w.currentNode;
-      if (!n.textContent.trim() || !shown(n.parentElement)) continue;
+      if (!n.textContent.trim() || !shown(n.parentElement) || hung(n, el)) continue;
       rg.selectNodeContents(n);
       for (const q of rg.getClientRects()) if (q.width > 1 && q.height > 1) frags.push(q);
     }
@@ -537,7 +682,8 @@ function measureRules({ rules, judgeFill, canvas }) {
     const out = { kind: rule.kind, status: "pass", items: [], threshold: rule.values?.min ?? rule.values?.max ?? rule.values?.tolerance ?? rule.count ?? null };
     results.push(out);
     if (rule.unresolved) { out.status = "error"; out.note = `token ${rule.unresolved} not found in style.md`; continue; }
-    const need = [rule.group, rule.item, rule.main, rule.text, rule.box, rule.over, rule.than].filter(Boolean);
+    // An optional reference (a key figure a work may not have) may be missing from the whole page.
+    const need = [rule.group, rule.item, rule.main, rule.text, rule.box, rule.over, rule.of, rule.optional ? null : rule.than].filter(Boolean);
     const missing = need.filter((role) => !all(role).length);
     if (missing.length) { out.status = "unmarked"; out.note = `no element marked data-mk="${missing.join('", "')}"`; continue; }
     const fail = (item) => { item.ok = false; out.status = "fail"; };
@@ -626,6 +772,36 @@ function measureRules({ rules, judgeFill, canvas }) {
         out.items.push(item);
         if (dev > v.tolerance + 0.0005) fail(item);
       }
+    } else if (rule.kind === "area") {
+      out.threshold = `${v.min}–${v.max}`;
+      for (const el of all(rule.item)) {
+        const of = el.parentElement?.closest(sel(rule.of));
+        const item = { where: name(el), ok: true };
+        out.items.push(item);
+        if (!of) { item.note = `not inside data-mk="${rule.of}"`; fail(item); continue; }
+        // Only the part inside its container counts: a strip that bleeds past the frame edge is cut there.
+        const a = rect(el), b = rect(of);
+        const w = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+        const h = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+        item.ratio = r2((w * h) / (b.width * b.height));
+        if (item.ratio < v.min - 0.005 || item.ratio > v.max + 0.005) fail(item);
+      }
+    } else if (rule.kind === "scale") {
+      const size = (el) => parseFloat(getComputedStyle(el).fontSize);
+      for (const g of all(rule.group)) {
+        const refs = own(rule.than, rule.group, g);
+        if (!refs.length) continue;
+        const limit = Math.max(...refs.map(size));
+        for (const el of own(rule.item, rule.group, g)) {
+          const item = { where: name(el), size: Math.round(size(el)), than: Math.round(limit), ratio: r2(size(el) / limit), ok: true };
+          out.items.push(item);
+          if (item.ratio < v.min - 0.005) fail(item);
+        }
+      }
+      if (!out.items.length) { out.status = "info"; out.note = `no ${rule.item} shares a ${rule.group} with data-mk="${rule.than}": nothing compared`; }
+    } else if (rule.kind === "sink" || rule.kind === "backdrop") {
+      // Measured on screenshots by the runner (shotRules); a run that cannot take them says so.
+      out.status = "deferred";
     } else if (rule.kind === "max-size") {
       const limit = Math.max(...all(rule.than).map((el) => parseFloat(getComputedStyle(el).fontSize)));
       for (const el of all(rule.item)) {
@@ -638,6 +814,23 @@ function measureRules({ rules, judgeFill, canvas }) {
     }
   }
   return results;
+}
+
+// Presses Tab until the order comes back to its first stop. From the top, focus starts at the document;
+// otherwise it starts where the page left it (a task path that just opened a menu).
+async function walkTabs(page, fromTop) {
+  if (fromTop) await page.evaluate(() => { scrollTo(0, 0); document.activeElement?.blur(); });
+  const stops = [];
+  // Past the last stop focus leaves the document; a walk that started mid-page lets it come round once.
+  let wrapped = fromTop;
+  for (let n = 0; n < 60; n++) {
+    await page.keyboard.press("Tab");
+    const s = await page.evaluate(keyboardStop);
+    if (!s && !wrapped) { wrapped = true; continue; }
+    if (!s || (stops.length && s.element === stops[0].element && s.label === stops[0].label)) break;
+    stops.push(s);
+  }
+  return stops;
 }
 
 function keyboardStop() {
@@ -679,25 +872,222 @@ export function fontLabel(name, custom, stack) {
   return match || name;
 }
 
+// Rules read off screenshots. measureRules leaves them "deferred"; this takes the shots and fills them in.
+//   sink      how deep a foreground layer cuts into a wordmark: a shot of the wordmark alone, white on
+//             black, and one with the foreground over it; per character, the deepest covered column,
+//             as a share of the word's ink height.
+//   backdrop  how bright the photo is under the text of a frame: the frame's text made transparent,
+//             then the 95th-percentile luminance under each line, against a colour token.
+// The page is put back exactly as it was: a poster is exported after its rules are measured.
+async function shotRules(page, rules, results, { canvas }) {
+  for (const [i, rule] of rules.entries()) {
+    const out = results[i];
+    if (!out || out.status !== "deferred") continue;
+    out.status = "pass";
+    const count = await page.evaluate((s) => [...document.querySelectorAll(s)].filter((e) => e.checkVisibility()).length, `[data-mk~="${rule.item}"]`);
+    for (let k = 0; k < count; k++) {
+      const item = rule.kind === "sink" ? await sinkOne(page, rule, k, canvas) : await backdropOne(page, rule, k, canvas);
+      if (!item) continue;
+      out.items.push(item);
+      if (!item.ok) out.status = "fail";
+    }
+    if (rule.kind === "backdrop") out.threshold = `≤ ${rule.ceiling}`;
+    else out.threshold = `${rule.values.min}–${rule.values.max}`;
+  }
+}
+
+// Isolates one element for a shot: marks it, injects a style, optionally scrolls it into view and hides
+// what is pinned to the viewport outside it. Returns the shot as base64 and a function that undoes all of it.
+async function isolate(page, { role, k, css, canvas, pinned }) {
+  await page.evaluate(({ role, k, css, canvas, pinned }) => {
+    const el = [...document.querySelectorAll(`[data-mk~="${role}"]`)].filter((e) => e.checkVisibility())[k];
+    el.setAttribute("data-inspect-target", "");
+    const st = document.createElement("style");
+    st.id = "__inspect_shot";
+    st.textContent = css;
+    document.head.append(st);
+    window.__inspectRestore = { y: scrollY, hidden: [] };
+    if (!canvas) {
+      // Bring into view what is measured: the element itself, or for a frame taller than the screen, the
+      // text in it (a chapter title pinned to the frame's bottom edge).
+      let r = el.getBoundingClientRect();
+      if (r.height > innerHeight) {
+        const rg = document.createRange(), boxes = [];
+        const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        while (tw.nextNode()) if (tw.currentNode.textContent.trim() && tw.currentNode.parentElement.checkVisibility()) { rg.selectNodeContents(tw.currentNode); boxes.push(...rg.getClientRects()); }
+        if (boxes.length) r = { top: Math.min(...boxes.map((b) => b.top)), bottom: Math.max(...boxes.map((b) => b.bottom)) };
+      }
+      if (r.top < 0 || r.bottom > innerHeight) {
+        const tall = r.bottom - r.top > innerHeight;
+        scrollTo(0, Math.max(0, scrollY + (tall ? r.top : r.bottom - innerHeight)));
+      }
+    }
+    if (pinned) for (const e of document.body.querySelectorAll("*")) {
+      const p = getComputedStyle(e).position;
+      if ((p === "fixed" || p === "sticky") && !e.contains(el) && !el.contains(e)) { window.__inspectRestore.hidden.push([e, e.style.visibility]); e.style.visibility = "hidden"; }
+    }
+  }, { role, k, css, canvas, pinned });
+  const clip = canvas ? { x: 0, y: 0, ...canvas } : undefined;
+  const shot = async () => (await page.screenshot({ clip, animations: "disabled" })).toString("base64");
+  const restore = () => page.evaluate(() => {
+    document.getElementById("__inspect_shot")?.remove();
+    document.querySelector("[data-inspect-target]")?.removeAttribute("data-inspect-target");
+    document.documentElement.classList.remove("__inspect_nofront");
+    const r = window.__inspectRestore;
+    for (const [e, v] of r.hidden) e.style.visibility = v;
+    scrollTo(0, r.y);
+    delete window.__inspectRestore;
+  });
+  return { shot, restore };
+}
+
+async function sinkOne(page, rule, k, canvas) {
+  const quiet = "transition:none!important;animation:none!important";
+  const css = `html,body{background:#000!important}*{visibility:hidden!important;${quiet}}` +
+    `[data-inspect-target],[data-inspect-target] *{visibility:visible!important;color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important;background:transparent!important}` +
+    `[data-mk~="${rule.over}"],[data-mk~="${rule.over}"] *{visibility:visible!important}` +
+    `html.__inspect_nofront [data-mk~="${rule.over}"],html.__inspect_nofront [data-mk~="${rule.over}"] *{visibility:hidden!important}`;
+  const { shot, restore } = await isolate(page, { role: rule.item, k, css, canvas, pinned: false });
+  try {
+    await page.evaluate(() => document.documentElement.classList.add("__inspect_nofront"));
+    const alone = await shot();
+    await page.evaluate(() => document.documentElement.classList.remove("__inspect_nofront"));
+    const covered = await shot();
+    return await page.evaluate(async ({ alone, covered, rule }) => {
+      const load = (s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = "data:image/png;base64," + s; });
+      const pixels = async (s) => { const i = await load(s); const c = document.createElement("canvas"); c.width = i.width; c.height = i.height; const g = c.getContext("2d"); g.drawImage(i, 0, 0); return g.getImageData(0, 0, i.width, i.height).data; };
+      const [A, B] = [await pixels(alone), await pixels(covered)];
+      const W = (await load(alone)).width, H = A.length / 4 / W, scale = W / innerWidth;
+      const ink = (x, y) => { const i = (y * W + x) * 4; return A[i] > 200 && A[i + 1] > 200 && A[i + 2] > 200; };
+      const hidden = (x, y) => { const i = (y * W + x) * 4; return Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]) > 60; };
+      const el = document.querySelector("[data-inspect-target]");
+      const chars = [], rg = document.createRange(), tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      while (tw.nextNode()) for (let j = 0; j < tw.currentNode.length; j++) {
+        if (/\s/.test(tw.currentNode.data[j])) continue;
+        rg.setStart(tw.currentNode, j); rg.setEnd(tw.currentNode, j + 1);
+        const q = rg.getBoundingClientRect();
+        chars.push({ ch: tw.currentNode.data[j], x0: Math.max(0, Math.floor(q.left * scale)), x1: Math.min(W - 1, Math.ceil(q.right * scale) - 1) });
+      }
+      // The word's ink height is the denominator: an o and an N cut by the same edge read the same.
+      let top = H, bottom = -1;
+      for (const c of chars) for (let x = c.x0; x <= c.x1; x++) for (let y = 0; y < H; y++) if (ink(x, y)) { if (y < top) top = y; if (y > bottom) bottom = y; }
+      const word = bottom - top + 1;
+      for (const c of chars) {
+        let deepest = 0, seen = false;
+        for (let x = c.x0; x <= c.x1; x++) {
+          let low = -1;
+          for (let y = bottom; y >= top; y--) if (ink(x, y)) { low = y; break; }
+          if (low < 0) continue;
+          seen = true;
+          let run = 0;
+          for (let y = low; y >= top; y--) { if (!ink(x, y)) continue; if (!hidden(x, y)) break; run = low - y + 1; }
+          deepest = Math.max(deepest, run);
+        }
+        c.depth = seen && word > 0 ? Math.round((deepest / word) * 100) / 100 : null;
+      }
+      const r = el.getBoundingClientRect();
+      const fronts = [...document.querySelectorAll(`[data-mk~="${rule.over}"]`)].filter((f) => { const q = f.getBoundingClientRect(); return q.right > r.left && q.left < r.right && q.bottom > r.top && q.top < r.bottom; });
+      const every = !!rule.every && fronts.some((f) => f.matches(`[data-mk~="${rule.every}"]`));
+      const measured = chars.filter((c) => c.depth !== null);
+      const max = Math.max(0, ...measured.map((c) => c.depth));
+      const v = rule.values, over = (d) => d > v.max + 0.005, under = (d) => d < v.min - 0.005;
+      const ok = measured.length > 0 && !measured.some((c) => over(c.depth)) && (every ? !measured.some((c) => under(c.depth)) : !under(max));
+      const t = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 12);
+      return { where: `${el.tagName.toLowerCase()}${t ? ` "${t}"` : ""}`, every, depths: measured.map((c) => `${c.ch} ${c.depth}`).join(", "), max, ok };
+    }, { alone, covered, rule });
+  } finally {
+    await restore();
+  }
+}
+
+async function backdropOne(page, rule, k, canvas) {
+  const css = `*{transition:none!important;animation:none!important}` +
+    `[data-inspect-target] *{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;text-decoration-color:transparent!important;caret-color:transparent!important}`;
+  const { shot, restore } = await isolate(page, { role: rule.item, k, css, canvas, pinned: true });
+  try {
+    const image = await shot();
+    return await page.evaluate(async ({ image, ceiling }) => {
+      const img = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = "data:image/png;base64," + image; });
+      const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+      const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+      const D = g.getImageData(0, 0, img.width, img.height).data, W = img.width, H = img.height, scale = W / innerWidth;
+      const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+      const lum = (r, gg, b) => 0.2126 * lin(r) + 0.7152 * lin(gg) + 0.0722 * lin(b);
+      const ceil = lum(...ceiling.split(",").map(Number));
+      const frame = document.querySelector("[data-inspect-target]");
+      // Text on its own surface (a button, a chip) is read against that surface, not the photo.
+      const onSurface = (e) => {
+        for (let a = e; a && a !== frame; a = a.parentElement) {
+          const cs = getComputedStyle(a), bg = (cs.backgroundColor.match(/[\d.]+/g) || []).map(Number);
+          if ((bg.length === 4 ? bg[3] : bg.length ? 1 : 0) > 0.5 || cs.backgroundImage !== "none") return true;
+        }
+        return false;
+      };
+      let worst = null, skipped = 0;
+      const tw = document.createTreeWalker(frame, NodeFilter.SHOW_TEXT), rg = document.createRange();
+      while (tw.nextNode()) {
+        const n = tw.currentNode, e = n.parentElement;
+        if (!n.textContent.trim() || !e.checkVisibility() || e.closest('[aria-hidden="true"],[data-inspect-ignore]') || onSurface(e)) continue;
+        rg.selectNodeContents(n);
+        for (const q of rg.getClientRects()) {
+          const x0 = Math.max(0, Math.floor(q.left * scale)), x1 = Math.min(W - 1, Math.ceil(q.right * scale) - 1);
+          const y0 = Math.max(0, Math.floor(q.top * scale)), y1 = Math.min(H - 1, Math.ceil(q.bottom * scale) - 1);
+          if (x1 <= x0 || y1 <= y0) { skipped++; continue; }
+          const ls = [];
+          for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const i = (y * W + x) * 4; ls.push(lum(D[i], D[i + 1], D[i + 2])); }
+          ls.sort((a, b) => a - b);
+          const p95 = ls[Math.floor(ls.length * 0.95)];
+          if (!worst || p95 > worst.p95) worst = { p95, text: n.textContent.replace(/\s+/g, " ").trim().slice(0, 16) };
+        }
+      }
+      const t = frame.tagName.toLowerCase() + (frame.id ? "#" + frame.id : "") + ([...frame.classList].slice(0, 2).map((x) => "." + x).join(""));
+      if (!worst) return { where: t, note: skipped ? "its text is outside the shot" : "no text in it", ok: true };
+      const ratio = Math.round((worst.p95 / ceil) * 100) / 100;
+      return { where: t, ratio, line: worst.text, ok: worst.p95 <= ceil * 1.02 };
+    }, { image, ceiling: rule.values.ceiling });
+  } finally {
+    await restore();
+  }
+}
+
 async function renderedFonts(page, samples) {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("DOM.enable");
   await cdp.send("CSS.enable");
   const { root } = await cdp.send("DOM.getDocument", { depth: -1 });
+  const byId = new Map();
+  const index = (n) => { byId.set(n.nodeId, n); (n.children || []).forEach(index); };
+  index(root);
+  // A webfont's own name says little: a variable file reports its default instance ("Noto Sans SC Thin").
+  // What the page loaded for the family does: the weights of its faces that finished loading.
+  const loaded = await page.evaluate(() => {
+    const m = {};
+    for (const f of document.fonts) if (f.status === "loaded") (m[f.family.replace(/^["']|["']$/g, "").toLowerCase()] ||= new Set()).add(f.weight);
+    return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, [...v].sort((a, b) => parseFloat(a) - parseFloat(b))]));
+  });
   const out = [];
   for (const s of samples) {
     const used = new Map();
+    // A self-hosted file may carry another name inside ("codicon" declared as "Icons"); when the stack
+    // has a single webfont the page loaded, a webfont rendering this stack can only be that one.
+    const webfonts = s.family.split(",").map((f) => f.trim().replace(/^["']|["']$/g, "")).filter((f) => loaded[f.toLowerCase()]);
     for (const id of s.ids) {
       const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector: `[data-inspect-font="${id}"]` });
       if (!nodeId) continue;
-      const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId });
-      for (const f of fonts) {
-        const name = fontLabel(f.familyName, f.isCustomFont, s.family);
-        const v = used.get(name) || { name, custom: f.isCustomFont, glyphs: 0, faces: [] };
-        v.glyphs += f.glyphCount;
-        // The face name as the font reports it, kept for the report: a static file of the wrong weight shows here.
-        if (!v.faces.includes(f.familyName)) v.faces.push(f.familyName);
-        used.set(name, v);
+      // Asked of the element, the query also counts the text of its child elements, set in other stacks;
+      // asked of each of its own text nodes, it answers for this stack only.
+      const texts = (byId.get(nodeId)?.children || []).filter((c) => c.nodeType === 3 && c.nodeValue.trim());
+      for (const t of texts) {
+        const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId: t.nodeId });
+        for (const f of fonts) {
+          let name = fontLabel(f.familyName, f.isCustomFont, s.family);
+          if (f.isCustomFont && !loaded[name.toLowerCase()] && webfonts.length === 1) name = webfonts[0];
+          const v = used.get(name) || { name, custom: f.isCustomFont, glyphs: 0, ...(f.isCustomFont ? { loadedWeights: loaded[name.toLowerCase()] || [] } : { faces: [] }) };
+          v.glyphs += f.glyphCount;
+          // A system font's face name is reliable: a fallback to a lighter or bolder face shows here.
+          if (v.faces && !v.faces.includes(f.familyName)) v.faces.push(f.familyName);
+          used.set(name, v);
+        }
       }
     }
     const stack = s.family.split(",").map((f) => f.trim().replace(/^["']|["']$/g, "").toLowerCase());
@@ -742,13 +1132,17 @@ function itemDetail(r, item) {
   if (r.kind === "covers") return `covers ${item.covers} panels (want ${r.threshold})${item.onAvoided ? `, sits on ${item.onAvoided.join(", ")}` : ""}`;
   if (r.kind === "axis") return `off axis by ${item.deviation} (max ${r.threshold})`;
   if (r.kind === "max-size") return `${item.size}px (limit ${item.limit}px)`;
+  if (r.kind === "area") return `area ${item.ratio} (${r.threshold})`;
+  if (r.kind === "scale") return `${item.size}px, ${item.ratio}× ${item.than}px (min ${r.threshold}×)`;
+  if (r.kind === "sink") return `cut ${item.depths} (${r.threshold}${item.every ? ", every character" : ""})`;
+  if (r.kind === "backdrop") return `under "${item.line}" ${item.ratio}× the ${r.threshold.replace("≤ ", "")} luminance (max 1×)`;
   return "";
 }
 function ruleDetail(r, failingOnly = false) {
-  if (r.status === "unmarked" || r.status === "error") return r.note;
+  if (r.status === "unmarked" || r.status === "error" || (r.note && !r.items.length)) return r.note;
   const items = failingOnly ? r.items.filter((x) => !x.ok) : r.items;
-  const val = (x) => x.note || (r.kind === "seams" ? `${x.gaps.join("–")}px` : r.kind === "covers" ? `${x.covers}${x.onAvoided ? "!" : ""}` : r.kind === "axis" ? x.deviation : r.kind === "max-size" ? `${x.size}px` : x.ratio);
-  const limit = { seams: `≤${r.threshold}px`, dominant: `≥${r.threshold}`, fill: `≥${r.threshold}`, covers: `=${r.threshold}`, axis: `≤${r.threshold}`, "max-size": "≤ limit" }[r.kind];
+  const val = (x) => x.note || (r.kind === "seams" ? `${x.gaps.join("–")}px` : r.kind === "covers" ? `${x.covers}${x.onAvoided ? "!" : ""}` : r.kind === "axis" ? x.deviation : r.kind === "max-size" ? `${x.size}px` : r.kind === "scale" ? `${x.ratio}×` : r.kind === "sink" ? x.max : r.kind === "backdrop" ? `${x.ratio}×` : x.ratio);
+  const limit = { seams: `≤${r.threshold}px`, dominant: `≥${r.threshold}`, fill: `≥${r.threshold}`, covers: `=${r.threshold}`, axis: `≤${r.threshold}`, "max-size": "≤ limit", area: r.threshold, scale: `≥${r.threshold}×`, sink: r.threshold, backdrop: `${r.threshold} = 1×` }[r.kind];
   const mark = { pass: "ok", fail: "FAIL", info: "values only" }[r.status];
   return `${items.map(val).join(", ")} (${limit}) ${mark}`;
 }
@@ -764,6 +1158,11 @@ function summarize(report) {
     if (v.overflowX) p.push(`horizontal overflow ${v.overflowX}px${at(v)}`);
     if (v.overflowCanvas && (v.overflowCanvas.right || v.overflowCanvas.bottom)) p.push(`content runs past the canvas (right ${v.overflowCanvas.right}px, bottom ${v.overflowCanvas.bottom}px)`);
     for (const o of v.occlusions) p.push(`text covered${at(v)}: "${o.text}" (${o.element}) under ${o.by}, ${o.points} points`);
+    const byHeader = new Map();
+    for (const u of v.underHeader || []) byHeader.set(u.header, [...(byHeader.get(u.header) || []), u]);
+    for (const [header, items] of byHeader)
+      p.push(`text shows through the pinned header${at(v)}: "${items[0].text}" (${items[0].element}) at scroll ${items[0].scrollY}px${items.length > 1 ? ` and ${items.length - 1} more lines` : ""}, under ${header} (give the bar a background or a rule once scrolled)`);
+    for (const u of v.invisibleAtRest || []) p.push(`first-screen text invisible after motion settled${at(v)}: "${u.text}" (${u.element} at opacity 0)`);
     for (const c of v.clipped) p.push(`text clipped${at(v)}: "${c.text}" (${c.element}) by ${c.by}`);
     for (const c of v.outside) p.push(`text outside the ${report.mode === "web" ? "viewport" : "canvas"}${at(v)}: "${c.text}" (${c.element})`);
     for (const r of v.rules || []) {
@@ -773,9 +1172,12 @@ function summarize(report) {
     }
     for (const f of v.facts) {
       if (!f.count) p.push(`fact missing${at(v)}: "${f.text}"`);
-      else if (f.unmarkedBreak) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" (fine only at a semantic boundary; mark it with | in the facts file)`);
+      else if (f.unmarkedBreak) p.push(`fact breaks across ${f.lines} lines${at(v)}: "${f.text}" in ${f.breaksIn} (fine only at a semantic boundary; mark it with | in the facts file)`);
     }
   }
+  // A stylesheet choice, not a layout one: read once, from the first viewport.
+  const ta = report.views[0]?.transitionAll || [];
+  if (ta.length) p.push(`transition: all on ${ta.reduce((n, t) => n + t.count, 0)} elements (${ta.slice(0, 4).map((t) => `${t.value} ×${t.count}`).join(", ")}${ta.length > 4 ? ", …" : ""}): name the properties that change`);
   // Sweep: consecutive widths with the same kinds of finding collapse into one range.
   let run = null;
   const flush = () => {
@@ -787,7 +1189,7 @@ function summarize(report) {
   };
   for (const s of report.sweep || []) {
     const kinds = [...new Set((s.ruleFails || []).map((f) => f.split(" ")[0]))];
-    const counts = [s.occlusions && `${s.occlusions} covered`, s.clipped && `${s.clipped} clipped`, s.outside && `${s.outside} outside`, ...kinds.map((k) => `rule ${k} fails`)].filter(Boolean).join(", ");
+    const counts = [s.occlusions && `${s.occlusions} covered`, s.underHeader && `${s.underHeader} under the pinned header`, s.clipped && `${s.clipped} clipped`, s.outside && `${s.outside} outside`, ...kinds.map((k) => `rule ${k} fails`)].filter(Boolean).join(", ");
     const key = `${s.height}|${s.overflowX ? "overflow" : ""}|${counts}`;
     if (run && run.id === key) { run.to = s.width; run.overflow = Math.max(run.overflow, s.overflowX); continue; }
     flush();
@@ -801,7 +1203,7 @@ function summarize(report) {
     });
     for (const f of report.facts) {
       if (!f.count) p.push(`fact missing from every slide: "${f.text}"`);
-      for (const a of (f.at || []).filter((x) => x.unmarkedBreak)) p.push(`fact breaks across ${a.lines} lines @slide ${a.slide}: "${f.text}" (fine only at a semantic boundary; mark it with | in the facts file)`);
+      for (const a of (f.at || []).filter((x) => x.unmarkedBreak)) p.push(`fact breaks across ${a.lines} lines @slide ${a.slide}: "${f.text}" in ${a.breaksIn} (fine only at a semantic boundary; mark it with | in the facts file)`);
     }
     if (report.pdf.pages !== report.views.length) p.push(`PDF has ${report.pdf.pages} pages for ${report.views.length} slides: give each slide break-after: page and @page the canvas size`);
     // PDF sizes are whole points, so a canvas side can read 1px off.
@@ -820,6 +1222,7 @@ function summarize(report) {
     }
   }
   for (const k of report.keyboard?.stops || []) if (!k.visibleFocus) p.push(`no visible focus change: ${k.element} "${k.label}"`);
+  for (const m of report.keyboard?.more || []) for (const k of m.stops) if (!k.visibleFocus) p.push(`no visible focus change @${m.viewport}: ${k.element} "${k.label}"`);
   if (report.reducedMotion?.running.length) p.push(`still animating under reduced motion: ${report.reducedMotion.running.join("; ")}`);
   for (const [k, v] of Object.entries(report.flow || {})) if (v.error) p.push(`flow failed @${k}: ${v.error}`);
   for (const e of report.errors) p.push(`page error: ${e}`);
@@ -866,7 +1269,10 @@ async function inspectSlides({ browser, url, opts, out, at, name, facts, style, 
       const r = document.querySelector(`[data-inspect-slide="${k}"]`).getBoundingClientRect();
       return { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
     }, n);
-    if (rules.length) view.rules = await page.evaluate(measureRules, { rules, judgeFill: true, canvas: opts.canvas });
+    if (rules.length) {
+      view.rules = await page.evaluate(measureRules, { rules, judgeFill: true, canvas: opts.canvas });
+      for (const r of view.rules) if (r.status === "deferred") Object.assign(r, { status: "error", note: `${r.kind} is measured on posters and web pages, not on slides` });
+    }
     if (report.minSize) view.small = view.fontSizes.filter((f) => parseFloat(f.value) < report.minSize - 0.5);
     for (const f of await renderedFonts(page, view.fontSamples)) {
       const key = `${f.stack}|${f.weight}|${f.style}`;
@@ -889,7 +1295,7 @@ async function inspectSlides({ browser, url, opts, out, at, name, facts, style, 
       total.slides.push(n);
       total.exact = total.exact || f.exact;
       // Each slide keeps its own reading: a fact can be a broken title on one slide and a footer on the next.
-      (total.at ||= []).push({ slide: n, lines: f.lines, unmarkedBreak: f.unmarkedBreak, fontSize: f.fontSize });
+      (total.at ||= []).push({ slide: n, lines: f.lines, unmarkedBreak: f.unmarkedBreak, ...(f.breaksIn && { breaksIn: f.breaksIn }), fontSize: f.fontSize, ...(f.textSize && { textSize: f.textSize }) });
     });
     view.facts = [];
     const png = file(`slide-${n}`, join(dir, `${String(n).padStart(2, "0")}.png`));
@@ -960,7 +1366,11 @@ export async function inspectPage(opts) {
     } else if (opts.canvas) {
       const { page, context, errors } = await openPage(browser, url, opts.canvas, opts);
       const view = await page.evaluate(audit, auditArgs(opts.canvas, false));
-      if (style.rules.length) view.rules = await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, opts.canvas.width), judgeFill: true, canvas: opts.canvas });
+      if (style.rules.length) {
+        const rules = resolveRules(style.rules, style.tokens, opts.canvas.width);
+        view.rules = await page.evaluate(measureRules, { rules, judgeFill: true, canvas: opts.canvas });
+        await shotRules(page, rules, view.rules, { canvas: opts.canvas });
+      }
       report.fonts = await renderedFonts(page, view.fontSamples);
       report.offPalette = view.offPalette;
       report.views.push(strip(view));
@@ -992,7 +1402,11 @@ export async function inspectPage(opts) {
         await page.screenshot({ path: file(`${tag}-full-gray`, join(out, `web-${tag}-full-gray.png`)), fullPage: true });
         await ungray(page);
         const view = await page.evaluate(audit, auditArgs(null, true));
-        if (style.rules.length) view.rules = await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, vp.width), judgeFill: i === 0, canvas: null });
+        if (style.rules.length) {
+          const rules = resolveRules(style.rules, style.tokens, vp.width);
+          view.rules = await page.evaluate(measureRules, { rules, judgeFill: i === 0, canvas: null });
+          await shotRules(page, rules, view.rules, { canvas: null });
+        }
         if (i === 0) {
           report.fonts = await renderedFonts(page, view.fontSamples);
           report.offPalette = view.offPalette;
@@ -1014,19 +1428,12 @@ export async function inspectPage(opts) {
           report.errors.push(...dark.errors);
           await dark.context.close();
         }
-        if (i === 0) {
-          // Keyboard: walk the tab order from the top of the page.
-          await page.evaluate(() => { scrollTo(0, 0); document.activeElement?.blur(); });
-          const stops = [];
-          for (let n = 0; n < 60; n++) {
-            await page.keyboard.press("Tab");
-            const s = await page.evaluate(keyboardStop);
-            if (!s || (stops.length && s.element === stops[0].element && s.label === stops[0].label)) break;
-            stops.push(s);
-          }
-          report.keyboard = { stops };
-          sweepPage = { page, context };
-        } else await context.close();
+        // Keyboard: walk the tab order from the top of the page, on the first viewport and on the last one
+        // (a phone layout swaps the navigation for a menu button).
+        if (i === 0) report.keyboard = { viewport: tag, stops: await walkTabs(page, true), more: [] };
+        else if (i === opts.viewports.length - 1) report.keyboard.more.push({ viewport: tag, stops: await walkTabs(page, true) });
+        if (i === 0) sweepPage = { page, context };
+        else await context.close();
       }
 
       // Width sweep: one page, resized in place.
@@ -1036,11 +1443,24 @@ export async function inspectPage(opts) {
         await page.setViewportSize({ width, height });
         await page.evaluate(settle, false);
         const v = await page.evaluate(audit, { ...auditArgs(null, true), facts: [] });
-        const rules = style.rules.length ? await page.evaluate(measureRules, { rules: resolveRules(style.rules, style.tokens, width), judgeFill: false, canvas: null }) : [];
+        const resolved = resolveRules(style.rules, style.tokens, width);
+        const rules = style.rules.length ? await page.evaluate(measureRules, { rules: resolved, judgeFill: false, canvas: null }) : [];
+        await shotRules(page, resolved, rules, { canvas: null });
         const ruleFails = rules.filter((r) => r.status === "fail").map((r) => `${r.kind} ${ruleDetail(r, true)}`);
-        report.sweep.push({ width, height, ruleFails, overflowX: v.overflowX, occlusions: v.occlusions.length, clipped: v.clipped.length, outside: v.outside.length, examples: [...v.occlusions, ...v.clipped, ...v.outside].slice(0, 3).map((x) => `${x.text} (${x.element}${x.by ? " / " + x.by : ""})`) });
+        report.sweep.push({ width, height, ruleFails, overflowX: v.overflowX, occlusions: v.occlusions.length, underHeader: v.underHeader.length, clipped: v.clipped.length, outside: v.outside.length, examples: [...v.occlusions, ...v.underHeader.map((u) => ({ ...u, by: u.header })), ...v.clipped, ...v.outside].slice(0, 3).map((x) => `${x.text} (${x.element}${x.by ? " / " + x.by : ""})`) });
       }
       await sweepPage.context.close();
+
+      // The short screens get a first-screen shot of their own, opened fresh as the listed viewports are;
+      // one already listed in --viewports has it.
+      for (const [width, height] of SHORT_VIEWPORTS) {
+        const tag = `${width}x${height}`;
+        if (report.files[`${tag}-fold`]) continue;
+        const { page, context, errors } = await openPage(browser, url, { width, height }, opts);
+        await page.screenshot({ path: file(`${tag}-fold`, join(out, `web-${tag}-fold.png`)) });
+        report.errors.push(...errors);
+        await context.close();
+      }
 
       // Reduced motion.
       {
@@ -1064,7 +1484,7 @@ export async function inspectPage(opts) {
           const tag = `${vp.width}x${vp.height}`;
           const { page, context, errors } = await openPage(browser, url, vp, opts);
           await page.evaluate(() => document.getElementById("__inspect_pe")?.remove());
-          const entry = { log: [], shots: [], checks: [] };
+          const entry = { log: [], shots: [], checks: [], keyboard: {} };
           report.flow[tag] = entry;
           const shot = async (label, { fullPage = false, selector } = {}) => {
             const path = join(out, `flow-${tag}-${label}.png`);
@@ -1081,7 +1501,9 @@ export async function inspectPage(opts) {
             return v;
           };
           try {
-            await flow({ page, viewport: { ...vp, tag }, shot, check, log: (...m) => entry.log.push(m.join(" ")) });
+            // tabs(label): the tab order in the state the path has reached (a menu just opened, a form submitted).
+            const tabs = async (label) => (entry.keyboard[label] = await walkTabs(page, false));
+            await flow({ page, viewport: { ...vp, tag }, shot, check, tabs, log: (...m) => entry.log.push(m.join(" ")) });
           } catch (e) {
             entry.error = String(e.message || e).split("\n")[0];
           }
@@ -1100,6 +1522,8 @@ export async function inspectPage(opts) {
     for (const o of c.clipped) report.problems.push(`text clipped in flow @${k} "${c.label}": "${o.text}" by ${o.by}`);
     if (c.overflowX) report.problems.push(`horizontal overflow in flow @${k} "${c.label}": ${c.overflowX}px`);
   }
+  for (const [k, v] of Object.entries(report.flow || {})) for (const [label, stops] of Object.entries(v.keyboard || {}))
+    for (const s of stops) if (!s.visibleFocus) report.problems.push(`no visible focus change in flow @${k} "${label}": ${s.element} "${s.label}"`);
   report.problems = [...new Set(report.problems)];
   await writeFile(file("report", join(out, "report.json")), JSON.stringify(report, null, 2) + "\n");
   return report;
@@ -1109,10 +1533,10 @@ function printSummary(report) {
   const lines = [`report: ${report.files.report}`];
   for (const [k, v] of Object.entries(report.files)) if (k !== "report" && !k.startsWith("slide-")) lines.push(`${k}: ${v}`);
   if (report.mode === "slides") lines.push(`slides: ${report.views.length} PNG in ${dirname(report.files["slide-1"])}; PDF ${report.pdf.pages} pages`);
-  lines.push(`fonts (requested → rendered): ${report.fonts.map((f) => `${f.stack.split(",")[0]} ${f.weight} → ${f.rendered.map((r) => `${r.name}${r.custom ? " [webfont]" : " [system]"}`).join(" + ") || "none"}`).join("; ")}`);
+  lines.push(`fonts (requested → rendered): ${report.fonts.map((f) => `${f.stack.split(",")[0]} ${f.weight} → ${f.rendered.map((r) => `${r.name}${r.custom ? ` [webfont${r.loadedWeights?.length ? ` ${r.loadedWeights.join("/")}` : ""}]` : " [system]"}`).join(" + ") || "none"}`).join("; ")}`);
   const facts = report.facts || report.views[0]?.facts || [];
   // On a deck each slide where a fact appears is listed with its size there.
-  const where = (f) => (f.at ? ` on ${f.at.map((a) => `${a.slide} (${a.fontSize}px)`).join(", ")}` : f.fontSize ? ` ${f.fontSize}px` : "");
+  const where = (f) => (f.at ? ` on ${f.at.map((a) => `${a.slide} (${a.fontSize}px)`).join(", ")}` : f.fontSize ? ` ${f.fontSize}px${f.textSize ? ` (as text ${f.textSize}px)` : ""}` : "");
   if (facts.length) lines.push(`facts: ${facts.map((f) => `"${f.text}" ×${f.count}${where(f)}${f.shownAt ? ` (${f.shownAt["0.35"]}px at 0.35)` : ""}`).join("; ")}`);
   for (const v of report.views) {
     // On a deck, a rule whose roles are not on this slide is left out of the slide's line.

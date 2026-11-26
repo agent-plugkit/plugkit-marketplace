@@ -239,6 +239,12 @@ main > section { padding-top: var(--space-9); }
   .side-col { grid-column: 3 / 11; grid-row: 2; margin-bottom: var(--space-4); }
 }
 
+/* 版权行三项连排约需 870px 宽，放不下时按项分行，不在行首留分隔点 */
+@media (max-width: 900px) {
+  .imprint .item { display: block; white-space: normal; }
+  .imprint .item + .item::before { content: none; }
+}
+
 /* ===== 窄屏：4 栏 ===== */
 @media (max-width: 767px) {
   .masthead { grid-template-columns: 1fr; row-gap: var(--space-3); padding: var(--space-4) 0 var(--space-3); }
@@ -247,8 +253,6 @@ main > section { padding-top: var(--space-9); }
   .nav { gap: var(--space-5); }
   .hero-group { padding: var(--space-7) 0; }
   .hero .btn { margin-top: var(--space-5); }
-  .imprint .item { display: block; }
-  .imprint .item + .item::before { content: none; }
   .site-footer .names .item { display: block; }
   .site-footer .names .item + .item::before { content: none; }
   .body-col, .side-col { grid-column: 1 / -1; }
@@ -286,17 +290,17 @@ main > section { padding-top: var(--space-9); }
 
   <div class="hero wrap">
     <div class="hero-group">
-      <p class="kicker mono"><span class="nowrap">2027 春季号</span> · 本期主题</p>
-      <h1 class="title">水边的人</h1>
+      <p class="kicker mono" data-mk="axis"><span class="nowrap">2027 春季号</span> · 本期主题</p>
+      <h1 class="title" data-mk="axis">水边的人</h1>
       <div class="rule-short" aria-hidden="true"></div>
-      <p class="deck">
+      <p class="deck" data-mk="axis">
         <span>在河的这一岸，</span>
         <span>我们读给彼此听。<span class="tag">示例</span></span>
       </p>
-      <a class="btn" href="#subscribe">订阅季刊</a>
+      <a class="btn" href="#subscribe" data-mk="axis">订阅季刊</a>
     </div>
-    <p class="imprint">
-      <span class="item"><span class="label">春季号发布会</span> 2027.04.18 19:00</span><span class="item">旧城图书馆报告厅</span><span class="item">长河编辑部 主办</span>
+    <p class="imprint" data-mk="axis">
+      <span class="item"><span class="label">春季号发布会</span> <span class="nowrap">2027.04.18 19:00</span></span><span class="item">旧城图书馆报告厅</span><span class="item">长河编辑部 主办</span>
     </p>
   </div>
 </div>
@@ -304,7 +308,7 @@ main > section { padding-top: var(--space-9); }
 <main class="wrap">
   <section id="issue" class="grid" aria-labelledby="issue-h">
     <div class="chapter-head">
-      <h2 id="issue-h">本期主题</h2>
+      <h2 id="issue-h" data-mk="axis">本期主题</h2>
       <div class="rule-short" aria-hidden="true"></div>
     </div>
     <div class="body-col prose">
@@ -319,7 +323,7 @@ main > section { padding-top: var(--space-9); }
 
   <section id="launch" class="grid" aria-labelledby="launch-h">
     <div class="chapter-head">
-      <h2 id="launch-h">春季号发布会</h2>
+      <h2 id="launch-h" data-mk="axis">春季号发布会</h2>
       <div class="rule-short" aria-hidden="true"></div>
     </div>
     <dl class="body-col rows">
@@ -332,7 +336,7 @@ main > section { padding-top: var(--space-9); }
 
   <section id="subscribe" class="grid" aria-labelledby="subscribe-h">
     <div class="chapter-head">
-      <h2 id="subscribe-h">订阅季刊</h2>
+      <h2 id="subscribe-h" data-mk="axis">订阅季刊</h2>
       <div class="rule-short" aria-hidden="true"></div>
     </div>
     <div class="body-col">

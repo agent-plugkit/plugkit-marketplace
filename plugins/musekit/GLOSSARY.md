@@ -80,6 +80,10 @@ _Avoid_: 默认适配
 musepool 把一个 Template 按某个场景解析出的文件，工作流只读它，不直接读风格库。
 _Avoid_: 主题文件、样式表
 
+**机检**：
+Seed 或 Template 声明的、检查脚本能量化的版式规则（如字面宽、面积、压入比例、文字底下的亮度），解析进 `style.md` 的「机检」一节。作品按其中的角色给元素加 `data-mk`，`inspect_page.mjs` 量出数值写进摘要；没有列进机检的规则仍靠目视或自己量。
+_Avoid_: 自动验收、lint
+
 **Workflow**：
 一个场景的制作流程，例如 graphic-design、web-design、data-figure。
 _Avoid_: 制作 Skill、管线

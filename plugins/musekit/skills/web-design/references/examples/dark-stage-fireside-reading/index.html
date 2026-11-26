@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>冬夜篝火朗读会 · 松间读书会</title>
+<meta name="description" content="冬夜篝火朗读会：2027.12.18 周六 19:00—21:30，白桦坡营地 东草坪。来听，或来读一段。虚构示例活动。">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root {
+  --color-paper: #0D0C0B;
+  --color-ink: #EFE9E1;
+  --color-ink-muted: #9A938B;
+  --color-accent: #F2924C;
+  --color-on-accent: #0D0C0B;
+  --color-edge-floor: #383430;
+  --color-rule: rgba(239, 233, 225, 0.16);
+  --font-display: "Archivo", "Noto Sans SC", "Arial Black", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --stretch-display: 125%;
+  --weight-display: 500;
+  --weight-display-cjk: 700;
+  --font-text: "Archivo", "Noto Sans SC", "Arial Black", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-cjk: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --weight-text: 400;
+  --weight-strong: 600;
+  --size-display: 240px;
+  --size-title: 22px;
+  --size-edge: 14px;
+  --size-body: 17px;
+  --size-meta: 13px;
+  --leading-display: 0.9;
+  --leading-title: 1.25;
+  --leading-edge: 1.45;
+  --leading-body: 1.65;
+  --leading-meta: 1.4;
+  --tracking-display: -0.02em;
+  --tracking-edge: 0.02em;
+  --canvas-width: 1440px;
+  --canvas-height: 900px;
+  --columns: 12;
+  --gutter: 24px;
+  --margin: 48px;
+  --mark-fill: 0.6;
+  --mark-sink-min: 0.2;
+  --mark-sink-max: 0.33;
+  --shade-top: 0.16;
+  --shade-bottom: 0.24;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --column-width: 90px;
+}
+/* tablet */
+@media (max-width: 1100px) {
+  :root {
+    --margin: 32px;
+  }
+}
+/* mobile */
+@media (max-width: 767px) {
+  :root {
+    --columns: 4;
+    --gutter: 16px;
+    --margin: 24px;
+    --size-title: 20px;
+    --size-edge: 13px;
+    --size-body: 16px;
+  }
+}
+/* ---- page ---- */
+* { box-sizing: border-box; }
+html { --bar-h: 48px; scroll-padding-top: calc(var(--bar-h) + var(--space-5)); }
+html, body { margin: 0; background: var(--color-paper); color: var(--color-ink); }
+body { font-family: var(--font-text); font-variant-numeric: tabular-nums; font-size: var(--size-body); line-height: var(--leading-body); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.nw { white-space: nowrap; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---- frames: photo, wordmark, foreground, shade bands, edge text ---- */
+.frame { position: relative; overflow: hidden; }
+.frame > img, .frame picture img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+.shade { position: absolute; left: 0; right: 0; pointer-events: none; }
+.shade.t { top: 0; height: calc(var(--shade-top) * 100%); background: linear-gradient(to bottom, var(--color-paper) 40%, rgb(13 12 11 / 0)); }
+.shade.b { bottom: 0; height: calc(var(--shade-bottom) * 100%); background: linear-gradient(to top, var(--color-paper) 40%, rgb(13 12 11 / 0)); }
+.edge { position: absolute; left: var(--margin); right: var(--margin); font-size: var(--size-edge); line-height: var(--leading-edge); letter-spacing: var(--tracking-edge); }
+.edge p { margin: 0; }
+
+.stage { height: 100svh;
+  /* foreground contour in the photo (s, share of its height), photo aspect (r), wordmark offset (k, in em) */
+  --s: 0.6566; --r: 1.7927; --k: 0.72; }
+@media (max-aspect-ratio: 1/1) { .stage { --s: 0.6486; --r: 0.7463; --k: 0.724; } }
+.mark { position: absolute; left: 0; right: 0; margin: 0; text-align: center; white-space: nowrap; line-height: 1;
+  color: var(--color-ink); font-family: var(--font-cjk); font-weight: var(--weight-display-cjk);
+  letter-spacing: 0.08em; text-indent: 0.08em;
+  --fs: min(30vw, 55.6svh); font-size: var(--fs);
+  /* the contour's place in the frame under object-fit: cover, object-position 50% 50% */
+  --c: calc(50svh + (var(--s) - 0.5) * max(100vw / var(--r), 100svh));
+  top: calc(var(--c) - var(--fs) * var(--k)); }
+
+.top { top: var(--margin); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--gutter); }
+.top h1 { margin: 0; font: inherit; font-weight: var(--weight-strong); }
+.top h1 span { display: block; font-weight: var(--weight-text); }
+.nav { display: flex; gap: var(--space-5); margin: 0; padding: 0; list-style: none; }
+.nav a { text-decoration: none; transition: color 180ms ease; }
+.nav a:hover, .nav a[aria-current="true"] { color: var(--color-accent); }
+.menu-btn { display: none; font: inherit; color: var(--color-ink); background: none; border: 0; padding: 0; cursor: pointer; transition: color 180ms ease; }
+.menu-btn:hover { color: var(--color-accent); }
+.bottom { bottom: var(--margin); display: grid; grid-template-columns: repeat(4, 1fr); align-items: start; gap: var(--space-3) var(--gutter); }
+.bottom b { display: block; font-weight: var(--weight-strong); color: var(--color-accent); }
+.btn { display: inline-block; background: var(--color-accent); color: var(--color-on-accent); font: inherit; font-size: var(--size-edge); font-weight: var(--weight-strong); letter-spacing: var(--tracking-edge); line-height: var(--leading-edge); padding: var(--space-2) var(--space-4); border: 0; border-radius: 0; text-decoration: none; cursor: pointer; }
+.bottom .btn { justify-self: end; align-self: end; }
+
+/* menu panel (narrow screens) */
+.panel { position: absolute; top: 0; left: 0; right: 0; z-index: 3; background: var(--color-paper); border-bottom: 1px solid var(--color-rule); padding: var(--margin); font-size: var(--size-edge); line-height: var(--leading-edge); }
+.panel[hidden] { display: none; }
+.panel .row { display: flex; justify-content: space-between; align-items: flex-start; }
+.panel .row p { margin: 0; font-weight: var(--weight-strong); }
+.panel ul { list-style: none; margin: var(--space-5) 0 0; padding: 0; display: grid; gap: var(--space-3); font-size: var(--size-title); line-height: var(--leading-title); font-weight: var(--weight-strong); }
+.panel a { text-decoration: none; transition: color 180ms ease; }
+.panel a:hover { color: var(--color-accent); }
+
+/* sticky bar after the first screen */
+.bar { position: fixed; top: 0; left: 0; right: 0; z-index: 2; height: var(--bar-h); display: flex; justify-content: space-between; align-items: center; gap: var(--gutter);
+  padding: 0 var(--margin); background: var(--color-paper); border-bottom: 1px solid var(--color-rule); font-size: var(--size-edge); line-height: var(--leading-edge); letter-spacing: var(--tracking-edge); visibility: hidden; }
+.bar.on { visibility: visible; }
+.bar p { margin: 0; font-weight: var(--weight-strong); }
+
+/* chapter frame */
+.chapter { height: 80svh; min-height: 480px; }
+.chapter > img { object-position: 60% 50%; }
+.chapter .edge { bottom: var(--margin); max-width: 30em; }
+.chapter h2 { margin: 0 0 var(--space-2); font-size: var(--size-title); line-height: var(--leading-title); font-weight: var(--weight-strong); letter-spacing: 0; }
+
+/* ---- flat sections: 12 columns, text 6 ---- */
+.flat { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter); padding: 0 var(--margin); margin: var(--space-9) 0; }
+.flat > h2 { grid-column: 1 / 4; margin: 0; font-size: var(--size-title); line-height: var(--leading-title); font-weight: var(--weight-strong); }
+.flat > .body { grid-column: 4 / 10; }
+.flat > .body.wide { grid-column: 4 / 11; }
+.flat p { margin: 0 0 var(--space-4); max-width: 40em; }
+.tag { font-size: var(--size-meta); line-height: var(--leading-meta); color: var(--color-ink-muted); white-space: nowrap; }
+.muted { color: var(--color-ink-muted); }
+.rows { margin: 0; padding: 0; border-top: 1px solid var(--color-rule); }
+.rows > div { display: grid; grid-template-columns: 7em 1fr; gap: var(--gutter); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-rule); }
+.rows dt { font-weight: var(--weight-strong); }
+.rows dd { margin: 0; }
+.rows dd .line { display: block; }
+.rows + .tag { display: block; margin-top: var(--space-2); }
+
+/* form */
+form { margin: var(--space-6) 0 0; }
+.field { margin: 0 0 var(--space-5); padding: 0; border: 0; min-width: 0; }
+.field > label, .field legend { display: block; padding: 0; margin: 0 0 var(--space-2); font-weight: var(--weight-strong); }
+.hint { font-weight: var(--weight-text); color: var(--color-ink-muted); }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.choice { position: relative; display: block; border: 1px solid var(--color-ink-muted); padding: var(--space-3) var(--space-4); cursor: pointer; }
+.choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.choice b { display: block; font-weight: var(--weight-strong); }
+.choice span { color: var(--color-ink-muted); }
+.choice:has(input:checked) { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.choice:has(input:checked) b::after { content: " ✓"; color: var(--color-accent); }
+.choice:has(input:focus-visible), .field.bad .choice:has(input:focus) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+input[type=text], input[type=email], select { width: 100%; max-width: 28em; font: inherit; color: var(--color-ink); background: var(--color-paper); border: 1px solid var(--color-ink-muted); border-radius: 0; padding: var(--space-2) var(--space-3); }
+select { width: auto; min-width: 8em; }
+input:focus-visible, select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 0; border-color: var(--color-accent); }
+.err { display: block; margin-top: var(--space-2); }
+.err:empty { display: none; }
+.field.bad input, .field.bad select, .field.bad .choice { border-width: 2px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); margin-top: var(--space-6); }
+.actions .btn { padding: var(--space-3) var(--space-5); }
+.done { margin-top: var(--space-6); }
+.done:focus { outline: none; }
+.done h3 { margin: 0 0 var(--space-3); font-size: var(--size-title); line-height: var(--leading-title); }
+.done .rows { margin: var(--space-4) 0 var(--space-5); }
+.link-btn { font: inherit; color: var(--color-ink); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; transition: color 180ms ease; }
+.link-btn:hover { color: var(--color-accent); }
+
+footer.site { padding: var(--space-6) var(--margin) var(--space-7); border-top: 1px solid var(--color-rule); font-size: var(--size-meta); line-height: var(--leading-meta); color: var(--color-ink-muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2) var(--gutter); }
+footer.site p { margin: 0; }
+
+@media (max-width: 1100px) {
+  .bottom { grid-template-columns: repeat(4, auto); justify-content: space-between; }
+  .flat { grid-template-columns: 1fr; }
+  .flat > h2 { grid-column: 1; margin-bottom: var(--space-4); }
+  .flat > .body, .flat > .body.wide { grid-column: 1; max-width: 40em; }
+}
+@media (max-width: 767px) {
+  .nav-top { display: none; }
+  .menu-btn { display: block; }
+  .bottom { grid-template-columns: 1fr 1fr; justify-content: stretch; }
+  .flat { margin: var(--space-8) 0; }
+  .choices { grid-template-columns: 1fr; }
+  .rows > div { grid-template-columns: 4em 1fr; gap: var(--space-3); }
+  .bar .nav { gap: var(--space-4); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="bar" id="bar">
+  <p>冬夜篝火朗读会</p>
+  <nav aria-label="页内导航（吸顶）"><ul class="nav">
+    <li><a href="#program" data-sec="program">日程</a></li>
+    <li><a href="#notes" data-sec="notes">须知</a></li>
+    <li><a href="#signup" data-sec="signup">报名</a></li>
+  </ul></nav>
+</div>
+
+<header class="frame stage" id="top" data-mk="frame">
+  <picture>
+    <source media="(max-aspect-ratio: 1/1)" srcset="tall.jpg">
+    <img src="wide.jpg" alt="冬夜林间，篝火在一根横倒的木头后面燃烧">
+  </picture>
+  <span class="mark" data-mk="mark" aria-hidden="true" data-inspect-ignore>篝火</span>
+  <picture>
+    <source media="(max-aspect-ratio: 1/1)" srcset="tall-fg.png">
+    <img src="wide-fg.png" alt="" data-mk="front across">
+  </picture>
+  <div class="shade t" aria-hidden="true"></div>
+  <div class="shade b" aria-hidden="true"></div>
+
+  <div class="edge top">
+    <h1>冬夜篝火朗读会 <span lang="en">Fireside Readings on a Winter Night</span></h1>
+    <nav class="nav-top" aria-label="页内导航"><ul class="nav">
+      <li><a href="#program">日程</a></li>
+      <li><a href="#notes">须知</a></li>
+      <li><a href="#signup">报名</a></li>
+    </ul></nav>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="panel">菜单</button>
+  </div>
+  <div class="panel" id="panel" hidden>
+    <div class="row"><p>冬夜篝火朗读会</p><button class="menu-btn" type="button" data-close>收起</button></div>
+    <nav aria-label="菜单"><ul>
+      <li><a href="#program">日程</a></li>
+      <li><a href="#notes">须知</a></li>
+      <li><a href="#signup">报名</a></li>
+    </ul></nav>
+  </div>
+
+  <div class="edge bottom">
+    <p><b>日期</b><span class="nw">2027.12.18 周六</span> <span class="nw">19:00—21:30</span></p>
+    <p><b>地点</b>白桦坡营地 东草坪</p>
+    <p><b>名额</b><span class="nw">听众 40 席</span> · <span class="nw">朗读 12 位</span></p>
+    <a class="btn" href="#signup">报名</a>
+  </div>
+</header>
+
+<main>
+  <section class="flat" id="program" aria-labelledby="program-h">
+    <h2 id="program-h">日程</h2>
+    <div class="body wide">
+      <p>天黑以后在东草坪生一堆火。大家围着火坐，轮流读一段自己带来的文字，小说、诗、信都可以；不想读的人就坐着听。<span class="tag">示例</span></p>
+      <dl class="rows">
+        <div><dt>18:30</dt><dd>入场，每人领一条毯子</dd></div>
+        <div><dt>19:00</dt><dd>生火</dd></div>
+        <div><dt>19:15</dt><dd>第一轮朗读，6 位</dd></div>
+        <div><dt>20:15</dt><dd>热饮，休息一刻钟</dd></div>
+        <div><dt>20:30</dt><dd>第二轮朗读，6 位</dd></div>
+        <div><dt>21:30</dt><dd>散场</dd></div>
+      </dl>
+      <span class="tag">示例日程</span>
+    </div>
+  </section>
+
+  <section class="flat" id="notes" aria-labelledby="notes-h">
+    <h2 id="notes-h">须知</h2>
+    <div class="body">
+      <dl class="rows">
+        <div><dt>费用</dt><dd>待公布</dd></div>
+        <div><dt>朗读</dt><dd>每位 5 分钟。<span class="line">带纸质书或<span class="nw">打印稿</span>，不用麦克风。<span class="tag">示例</span></span></dd></div>
+        <div><dt>穿着</dt><dd>冬夜在户外，穿厚外套和<span class="nw">防滑的鞋</span>。<span class="tag">示例</span></dd></div>
+        <div><dt>主办</dt><dd>松间读书会</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="frame chapter" aria-labelledby="read-h" data-mk="frame">
+    <img src="chapter.jpg" alt="火边，一双戴着半指毛线手套的手捧着一本打开的书">
+    <div class="shade t" aria-hidden="true"></div>
+    <div class="shade b" aria-hidden="true"></div>
+    <div class="edge">
+      <h2 id="read-h">来读一段</h2>
+      <p>12 个朗读名额，每位 5 分钟。</p>
+    </div>
+  </section>
+
+  <section class="flat" id="signup" aria-labelledby="signup-h">
+    <h2 id="signup-h">报名</h2>
+    <div class="body">
+      <p>来听的预约一个座位；来读的再写下想读的<span class="nw">书名或篇名</span>。<span class="tag">示例</span></p>
+
+      <form id="form" novalidate>
+        <fieldset class="field" id="f-mode" aria-describedby="e-mode">
+          <legend>参加方式</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="mode" value="listen" id="mode-listen" required><b>来听</b><span>预约一个座位</span></label>
+            <label class="choice"><input type="radio" name="mode" value="read" id="mode-read" required><b>来读</b><span>报名朗读一段，5 分钟</span></label>
+          </div>
+          <span class="err" id="e-mode" aria-live="polite"></span>
+        </fieldset>
+
+        <div class="field" id="f-name">
+          <label for="name">称呼</label>
+          <input type="text" id="name" name="name" autocomplete="name" required aria-describedby="e-name">
+          <span class="err" id="e-name" aria-live="polite"></span>
+        </div>
+
+        <div class="field" id="f-party">
+          <label for="party">到场人数 <span class="hint">含自己</span></label>
+          <select id="party" name="party">
+            <option value="1">1 位</option><option value="2">2 位</option><option value="3">3 位</option><option value="4">4 位</option>
+          </select>
+        </div>
+
+        <div class="field" id="f-piece" hidden>
+          <label for="piece">想读的篇目 <span class="hint">书名或篇名，不超过 30 字</span></label>
+          <input type="text" id="piece" name="piece" required aria-describedby="e-piece">
+          <span class="err" id="e-piece" aria-live="polite"></span>
+        </div>
+
+        <div class="field" id="f-email">
+          <label for="email">电子邮箱</label>
+          <input type="email" id="email" name="email" autocomplete="email" required aria-describedby="e-email">
+          <span class="err" id="e-email" aria-live="polite"></span>
+        </div>
+
+        <div class="actions">
+          <button class="btn" type="submit">提交报名</button>
+          <span class="tag">虚构示例活动：信息不会发送</span>
+        </div>
+      </form>
+
+      <div class="done" id="done" tabindex="-1" aria-labelledby="done-h" hidden>
+        <h3 id="done-h">你填写的报名内容</h3>
+        <p>这是示例页面：信息没有发送，也没有保存，主办方收不到这份报名。</p>
+        <dl class="rows" id="echo"></dl>
+        <button class="link-btn" type="button" id="again">重新填写</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <p>冬夜篝火朗读会 · 主办 松间读书会</p>
+  <p>虚构示例活动 · 照片由 AI 生成</p>
+</footer>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  // Menu panel on narrow screens.
+  const openBtn = $(".top .menu-btn"), panel = $("#panel"), closeBtn = $("[data-close]", panel);
+  const setMenu = (open) => {
+    panel.hidden = !open;
+    openBtn.setAttribute("aria-expanded", String(open));
+    (open ? $("a", panel) : openBtn).focus();
+  };
+  openBtn.addEventListener("click", () => setMenu(true));
+  closeBtn.addEventListener("click", () => setMenu(false));
+  panel.addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
+  // Leaving the panel with Tab, or widening past the narrow layout, closes it.
+  panel.addEventListener("focusout", (e) => { if (!panel.hidden && e.relatedTarget && !panel.contains(e.relatedTarget)) { panel.hidden = true; openBtn.setAttribute("aria-expanded", "false"); } });
+  matchMedia("(min-width: 768px)").addEventListener("change", (m) => { if (m.matches) { panel.hidden = true; openBtn.setAttribute("aria-expanded", "false"); } });
+  $$("a", panel).forEach((a) => a.addEventListener("click", () => { panel.hidden = true; openBtn.setAttribute("aria-expanded", "false"); }));
+
+  // Sticky bar appears once the first screen has scrolled away; the current section is marked.
+  const bar = $("#bar"), stage = $("#top");
+  // Once the first screen has scrolled away its links and 报名 leave the tab order (the bar repeats them);
+  // the heading stays exposed to screen readers.
+  const topLinks = [$(".nav-top", stage), openBtn, $(".bottom .btn", stage)];
+  new IntersectionObserver(([e]) => {
+    bar.classList.toggle("on", !e.isIntersecting);
+    topLinks.forEach((el) => { el.inert = !e.isIntersecting; });
+  }).observe(stage);
+  const secs = ["program", "notes", "signup"].map((id) => document.getElementById(id));
+  const mark = () => {
+    const line = innerHeight * 0.6;
+    let cur = null;
+    for (const s of secs) if (s.getBoundingClientRect().top < line) cur = s.id;
+    $$("a[data-sec]", bar).forEach((a) => { if (a.dataset.sec === cur) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
+  };
+  addEventListener("scroll", mark, { passive: true });
+  mark();
+
+  // Sign-up form: no backend, so the done state says nothing was sent.
+  const form = $("#form"), done = $("#done"), echo = $("#echo");
+  const piece = $("#f-piece");
+  const mode = () => (form.elements.mode.value || "");
+  const syncPiece = () => { piece.hidden = mode() !== "read"; };
+  form.addEventListener("change", (e) => { if (e.target.name === "mode") { syncPiece(); if (tried) check("mode"); } });
+
+  const rules = {
+    mode: () => (mode() ? "" : "请选择来听还是来读"),
+    name: () => (form.elements.name.value.trim() ? "" : "请填写称呼"),
+    piece: () => {
+      if (mode() !== "read") return "";
+      const v = form.elements.piece.value.trim();
+      if (!v) return "请写下想读的书名或篇名";
+      return [...v].length > 30 ? `不超过 30 字，现在是 ${[...v].length} 字` : "";
+    },
+    email: () => {
+      const v = form.elements.email.value.trim();
+      if (!v) return "请填写电子邮箱";
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? "" : "邮箱格式不对，例如 name@example.com";
+    },
+  };
+  const firstControl = { mode: () => $("#mode-listen"), name: () => $("#name"), piece: () => $("#piece"), email: () => $("#email") };
+  let tried = false;
+  const check = (key) => {
+    const msg = rules[key]();
+    const box = document.getElementById("f-" + key), err = document.getElementById("e-" + key);
+    box.classList.toggle("bad", !!msg);
+    err.textContent = msg ? "✕ " + msg : "";
+    const ctl = key === "mode" ? $$("input[name=mode]") : [firstControl[key]()];
+    ctl.forEach((c) => c.setAttribute("aria-invalid", String(!!msg)));
+    return !msg;
+  };
+  ["name", "piece", "email"].forEach((k) => firstControl[k]().addEventListener("input", () => { if (tried) check(k); }));
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    tried = true;
+    const bad = Object.keys(rules).filter((k) => !check(k));
+    if (bad.length) { firstControl[bad[0]]().focus(); return; }
+    const rows = [
+      ["参加方式", mode() === "read" ? "来读" : "来听"],
+      ["称呼", form.elements.name.value.trim()],
+      ["到场人数", form.elements.party.value + " 位"],
+      ...(mode() === "read" ? [["想读的篇目", form.elements.piece.value.trim()]] : []),
+      ["电子邮箱", form.elements.email.value.trim()],
+    ];
+    echo.replaceChildren(...rows.map(([k, v]) => {
+      const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
+      dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d;
+    }));
+    form.hidden = true;
+    done.hidden = false;
+    done.focus();
+  });
+  $("#again").addEventListener("click", () => {
+    done.hidden = true;
+    form.hidden = false;
+    (mode() === "read" ? $("#mode-read") : $("#mode-listen")).focus();
+  });
+})();
+</script>
+</body>
+</html>

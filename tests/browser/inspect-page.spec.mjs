@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { inspectPage, parseArgs } from "../../plugins/musekit/scripts/inspect_page.mjs";
 
@@ -55,6 +56,8 @@ button:focus{outline:none}
 <div class="box">盒子里装不下的一长串文字内容</div>
 <div style="position:relative"><h2 style="font-size:120px;margin:0;line-height:1.1;white-space:nowrap">大标题</h2><div class="sticker" style="position:absolute;left:250px;top:70px;width:160px;height:70px;background:#cc2200;transform:rotate(-6deg)"></div></div>
 <p>城市里的植物，<br>南门书房二楼</p>
+<p style="font-size:40px;line-height:0.8;width:300px;margin:0"><span style="white-space:nowrap">ocean waves</span> <span style="white-space:nowrap">moon over sea</span></p>
+<p style="font-size:30px;margin:0">被字压住的一行</p><p style="font-size:30px;margin:-30px 0 0;position:relative">压上来的字</p>
 <span class="spin">✱</span>
 <button id="go">报名</button>
 <input class="field" aria-label="邮箱">
@@ -64,11 +67,12 @@ button:focus{outline:none}
   );
   write(
     "flow.mjs",
-    `export default async ({ page, shot, check, log }) => {
+    `export default async ({ page, shot, check, tabs, log }) => {
   await page.click("#go");
   log("message", await page.textContent("#msg"));
   await shot("done");
   await check("after submit");
+  await tabs("after submit");
 };`,
   );
 });
@@ -85,6 +89,8 @@ const rulesStyle = `## Tokens
   --dominant-ratio: 2;
   --fill-ratio: 0.9;
   --axis-tolerance: 0.02;
+  --veil-min: 0.2;
+  --veil-max: 0.45;
 }
 /* mobile */
 @media (max-width: 767px) {
@@ -105,6 +111,11 @@ ${JSON.stringify({ rules: [
   { kind: "axis", item: "axis", field: "axis-field", tolerance: "axis-tolerance" },
   { kind: "max-size", item: "title", than: "hero" },
   { kind: "max-size", item: "ghost", than: "hero" },
+  { kind: "area", item: "veil", of: "frame", min: "veil-min", max: "veil-max" },
+  { kind: "scale", group: "veil", item: "glyph", than: "vtitle", min: 6 },
+  { kind: "scale", group: "veil", item: "glyph", than: "figure", min: 2 },
+  { kind: "scale", group: "veil", item: "glyph", than: "caption", min: 2, optional: true },
+  { kind: "scale", group: "veil", item: "glyph", than: "subtitle", min: 6 },
 ] })}
 \`\`\`
 `;
@@ -115,6 +126,9 @@ body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
 #w2{grid-template-columns:3fr 1fr}
 .panel{border:3px solid #111;height:160px;position:relative;padding:0 10px}
 .ink{background:#111;color:#fff}
+.vframe{position:relative;width:100%;max-width:600px;height:300px;margin-bottom:20px}
+.veil{position:absolute;top:0;height:100%}
+.veil p{margin:0;line-height:1}
 .sticker{position:absolute;margin:0;background:#ffcc00;border:3px solid #111;width:80px;height:40px;transform:rotate(-6deg)}
 #s1{left:10px;top:10px}
 #s2{left:calc(75% - 40px);top:60px}
@@ -129,7 +143,12 @@ h2,h1{margin:0;white-space:nowrap}
   <div class="panel ink" data-mk="panel"></div>
   <p class="sticker" id="s2" data-mk="sticker">压</p>
 </section>
-<div style="width:600px"><p data-mk="axis">齐左的一行，不在中轴上</p></div>`;
+<div style="width:600px"><p data-mk="axis">齐左的一行，不在中轴上</p></div>
+<p data-mk="axis" style="text-align:center"><span style="position:relative">居中的一句<span style="position:absolute;left:100%;white-space:nowrap">挂在行尾外的示例小标</span></span></p>
+<div class="vframe" data-mk="frame"><div class="veil" style="right:0;width:40%" data-mk="veil">
+  <p data-mk="glyph" style="font-size:120px">字</p><p data-mk="vtitle" style="font-size:20px">标题</p><p data-mk="figure" style="font-size:72px">4</p>
+</div></div>
+<div class="vframe" data-mk="frame"><div class="veil" style="left:-33.333%;width:83.333%;text-align:right" data-mk="veil"><p data-mk="glyph" style="font-size:100px">纱</p></div></div>`;
 
 
 test("a canvas run exports the PNG and reports what is covered, past the canvas and missing", async () => {
@@ -165,8 +184,9 @@ html,body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
 h1{margin:0;width:200px;font-size:40px}
 p{margin:0;width:70px;font-size:30px}
 h2{margin:0;font-size:20px}
-</style><h1>河岸图书节 2027</h1><p>城市里的植物</p><h2>南门<br>书房</h2>`);
-  write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n南门|书房\n");
+</style><div aria-hidden="true" data-inspect-ignore style="position:absolute;left:0;bottom:0;font-size:48px;white-space:nowrap">城市里的植物</div><h1>河岸图书节 2027</h1><p>城市里的植物</p><h2>南门<br>书房</h2>
+<h3 style="margin:0;font-size:20px">书房二楼</h3><small style="display:block;width:30px;font-size:20px">书房二楼</small>`);
+  write("marked-facts.txt", "河岸图书节 |2027\n城市里的植物\n南门|书房\n书房二楼\n");
   const report = await inspectPage(parseArgs([join(work, "marked.html"), "--canvas", "400x300", "--scale", "2", "--facts", join(work, "marked-facts.txt"), "--out", join(work, "marked-review")]));
   expect(png(report.files.png)).toEqual({ width: 800, height: 600 });
   expect(png(report.files["at-0.25"])).toEqual({ width: 100, height: 75 });
@@ -176,6 +196,62 @@ h2{margin:0;font-size:20px}
   // A mark with no space beside it still matches the text broken there.
   expect(facts["南门|书房"]).toMatchObject({ count: 1, exact: true, lines: 2, unmarkedBreak: false });
   expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"城市里的植物"'))).toBe(true);
+  // A wordmark repeats the fact as decoration at display size: the size it is read at is reported beside it.
+  expect(facts["城市里的植物"]).toMatchObject({ count: 2, fontSize: 48, textSize: 30 });
+  expect(facts["河岸图书节 |2027"].textSize).toBeUndefined();
+  // Every occurrence counts: one line in the heading, broken in the narrow note, and the note is named.
+  expect(facts["书房二楼"]).toMatchObject({ count: 2, unmarkedBreak: true, breaksIn: "small" });
+  expect(report.problems.some((p) => p.startsWith('fact breaks across') && p.includes('"书房二楼" in small'))).toBe(true);
+});
+
+test("fonts are read per stack from each element's own text, and a webfont reports the weights the page loaded", async () => {
+  test.setTimeout(60000);
+  // A real webfont file: the icon font Playwright ships, drawn through its private-use code points.
+  const icons = join(dirname(createRequire(import.meta.url).resolve("playwright-core/package.json")), "lib/vite/traceViewer");
+  copyFileSync(join(icons, readdirSync(icons).find((f) => /^codicon.*\.ttf$/.test(f))), join(work, "probe.ttf"));
+  write("fonts.html", `<!doctype html><meta charset="utf-8"><style>
+@font-face{font-family:"Probe Face";src:url(probe.ttf);font-weight:700}
+html,body{margin:0;background:#fff;color:#111}
+h1{margin:0;font:700 40px "Probe Face",monospace}
+span{font:400 20px Georgia,serif}
+</style><h1>&#xEA60;&#xEA61; <span>serif inside</span></h1>`);
+  const report = await inspectPage(parseArgs([join(work, "fonts.html"), "--canvas", "600x200", "--out", join(work, "fonts-review")]));
+  const probe = report.fonts.find((f) => f.stack.includes("Probe Face"));
+  const serif = report.fonts.find((f) => f.stack.includes("Georgia"));
+  expect(probe.rendered.find((r) => r.custom)).toMatchObject({ name: "Probe Face", glyphs: 2, loadedWeights: ["700"] });
+  // The serif child is its own stack, not part of the heading's.
+  const serifNames = serif.rendered.map((r) => r.name);
+  expect(serifNames.length).toBeGreaterThan(0);
+  expect(probe.rendered.some((r) => serifNames.includes(r.name))).toBe(false);
+  expect(serif.rendered.every((r) => !r.custom && r.faces.length)).toBe(true);
+
+  // Stacks met in the order A B A C C B: each keeps its own samples, none borrows another stack's element.
+  const p = (family) => `<p style="margin:0;font:20px ${family}">${family} sample</p>`;
+  write("stacks.html", `<!doctype html><meta charset="utf-8"><body style="margin:0">${["monospace", "serif", "monospace", "sans-serif", "sans-serif", "serif"].map(p).join("")}`);
+  const stacks = await inspectPage(parseArgs([join(work, "stacks.html"), "--canvas", "600x200", "--out", join(work, "stacks-review")]));
+  const names = Object.fromEntries(stacks.fonts.map((f) => [f.stack, f.rendered.map((r) => r.name)]));
+  expect(Object.keys(names).sort()).toEqual(["monospace", "sans-serif", "serif"]);
+  expect(names.serif.some((n) => names["sans-serif"].includes(n) || names.monospace.includes(n))).toBe(false);
+});
+
+test("a display glyph whose em box pokes out of its frame is not clipped while its ink is inside; cut ink still is", async () => {
+  test.setTimeout(60000);
+  write("glyph.html", `<!doctype html><meta charset="utf-8"><style>
+html,body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+.frame{position:absolute;left:0;width:560px;overflow:hidden}
+#a{top:0;height:200px}
+#a p{margin:0;font-size:200px;line-height:1}
+#b{top:300px;height:60px}
+#b p{margin:0;font-size:60px;line-height:1;position:relative;top:8px}
+#c{top:420px;left:20px;margin:0;font-size:60px;line-height:1;position:absolute;right:-30px;text-align:right}
+</style><div class="frame" id="a"><p>HE</p></div><div class="frame" id="b"><p>gypsy</p></div><p id="c">EH</p>`);
+  const report = await inspectPage(parseArgs([join(work, "glyph.html"), "--canvas", "600x500", "--out", join(work, "glyph-review")]));
+  const [view] = report.views;
+  // HE at line-height 1: the em box runs past the 200px frame, the capitals do not.
+  // gypsy: the descenders are cut by the frame's bottom edge, so it stays reported.
+  expect(view.clipped.map((c) => c.text)).toEqual(["gypsy"]);
+  // EH: the box runs past the canvas by 30px, and so does the ink.
+  expect(view.outside.map((c) => c.text)).toEqual(["EH"]);
 });
 
 test("the fold is shot after scroll-driven state has settled back at the top", async ({ page }) => {
@@ -204,6 +280,68 @@ nav a.on{background:#cc2200}
   expect(await at(135, 45)).toEqual([255, 255, 255]);
 });
 
+test("a pinned header that lets body text show through once scrolled is reported; an opaque or frosted one is not", async () => {
+  test.setTimeout(90000);
+  const page = (header, extra = "") => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+header{position:sticky;top:0;height:60px;display:flex;gap:40px;align-items:center;padding:0 20px;${header}}
+p{margin:0 20px;font-size:18px;line-height:30px}
+</style><header><a>首页</a><a>日程</a><a>报名</a></header>
+<h1 style="margin:20px">标题在导航下方</h1>
+${Array.from({ length: 80 }, (_, i) => `<p>正文第 ${i + 1} 行，滚动时会经过导航</p>`).join("\n")}${extra}`;
+  write("bar-clear.html", page(""));
+  write("bar-paper.html", page("background:#fff"));
+  write("bar-glass.html", page("background:rgba(255,255,255,.7);backdrop-filter:blur(12px)"));
+  // Clear at the top of the page; a scroll handler gives it a background, faded in.
+  write("bar-js.html", page("transition:background-color .4s", '<style>header.on{background:#fff}</style><script>addEventListener("scroll",()=>document.querySelector("header").classList.toggle("on",scrollY>10))</script>'));
+  const run = (name) => inspectPage(parseArgs([join(work, name), "--viewports", "800x600", "--style", join(work, "style.md"), "--out", join(work, `${name}-review`)]));
+
+  const clear = await run("bar-clear.html");
+  const [view] = clear.views;
+  expect(view.underHeader.length).toBeGreaterThan(0);
+  expect(view.underHeader[0].text).toMatch(/^正文第/);
+  expect(view.underHeader[0].header).toBe("header");
+  // The title sits below the bar at the top of the page, so it is never reported.
+  expect(view.underHeader.some((u) => u.text.startsWith("标题"))).toBe(false);
+  expect(clear.problems.some((p) => /^text shows through the pinned header @800x600: "正文第/.test(p))).toBe(true);
+  // Ordinary occlusion still skips pinned elements: the same lines are not also "covered".
+  expect(view.occlusions).toEqual([]);
+
+  for (const name of ["bar-paper.html", "bar-glass.html", "bar-js.html"]) {
+    const report = await run(name);
+    expect(report.views[0].underHeader).toEqual([]);
+    expect(report.problems.some((p) => p.includes("pinned header"))).toBe(false);
+  }
+});
+
+test("motion leftovers: first-screen text an entrance animation left invisible, and transition: all", async () => {
+  test.setTimeout(90000);
+  write("motion.html", `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+@keyframes rise{to{opacity:1}}
+@keyframes arrive{from{opacity:0}}
+.stuck{opacity:0;animation:rise .3s}
+.arrived{animation:arrive .3s both}
+.menu{position:absolute;top:0;right:0;opacity:0}
+.later{opacity:0;margin-top:2000px}
+.btn{transition:all .2s}
+a{transition:color .2s}
+</style>
+<h1 class="stuck">没有回来的标题</h1>
+<p class="arrived">正常入场的导读</p>
+<div class="menu">收起的菜单</div>
+<button class="btn">报名</button><button class="btn">取消</button>
+<a href="#">链接</a>
+<p class="hidden-note" hidden style="opacity:0">隐藏的说明</p>
+<p class="later">首屏以下还没出现的段落</p>`);
+  const report = await inspectPage(parseArgs([join(work, "motion.html"), "--viewports", "800x600", "--style", join(work, "style.md"), "--out", join(work, "motion-review")]));
+  const [view] = report.views;
+  expect(view.invisibleAtRest).toEqual([{ text: "没有回来的标题", element: "h1.stuck" }]);
+  expect(view.transitionAll).toEqual([{ value: "button.btn", count: 2 }]);
+  expect(report.problems).toContain('first-screen text invisible after motion settled @800x600: "没有回来的标题" (h1.stuck at opacity 0)');
+  expect(report.problems.some((p) => /^transition: all on 2 elements \(button\.btn ×2\)/.test(p))).toBe(true);
+});
+
 test("a web run screenshots each viewport, sweeps widths and walks keyboard, motion and the flow", async ({ page }) => {
   test.setTimeout(90000);
   const out = join(work, "web-review");
@@ -213,6 +351,10 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   for (const tag of ["1024x700", "375x700"])
     for (const k of ["fold", "full", "full-gray"]) expect(existsSync(report.files[`${tag}-${k}`])).toBe(true);
   expect(png(report.files["375x700-fold"]).width).toBe(375);
+  // The short screens the sweep visits get a first-screen shot each, without being listed.
+  for (const tag of ["1366x768", "1280x720", "1024x768", "375x667"]) expect(existsSync(report.files[`${tag}-fold`])).toBe(true);
+  expect(png(report.files["375x667-fold"])).toEqual({ width: 375, height: 667 });
+  expect(report.files["375x667-full"]).toBeUndefined();
   // The page scrolls smoothly; the fold is still shot at the very top, not partway back.
   const top = readFileSync(report.files["1024x700-fold"]).toString("base64");
   await page.setContent(`<img id="i" src="data:image/png;base64,${top}">`);
@@ -230,8 +372,11 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   const [desk, phone] = report.views;
   // The overlay ignores the pointer, yet it still covers the text.
   // Also a display title whose corner alone is under a tilted sticker.
-  expect(desk.occlusions.map((o) => o.text)).toEqual(["被盖住的一行说明文字", "大标题"]);
+  // At a tight line-height the next line's em box overlaps this one, but its ink does not: not covered.
+  // A line pulled onto another one is.
+  expect(desk.occlusions.map((o) => o.text)).toEqual(["被盖住的一行说明文字", "大标题", "被字压住的一行"]);
   expect(desk.occlusions[1].by).toBe("div.sticker");
+  expect(desk.occlusions[2].by).toBe("p");
   expect(desk.clipped.map((o) => o.text)).toEqual(["盒子里装不下的一长串文字内容"]);
   expect(JSON.stringify(desk)).not.toContain("跑马灯");
   expect(desk.overflowX).toBe(0);
@@ -253,6 +398,10 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
 
   expect(report.fonts.some((f) => f.stack.includes("Missing Webfont") && f.fallback.length)).toBe(true);
   expect(report.keyboard.stops.map((s) => [s.label, s.visibleFocus])).toEqual([["第一个链接", true], ["报名", false], ["邮箱", true]]);
+  // The last viewport walks its own tab order, and its findings name it.
+  expect(report.keyboard.more.map((m) => m.viewport)).toEqual(["375x700"]);
+  expect(report.keyboard.more[0].stops.map((s) => s.label)).toEqual(["第一个链接", "报名", "邮箱"]);
+  expect(report.problems).toContain('no visible focus change @375x700: button#go "报名"');
   expect(report.reducedMotion.running.some((r) => r.includes("spin") && r.includes("infinite"))).toBe(true);
 
   const flow = report.flow["1024x700"];
@@ -260,6 +409,9 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   expect(flow.log).toEqual(["message 完成"]);
   expect(existsSync(join(out, "flow-1024x700-done.png"))).toBe(true);
   expect(flow.checks[0].label).toBe("after submit");
+  // tabs() walks on from where the path left focus: the clicked button first.
+  expect(flow.keyboard["after submit"].map((s) => s.label)).toEqual(["邮箱", "第一个链接", "报名"]);
+  expect(report.problems).toContain('no visible focus change in flow @1024x700 "after submit": button#go "报名"');
   expect(Object.keys(report.flow)).toEqual(["1024x700", "375x700"]);
   expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).problems).toEqual(report.problems);
 });
@@ -285,6 +437,8 @@ test("layout rules from style.md: each broken rule is named with its reading, th
   // A sticker inside one panel covers one; a sticker across the seam covers two but sits on the ink panel.
   expect(kind(d, "covers").items.map((i) => [i.covers, !!i.onAvoided, i.ok])).toEqual([[1, false, false], [2, true, false]]);
   expect(kind(d, "axis").items[0].ok).toBe(false);
+  // A label hung past the line end with position: absolute does not pull the centred line off the axis.
+  expect(kind(d, "axis").items[1].ok).toBe(true);
   expect(kind(d, "max-size").items.map((i) => [i.size, i.limit, i.ok])).toEqual([[40, 30, false]]);
   // An unmarked role is reported as not measured, never as a silent pass.
   expect(kind(d, "max-size", 1)).toMatchObject({ status: "unmarked" });
@@ -292,6 +446,132 @@ test("layout rules from style.md: each broken rule is named with its reading, th
   expect(report.problems.some((p) => p.startsWith("layout rule dominant fails @1024x900: section#w1"))).toBe(true);
   expect(report.problems.some((p) => p.startsWith("layout rule dominant fails @375x900"))).toBe(false);
   expect(report.problems.some((p) => /^sweep .*rule seams fails/.test(p))).toBe(true);
+  // Area counts only the part of a veil inside its frame: the second one bleeds a third past the edge.
+  expect(kind(d, "area").items.map((i) => [i.ratio, i.ok])).toEqual([[0.4, true], [0.5, false]]);
+  expect(report.problems).toContain('layout rule area fails @1024x900: div.veil "纱" area 0.5 (0.2–0.45)');
+  // Scale compares within a veil, and only where the reference is there: the second veil has no title or figure.
+  expect(kind(d, "scale", 0).items.map((i) => [i.size, i.than, i.ratio, i.ok])).toEqual([[120, 20, 6, true]]);
+  expect(kind(d, "scale", 1).items.map((i) => [i.ratio, i.ok])).toEqual([[1.67, false]]);
+  expect(report.problems.some((p) => p.startsWith('layout rule scale fails @1024x900: p "字" 120px, 1.67× 72px (min 2×)'))).toBe(true);
+  // An optional reference missing everywhere: nothing compared, which is said but is not a finding.
+  expect(kind(d, "scale", 2)).toMatchObject({ status: "info", items: [] });
+  expect(report.problems.some((p) => p.includes("caption"))).toBe(false);
+  // A required one missing everywhere is not measured, never a silent pass.
+  expect(kind(d, "scale", 3)).toMatchObject({ status: "unmarked" });
+  expect(report.problems).toContain('layout rule scale not measured @1024x900: no element marked data-mk="subtitle"');
+});
+
+test("shot rules: a foreground's cut into the wordmark, and the photo's brightness under a frame's text; the poster is left as it was", async () => {
+  test.setTimeout(120000);
+  const style = `\`\`\`css
+:root {
+  --color-paper: #0d0c0b;
+  --color-ink: #efe9e1;
+  --color-edge-floor: #383430;
+  --mark-sink-min: 0.2;
+  --mark-sink-max: 0.33;
+}
+\`\`\`
+
+\`\`\`json musekit-checks
+${JSON.stringify({ rules: [
+  { kind: "sink", item: "mark", over: "front", every: "across", min: "mark-sink-min", max: "mark-sink-max" },
+  { kind: "backdrop", item: "frame", ceiling: "edge-floor" },
+] })}
+\`\`\`
+`;
+  // Each front is placed from the mark's measured ink: its top edge cuts a set share of the ink height,
+  // over all of the word or over its first letter only.
+  const frame = (top, cut, span, across) => `<div class="fr" data-mk="frame" style="top:${top}px">
+  <span class="mk" data-mk="mark" aria-hidden="true" data-inspect-ignore>HE</span>
+  <div class="front" data-mk="front${across ? " across" : ""}" data-cut="${cut}" data-span="${span}"></div></div>`;
+  const page = (marks) => `<!doctype html><meta charset="utf-8"><style>
+html,body{margin:0;background:#0d0c0b;color:#efe9e1;font-family:Arial,sans-serif}
+.fr{position:absolute;left:0;width:600px;height:160px;overflow:hidden;background:#1a1816}
+.mk{position:absolute;left:40px;top:20px;font:700 100px/1 Arial,sans-serif;color:#efe9e1}
+.front{position:absolute;left:0;bottom:0;background:#3a5060}
+.lit{position:absolute;left:0;top:560px;width:600px;height:120px;background:linear-gradient(#fff 50%,#1a1816 50%)}
+.lit h2{margin:0;padding:8px 20px;font-size:20px}
+.lit a{position:absolute;left:300px;top:8px;background:#0d0c0b;padding:4px 8px;color:#efe9e1}
+.dark{position:absolute;left:0;top:700px;width:600px;height:60px;background:#111}
+.dark p{margin:0;padding:8px 20px}
+</style>${marks ? frame(0, 0.25, "word", true) + frame(180, 0.25, "first", true) + frame(360, 0.25, "first", false) : ""}
+<div class="lit" data-mk="frame"><h2>亮处的标题</h2><a href="#">按钮</a></div>
+<div class="dark" data-mk="frame"><p>暗处的说明</p></div>
+<script>
+const g = document.createElement("canvas").getContext("2d");
+for (const f of document.querySelectorAll(".front")) {
+  const mk = f.parentElement.querySelector(".mk"), cs = getComputedStyle(mk);
+  g.font = cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+  const m = g.measureText("HE"), A = m.fontBoundingBoxAscent, D = m.fontBoundingBoxDescent, size = parseFloat(cs.fontSize);
+  const base = mk.offsetTop + (size - (A + D)) / 2 + A, inkTop = base - m.actualBoundingBoxAscent, inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  f.style.top = inkTop + inkH * (1 - Number(f.dataset.cut)) + "px";
+  f.style.width = f.dataset.span === "word" ? "600px" : (mk.offsetLeft + g.measureText("H").width) + "px";
+}
+</script>`;
+  write("shots.html", page(true));
+  write("shots-style.md", style);
+  const report = await inspectPage(parseArgs([join(work, "shots.html"), "--canvas", "600x780", "--style", join(work, "shots-style.md"), "--out", join(work, "shots-review")]));
+  const [sink, backdrop] = report.views[0].rules;
+  // Across the word: both letters cut by a quarter. Across, over the first letter only: E is not cut, which
+  // an across front may not leave. A single object over the first letter: one letter cut is enough.
+  expect(sink.items.map((i) => [i.every, i.ok])).toEqual([[true, true], [true, false], [false, true]]);
+  for (const i of sink.items) expect(i.max).toBeGreaterThanOrEqual(0.22), expect(i.max).toBeLessThanOrEqual(0.28);
+  expect(sink.items[1].depths).toMatch(/^H 0\.2\d, E 0$/);
+  expect(report.problems.some((p) => p.startsWith('layout rule sink fails: span "HE" cut H 0.2'))).toBe(true);
+  // The marks are decoration and are not read for brightness; the bright title is, the button on its own
+  // ground is not, and the dark caption passes.
+  const lit = backdrop.items.find((i) => i.where.startsWith("div.lit"));
+  expect(lit).toMatchObject({ line: "亮处的标题", ok: false });
+  expect(lit.ratio).toBeGreaterThan(20);
+  expect(backdrop.items.find((i) => i.where.startsWith("div.dark"))).toMatchObject({ ok: true });
+  expect(backdrop.items.filter((i) => i.where.startsWith("div.fr")).every((i) => i.ok && i.note)).toBe(true);
+  expect(report.problems.some((p) => p.startsWith('layout rule backdrop fails: div.lit under "亮处的标题"'))).toBe(true);
+
+  // Measuring takes shots with the page changed; the exported poster is the page as it was.
+  const withRules = readFileSync(report.files.png);
+  write("shots-plain-style.md", ":root { --color-paper: #0d0c0b; }\n");
+  const plain = await inspectPage(parseArgs([join(work, "shots.html"), "--canvas", "600x780", "--style", join(work, "shots-plain-style.md"), "--out", join(work, "shots-plain")]));
+  expect(readFileSync(plain.files.png).equals(withRules)).toBe(true);
+});
+
+test("backdrop on a web page: a chapter frame taller than the screen is read where its title sits, under a pinned bar, and the page is put back", async () => {
+  test.setTimeout(120000);
+  write("chapters-style.md", `\`\`\`css
+:root {
+  --color-paper: #0d0c0b;
+  --color-ink: #efe9e1;
+  --color-edge-floor: #383430;
+}
+\`\`\`
+
+\`\`\`json musekit-checks
+${JSON.stringify({ rules: [{ kind: "backdrop", item: "frame", ceiling: "edge-floor" }] })}
+\`\`\`
+`);
+  const chapter = (id, ground) => `<section id="${id}" class="ch" data-mk="frame"><div class="ground" style="background:${ground}"></div><h2>贴底的章节标题</h2></section>`;
+  write("chapters.html", `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#0d0c0b;color:#efe9e1;font-family:Arial,sans-serif}
+header{position:sticky;top:0;z-index:2;height:48px;background:#0d0c0b;border-bottom:1px solid #333}
+header a{color:#efe9e1;margin:0 16px;line-height:48px}
+header a:focus{outline:none;color:#ffcc00}
+.hero{height:552px;background:#16130f;position:relative}
+.hero p{margin:0;position:absolute;left:24px;bottom:24px}
+.ch{position:relative;height:1200px;background:#16130f;overflow:hidden}
+.ground{position:absolute;left:0;right:0;bottom:0;height:160px}
+.ch h2{position:absolute;left:24px;bottom:40px;margin:0;font-size:24px}
+</style><header><a href="#a">一</a><a href="#b">二</a></header>
+<section class="hero" data-mk="frame"><p>首屏底部的说明</p></section>
+${chapter("bright", "#f4efe6")}${chapter("dark", "#120f0c")}<div style="height:400px"></div>`);
+  const report = await inspectPage(parseArgs([join(work, "chapters.html"), "--viewports", "800x600", "--style", join(work, "chapters-style.md"), "--out", join(work, "chapters-review")]));
+  const [backdrop] = report.views[0].rules;
+  expect(backdrop.items.map((i) => [i.where, i.ok])).toEqual([["section.hero", true], ["section#bright.ch", false], ["section#dark.ch", true]]);
+  expect(backdrop.items[1].line).toBe("贴底的章节标题");
+  // The pinned bar was hidden for the shot, not read as the title's ground.
+  expect(backdrop.items[1].ratio).toBeGreaterThan(20);
+  // Put back: the links' colour-change focus still shows on the walk that follows the measurement.
+  expect(report.keyboard.stops.map((s) => s.visibleFocus)).toEqual([true, true]);
+  expect(report.problems.some((p) => p.startsWith('layout rule backdrop fails @800x600: section#bright.ch under "贴底的章节标题"'))).toBe(true);
 });
 
 test("a style that follows the system is also shot in dark, and a page that ignores dark or hardcodes light colours is told so", async () => {
@@ -369,6 +649,7 @@ ${JSON.stringify({ rules: [
   { kind: "seams", group: "wall", item: "panel", max: "rule-width" },
   { kind: "covers", item: "sticker", over: "panel", count: 2 },
   { kind: "max-size", item: "ghost", than: "hero" },
+  { kind: "backdrop", item: "wall", ceiling: "ink" },
 ] })}
 \`\`\`
 `;
@@ -394,15 +675,17 @@ test("a deck run checks each slide alone, counts facts over the deck and exports
 
   expect(report.facts.map((f) => [f.text, f.count, f.slides])).toEqual([["城市里的植物", 2, [1, 4]], ["2027.03.06 14:30", 1, [2]], ["南门书房", 0, []]]);
   // Each slide keeps its own reading: broken over two lines in the 20px column on slide 4 only.
-  expect(report.facts[0].at).toEqual([{ slide: 1, lines: 1, unmarkedBreak: false, fontSize: 48 }, { slide: 4, lines: 2, unmarkedBreak: true, fontSize: 20 }]);
-  expect(report.problems.some((p) => p.startsWith('fact breaks across 2 lines @slide 4: "城市里的植物"'))).toBe(true);
+  expect(report.facts[0].at).toEqual([{ slide: 1, lines: 1, unmarkedBreak: false, fontSize: 48 }, { slide: 4, lines: 2, unmarkedBreak: true, breaksIn: "p", fontSize: 20 }]);
+  expect(report.problems.some((p) => p.startsWith('fact breaks across 2 lines @slide 4: "城市里的植物" in p'))).toBe(true);
   expect(report.problems.some((p) => /breaks across .* @slide 1:/.test(p))).toBe(false);
   expect(report.problems).toContain('fact missing from every slide: "南门书房"');
   expect(report.problems.some((p) => p.startsWith('text covered @slide 2: "2027.03.06 14:30"'))).toBe(true);
   expect(report.problems.some((p) => p.startsWith('text clipped @slide 3: "出画布的一行字很长"'))).toBe(true);
   expect(report.problems.some((p) => p.startsWith("text below size-meta (16px) @slide 3: 12px"))).toBe(true);
   // Rules measured where their roles are; a role on no slide at all is reported once.
-  expect(report.views[0].rules.map((r) => r.status)).toEqual(["pass", "pass", "unmarked"]);
+  expect(report.views[0].rules.map((r) => r.status)).toEqual(["pass", "pass", "unmarked", "error"]);
+  // A rule read off screenshots is not measured on slides, and says so rather than passing.
+  expect(report.problems).toContain("layout rule backdrop not measured @slide 1: backdrop is measured on posters and web pages, not on slides");
   expect(report.problems).toContain('layout rule max-size not measured on any slide: no element marked data-mk="ghost", "hero"');
   expect(report.problems.some((p) => /seams|covers/.test(p))).toBe(false);
 });

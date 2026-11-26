@@ -26,8 +26,9 @@ Seed 和 Template 都是 Markdown 文件：frontmatter 放结构化字段，正�
 - 风格库只描述做法，不放可执行代码。
 - 只有一个 Workflow 用的工具放在那个 Workflow 里，例如 diagram-design 的运行时。
 - 两个以上 Workflow 共用的工具放在插件级的 `assets/`，由 Seed 用 `tools` 声明。
-- 共享工具都是单文件，没有依赖，不访问网络，不需要构建；能在浏览器里直接运行，`file://` 下也能用。
-- 制作时把工具复制进作品目录，成品不引用插件路径；要求单文件交付时可以把工具全文内联，所以工具文件里不能出现 `</script>` 字样。
+- 共享工具都是单文件，不访问网络，不需要构建。制作时把工具复制进作品目录，成品不引用插件路径。
+- 页面里运行的工具（`.js`）没有依赖，能在浏览器里直接运行，`file://` 下也能用；要求单文件交付时可以把工具全文内联，所以这类工具文件里不能出现 `</script>` 字样。
+- 制作前在本机运行、产出素材的工具（`.mjs`，如 `cutout.mjs`）和检查脚本一样，在能解析 Playwright 的目录里用 Node 运行；它不进成品，成品只用它产出的文件。
 
 检查脚本和制作工具不是一类：它不进成品，只在制作方的机器上运行，检查渲染出来的作品。
 
@@ -154,12 +155,17 @@ checks:
 | `dominant` | `group` `item` `main` `min`，可选 `exclude` | main 的面积与其余最大一个 item 之比；exclude 的不参与 |
 | `fill` | `text` `box` `min` | text 最宽一行与所在 box 内宽之比；在海报、演示文稿的每一页和网页的第一个视口上判定 |
 | `covers` | `item` `over` `count`，可选 `avoid` | 每个 item 压住几个 over（按 item 实际在最上层的点取样）；avoid 是颜色 token，压在这种底色上也算不合格 |
-| `axis` | `item` `tolerance`，可选 `field` | item 每一行中点离中轴的偏差，按版面宽度计；在 field 里时以 field 的中线为轴 |
+| `axis` | `item` `tolerance`，可选 `field` | item 每一行中点离中轴的偏差，按版面宽度计；在 field 里时以 field 的中线为轴。`fill` 和 `axis` 量行宽时，用 `position: absolute` 挂在行外的小标（如「示例」）不算在行内 |
 | `max-size` | `item` `than` | item 的字号不大于 than |
+| `area` | `item` `of` `min` `max` | 每个 item 落在所在 of 里的面积占 of 的比例 |
+| `sink` | `item` `over` `min` `max`，可选 `every` | over 压住 item 的深度：逐字取被压得最深的一列，占整个词的笔画高的比例。最深的那个字在 min–max 之间，没有字超过 max；over 同时标了 every 的角色时，每个字都要在 min–max 之间。截图量，见下方 |
+| `backdrop` | `item` `ceiling` | item 里每行文字底下的照片亮度：文字设成透明后截图，取每行外框里第 95 百分位的亮度，不亮于颜色 token ceiling。装饰层（`aria-hidden`、`data-inspect-ignore`）和自带底色的元素（按钮）不算。截图量，见下方 |
+| `scale` | `group` `item` `than` `min`，可选 `optional` | 每个 group 里 item 的字号与同组最大的 than 之比；组里没有 than 时不比较。整页都没有 than 时报 not measured；than 是可有可无的元素（如关键数字）时写 `optional: true`，整页没有就只写一句说明，不算发现 |
 
 - 阈值写 token 名或数字。token 名在检查时按视口宽度取 style.md 里对应断点的值，所以手机上用手机断点的值；不为阈值另造数字。
 - 只写要点或本场景适配里明文规定的规则。「约三分之一」这类没有 token 的说法不写成规则。
 - `check` 校验种类、参数、角色是否在同一 Template 的 Seed 或场景规则里声明过，以及阈值 token 是否存在。
 - `resolve` 只在 `graphic`、`web` 和 `slides` 场景输出「机检」一节：角色说明、规则的中文描述和一段 `json musekit-checks` 机读块。
+- `sink` 和 `backdrop` 靠截图量：海报和网页的每个视口、宽度扫描里都量，量完把页面原样复位；演示文稿上报「not measured」；深色复测不带这两条规则，只在浅色下量。
 - 检查脚本对没有标记的角色报「not measured」，不当作通过。演示文稿逐页测量：某个角色只在部分页面出现时，没有它的页面不报，整份都没有才报。
 
