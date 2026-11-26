@@ -41,6 +41,9 @@ overrides:
         size-edge: 13px
         size-body: 16px
 exemplars: []
+examples:
+  graphic: skills/graphic-design/references/examples/dark-stage-fireside-reading.md
+  web: skills/web-design/references/examples/dark-stage-fireside-reading.md
 ---
 
 # 暗场

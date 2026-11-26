@@ -195,6 +195,8 @@ test('templates link workflow examples per scene and resolve points to the curre
     'japanese-ma': ['graphic', 'web'],
     'neo-swiss': ['data', 'diagram'],
     'mono-print': ['slides'],
+    'dark-stage': ['graphic', 'web'],
+    'veiled-frame': ['graphic', 'web'],
   };
   for (const [id, scenes] of Object.entries(expected)) {
     const { examples } = frontmatter(join(library, `templates/${id}.md`));

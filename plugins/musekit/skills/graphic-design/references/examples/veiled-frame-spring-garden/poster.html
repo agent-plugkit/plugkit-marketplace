@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>栖苇植物园 春季开放日 · 海报</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-paper: #E9EAE8;
+  --color-ink: #111111;
+  --color-ink-muted: #4A4B4A;
+  --color-accent: #111111;
+  --color-on-accent: #E9EAE8;
+  --color-veil: rgba(233, 234, 232, 0.55);
+  --color-veil-hover: rgba(233, 234, 232, 0.7);
+  --color-veil-floor: #808080;
+  --color-rule: rgba(17, 17, 17, 0.18);
+  --font-display: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-text: "Inter", "Noto Sans SC", "Helvetica Neue", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-cjk: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --weight-display: 900;
+  --weight-text: 400;
+  --weight-strong: 700;
+  --size-display: 320px;
+  --size-figure: 112px;
+  --size-title: 32px;
+  --size-body: 24px;
+  --size-meta: 24px;
+  --leading-display: 1;
+  --leading-figure: 1;
+  --leading-title: 1.25;
+  --leading-body: 1.6;
+  --leading-meta: 1.4;
+  --tracking-figure: -0.03em;
+  --tracking-title: -0.01em;
+  --canvas-width: 1080px;
+  --canvas-height: 1440px;
+  --columns: 12;
+  --gutter: 24px;
+  --margin: 64px;
+  --veil-padding: 48px;
+  --veil-min: 0.2;
+  --veil-max: 0.45;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --veil-filter: blur(12px) saturate(1.05);
+  --shadow: none;
+  --column-width: 57.33px;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { width: var(--canvas-width); height: var(--canvas-height); overflow: hidden; background: var(--color-paper); }
+.frame { position: relative; width: var(--canvas-width); height: var(--canvas-height); overflow: hidden; }
+.frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* strip: bleeds top, left and bottom; right edge on the line after column 5 */
+.veil { position: absolute; top: 0; bottom: 0; left: 0; width: calc(var(--margin) + 5 * var(--column-width) + 4 * var(--gutter));
+  background: var(--color-veil); -webkit-backdrop-filter: var(--veil-filter); backdrop-filter: var(--veil-filter);
+  padding: var(--veil-padding); color: var(--color-ink); display: flex; flex-direction: column; justify-content: space-between; container-type: inline-size; }
+.glyph { font: var(--weight-display) calc(100cqw / var(--ink-w, 1))/1 var(--font-display); white-space: nowrap; pointer-events: none;
+  margin: calc(-1em * var(--ink-t, 0)) calc(-1em * var(--ink-r, 0)) calc(-1em * var(--ink-b, 0)) calc(-1em * var(--ink-l, 0)); }
+.title { font: var(--weight-strong) var(--size-title)/var(--leading-title) var(--font-cjk); letter-spacing: var(--tracking-title); margin-top: var(--space-4); }
+/* fixed 184px (a multiple of 8) so the lower group starts on the 8px rhythm (content top + 1160) */
+.lower { font: var(--weight-text) var(--size-body)/var(--leading-body) var(--font-text); height: 184px; }
+.note { margin-top: var(--space-4); }
+</style>
+</head>
+<body>
+<div class="frame" data-mk="frame">
+  <img src="magnolia.jpg" alt="雾天里的玉兰树，开花的长枝被风吹向左侧，树下是深色灌木">
+  <div class="veil" data-mk="veil">
+    <div class="upper">
+      <div class="glyph" data-mk="glyph" aria-hidden="true">春</div>
+      <h1 class="title" data-mk="title">栖苇植物园<br>春季开放日</h1>
+    </div>
+    <div class="lower">
+      <p>2027.04.03—04.05</p>
+      <p>每天两场 · 需预约</p>
+      <p>栖苇植物园 南门入园</p>
+      <p class="note">虚构示例活动</p>
+    </div>
+  </div>
+</div>
+<script>
+document.fonts.ready.then(() => {
+  const c = document.createElement("canvas").getContext("2d");
+  for (const el of document.querySelectorAll(".glyph")) {
+    const cs = getComputedStyle(el);
+    c.font = `${cs.fontWeight} 100px ${cs.fontFamily}`;
+    const m = c.measureText(el.textContent.trim());
+    const base = (1 - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent) / 100) / 2 + m.fontBoundingBoxAscent / 100;
+    el.style.setProperty("--ink-w", (m.actualBoundingBoxLeft + m.actualBoundingBoxRight) / 100);
+    el.style.setProperty("--ink-l", -m.actualBoundingBoxLeft / 100);
+    el.style.setProperty("--ink-r", (m.width - m.actualBoundingBoxRight) / 100);
+    el.style.setProperty("--ink-t", base - m.actualBoundingBoxAscent / 100);
+    el.style.setProperty("--ink-b", 1 - base - m.actualBoundingBoxDescent / 100);
+  }
+  document.body.dataset.ready = "1";
+});
+</script>
+</body>
+</html>

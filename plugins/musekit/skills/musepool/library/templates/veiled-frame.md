@@ -48,6 +48,9 @@ overrides:
         size-title: 18px
         size-body: 16px
 exemplars: []
+examples:
+  graphic: skills/graphic-design/references/examples/veiled-frame-spring-garden.md
+  web: skills/web-design/references/examples/veiled-frame-spring-garden.md
 ---
 
 # 隔纱

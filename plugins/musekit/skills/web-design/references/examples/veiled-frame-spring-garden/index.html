@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>栖苇植物园 春季开放日</title>
+<meta name="description" content="栖苇植物园春季开放日，2027.04.03—04.05，每天两场，预约入园。虚构示例活动。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-paper: #E9EAE8;
+  --color-ink: #111111;
+  --color-ink-muted: #4A4B4A;
+  --color-accent: #111111;
+  --color-on-accent: #E9EAE8;
+  --color-veil: rgba(233, 234, 232, 0.55);
+  --color-veil-hover: rgba(233, 234, 232, 0.7);
+  --color-veil-floor: #808080;
+  --color-rule: rgba(17, 17, 17, 0.18);
+  --font-display: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-text: "Inter", "Noto Sans SC", "Helvetica Neue", "Arial", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-cjk: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --weight-display: 900;
+  --weight-text: 400;
+  --weight-strong: 700;
+  --size-display: 240px;
+  --size-figure: 72px;
+  --size-title: 20px;
+  --size-body: 17px;
+  --size-meta: 13px;
+  --leading-display: 1;
+  --leading-figure: 1;
+  --leading-title: 1.25;
+  --leading-body: 1.6;
+  --leading-meta: 1.4;
+  --tracking-figure: -0.03em;
+  --tracking-title: -0.01em;
+  --canvas-width: 1440px;
+  --canvas-height: 900px;
+  --columns: 12;
+  --gutter: 24px;
+  --margin: 64px;
+  --veil-padding: 48px;
+  --veil-min: 0.2;
+  --veil-max: 0.45;
+  --space-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+  --space-10: 192px;
+  --veil-filter: blur(12px) saturate(1.05);
+  --shadow: none;
+  --column-width: 87.33px;
+}
+/* tablet */
+@media (max-width: 1100px) {
+  :root {
+    --margin: 48px;
+    --size-display: 200px;
+    --size-figure: 64px;
+  }
+}
+/* mobile */
+@media (max-width: 767px) {
+  :root {
+    --columns: 4;
+    --gutter: 16px;
+    --margin: 24px;
+    --veil-padding: 24px;
+    --size-display: 128px;
+    --size-figure: 48px;
+    --size-title: 18px;
+    --size-body: 16px;
+  }
+}
+/* Values outside style.md: menu button 44px; frame heights 90svh (80svh on phones), fixed 720 / 648px on landscape phones;
+   112px glyph below 360px; reserve corner top at 22%; height caps on the strip and corner glyphs. */
+:root { --bar-h: var(--space-7); --menu-h: 44px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-padding-top: calc(var(--bar-h) + var(--space-4)); }
+body { background: var(--color-paper); color: var(--color-ink); font: var(--weight-text) var(--size-body)/var(--leading-body) var(--font-text); }
+a { color: inherit; }
+ul, ol { list-style: none; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nw { white-space: nowrap; }
+.tag { font: var(--weight-text) var(--size-meta)/var(--leading-meta) var(--font-cjk); margin-left: var(--space-2); white-space: nowrap; }
+
+/* ---------- frames ---------- */
+.frame { position: relative; overflow: hidden; container-type: inline-size; --fh: 90svh; height: var(--fh); }
+.frame.hero { --fh: 100svh; }
+.frame > picture img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.veil { --cw: calc((100cqw - 2 * var(--margin) - (var(--columns) - 1) * var(--gutter)) / var(--columns));
+  position: absolute; background: var(--color-veil); -webkit-backdrop-filter: var(--veil-filter); backdrop-filter: var(--veil-filter);
+  padding: var(--veil-padding); color: var(--color-ink); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .veil { background: var(--color-paper); } }
+@media (prefers-reduced-transparency: reduce) { .veil { background: var(--color-paper); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+.upper, .lower { display: flex; flex-direction: column; align-items: flex-start; }
+.navrow { display: flex; gap: var(--space-4); font-family: var(--font-cjk); margin-bottom: var(--space-4); white-space: nowrap; }
+.navrow a { text-decoration: none; }
+.navrow a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.navrow .brand { font-weight: var(--weight-strong); }
+/* the menu is a quiet outlined button, so the frame keeps one solid action */
+.menu-btn { display: none; min-height: var(--menu-h); padding: 0 var(--space-3); border: 1px solid var(--color-ink); background: transparent; color: var(--color-ink); font: var(--weight-text) var(--size-body)/1 var(--font-cjk); cursor: pointer; }
+.hero .menu-btn { margin-bottom: var(--space-3); }
+.glyph { font: var(--weight-display) var(--size-display)/1 var(--font-display); white-space: nowrap; pointer-events: none; user-select: none;
+  margin: calc(-1em * var(--ink-t, 0)) calc(-1em * var(--ink-r, 0)) calc(-1em * var(--ink-b, 0)) calc(-1em * var(--ink-l, 0)); }
+.title { font: var(--weight-strong) var(--size-title)/var(--leading-title) var(--font-cjk); letter-spacing: var(--tracking-title); margin-top: var(--space-3); }
+.figure { font: var(--weight-strong) var(--size-figure)/var(--leading-figure) var(--font-text); letter-spacing: var(--tracking-figure); font-variant-numeric: tabular-nums; margin-bottom: var(--space-3); }
+.figure small { font: var(--weight-strong) var(--size-title)/1 var(--font-cjk); letter-spacing: 0; margin-left: var(--space-1); }
+.lower p { font-variant-numeric: tabular-nums; }
+.cta { display: inline-block; margin-top: var(--space-4); background: var(--color-accent); color: var(--color-on-accent); font: var(--weight-strong) var(--size-body)/1 var(--font-cjk); padding: var(--space-3) var(--space-4); text-decoration: none; border: 0; cursor: pointer; }
+.cta:focus-visible { outline-offset: 3px; }
+.br { display: inline; }
+.narrow-only, .upto1100 { display: none; }
+
+/* ≥1101: hero strip (columns 9–12 + bleed), paths band hung mid-frame, reserve corner bottom-left (columns 1–5) */
+.hero .veil { top: 0; bottom: 0; right: 0; left: calc(var(--margin) + 8 * (var(--cw) + var(--gutter))); display: flex; flex-direction: column; justify-content: space-between; container-type: inline-size; }
+.hero .veil .glyph, .reserve .veil .glyph { font-size: calc(100cqw / var(--ink-w, 1)); }
+/* wide but short screens: the strip glyph is also capped by what the frame height leaves (nav row, title, lower group, a space-6 gap) */
+/* the reserve corner starts at the hedge-and-sky boundary (top 22%); its glyph is capped by what the corner height leaves */
+.reserve .veil { --lower: calc(var(--size-figure) + var(--space-3) + var(--size-body) * var(--leading-body) + var(--space-4) + var(--size-body) + 2 * var(--space-3)); }
+.reserve .veil .glyph { font-size: min(calc(100cqw / var(--ink-w, 1)), calc((var(--fh) * 0.78 - 2 * var(--veil-padding) - var(--space-3) - var(--size-title) * var(--leading-title) - var(--lower) - var(--space-6)) / var(--ink-h, 1))); }
+/* short desktop screens: the key figure goes first (typography Seed order), so the glyph keeps 6× the title */
+@media (min-width: 1101px) and (max-height: 760px) { .reserve .veil .figure { display: none; } .reserve .veil { --lower: calc(var(--size-body) * var(--leading-body) + var(--space-4) + var(--size-body) + 2 * var(--space-3)); } }
+.hero .veil .glyph { font-size: min(calc(100cqw / var(--ink-w, 1)), calc((100svh - 2 * var(--veil-padding) - var(--size-body) * var(--leading-body) - var(--space-4) - var(--space-3) - var(--size-title) * var(--leading-title) - 3 * var(--size-body) * var(--leading-body) - var(--space-4) - var(--size-body) - 2 * var(--space-3) - var(--space-6)) / var(--ink-h, 1))); }
+.band { left: 0; right: 0; display: grid; grid-template-columns: auto auto; justify-content: space-between; column-gap: var(--space-5); }
+.band .lower { align-self: end; }
+.band .glyph { font-size: min(var(--size-display), calc(var(--fh) * var(--veil-max) - 2 * var(--veil-padding) - var(--rest))); }
+.paths .veil { top: 32%; --rest: calc(var(--size-title) * var(--leading-title) + var(--space-3)); }
+.reserve .veil { left: 0; bottom: 0; top: 22%; width: calc(var(--margin) + 5 * var(--cw) + 4 * var(--gutter)); display: flex; flex-direction: column; justify-content: space-between; container-type: inline-size; }
+
+/* ---------- sticky bar and menu panel ---------- */
+.bar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; height: var(--bar-h); padding: 0 var(--margin); display: flex; align-items: center; justify-content: space-between;
+  background: var(--color-paper); border-bottom: 1px solid var(--color-rule); font-family: var(--font-cjk);
+  transform: translateY(-100%); visibility: hidden; transition: transform 180ms ease, visibility 0s linear 180ms; }
+.bar.on { transform: none; visibility: visible; transition: transform 180ms ease, visibility 0s; }
+.bar .brand { font-weight: var(--weight-strong); text-decoration: none; }
+.bar nav ul { display: flex; gap: var(--space-5); }
+.bar nav a { text-decoration: none; padding: var(--space-2) 0; }
+.bar nav a:hover, .bar nav a[aria-current="true"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.panel { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: var(--color-paper); border-bottom: 1px solid var(--color-rule); padding: var(--space-3) var(--margin) var(--space-5); font-family: var(--font-cjk); }
+.panel[hidden] { display: none; }
+.panel .row { display: flex; justify-content: space-between; align-items: center; min-height: var(--menu-h); margin-bottom: var(--space-3); }
+.panel .brand { font-weight: var(--weight-strong); }
+.panel li a { display: block; padding: var(--space-3) 0; font: var(--weight-strong) var(--size-title)/var(--leading-title) var(--font-cjk); text-decoration: none; border-top: 1px solid var(--color-rule); }
+
+/* ---------- plain sections ---------- */
+.plain { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter); padding: 0 var(--margin); margin-top: var(--space-8); }
+.plain > .head { grid-column: 1 / 4; }
+.plain > .body { grid-column: 4 / 10; font-family: var(--font-cjk); max-width: 40em; } /* at most 40 汉字 a line */
+.frame + .plain { margin-top: var(--space-8); }
+.plain + .frame { margin-top: var(--space-10); }
+h2.sec { font: var(--weight-strong) var(--size-title)/var(--leading-title) var(--font-cjk); letter-spacing: var(--tracking-title); }
+.lede { margin-bottom: var(--space-5); }
+.plain p, .plain dd { text-wrap: pretty; }
+.facts { border-top: 1px solid var(--color-rule); }
+.facts div { display: grid; grid-template-columns: var(--space-9) 1fr; column-gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-rule); }
+.facts dt { color: var(--color-ink-muted); }
+.facts dd { font-variant-numeric: tabular-nums; }
+.routes { border-top: 1px solid var(--color-rule); }
+.routes li { padding: var(--space-4) 0; border-bottom: 1px solid var(--color-rule); }
+.routes h3 { font: var(--weight-strong) var(--size-title)/var(--leading-title) var(--font-cjk); letter-spacing: var(--tracking-title); margin-bottom: var(--space-2); }
+.routes p { color: var(--color-ink); }
+.routes .len { color: var(--color-ink-muted); }
+.group-tag { margin: var(--space-3) 0 0; font: var(--weight-text) var(--size-meta)/var(--leading-meta) var(--font-cjk); color: var(--color-ink-muted); }
+
+/* ---------- form ---------- */
+form fieldset { border: 0; }
+.field { margin-top: var(--space-5); }
+.field > label, legend { display: block; font-weight: var(--weight-text); margin-bottom: var(--space-2); }
+legend { float: left; width: 100%; }
+legend + * { clear: both; }
+.hint { color: var(--color-ink-muted); font-weight: var(--weight-text); }
+.sessions { display: grid; grid-template-columns: var(--space-9) 1fr 1fr; gap: var(--space-2); align-items: stretch; }
+.sessions .day { align-self: center; font-variant-numeric: tabular-nums; }
+.opt { position: relative; display: block; cursor: pointer; }
+.opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.opt > span { display: block; height: 100%; border: 1px solid var(--color-ink); padding: var(--space-3); font-variant-numeric: tabular-nums; }
+.opt > span b { display: block; font-weight: var(--weight-strong); }
+.opt > span b::before { content: ""; }
+.opt input:checked + span { background: var(--color-accent); color: var(--color-on-accent); }
+.opt input:checked + span b::before { content: "✓ "; }
+/* :focus, not :focus-visible: after a mouse submit the script moves focus here and it must still show */
+.opt input:focus + span { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.opt:hover > span { box-shadow: inset 0 0 0 1px var(--color-ink); }
+input[type="text"], input[type="email"], select { display: block; width: 100%; max-width: calc(4 * var(--column-width) + 3 * var(--gutter)); min-height: var(--space-6); padding: var(--space-2) var(--space-3); border: 1px solid var(--color-ink); border-radius: 0; background: var(--color-paper); }
+select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--color-ink) 50%), linear-gradient(135deg, var(--color-ink) 50%, transparent 50%);
+  background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: var(--space-6); }
+.err { margin-top: var(--space-2); font-weight: var(--weight-text); }
+.err[hidden] { display: none; }
+.submit-row { margin-top: var(--space-6); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); }
+.submit-row .cta { margin-top: 0; }
+.note { font: var(--weight-text) var(--size-meta)/var(--leading-meta) var(--font-cjk); color: var(--color-ink-muted); }
+#done:focus { outline: none; }
+#done h3 { font: var(--weight-strong) var(--size-title)/var(--leading-title) var(--font-cjk); margin-bottom: var(--space-3); }
+#done .facts { margin: var(--space-5) 0; }
+#done .ghost { background: transparent; border: 1px solid var(--color-ink); color: var(--color-ink); }
+
+/* ---------- footer ---------- */
+footer { margin-top: var(--space-10); padding: var(--space-6) var(--margin) var(--space-7); border-top: 1px solid var(--color-rule); display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gutter); font-family: var(--font-cjk); }
+footer .who { grid-column: 1 / 7; }
+footer .who b { font-weight: var(--weight-strong); }
+footer .note { grid-column: 7 / 13; align-self: end; font-size: var(--size-meta); }
+
+@media (max-width: 1100px) {
+  /* landscape tablets keep the hero strip, one column wider, so the nav row still fits */
+  .hero .veil { left: calc(var(--margin) + 7 * (var(--cw) + var(--gutter))); }
+  .reserve .veil .glyph { font-size: min(var(--size-display), calc(var(--fh) * var(--veil-max) - 2 * var(--veil-padding) - var(--rest))); }
+  .reserve .veil { width: auto; right: 0; top: auto; min-height: 0; display: grid; grid-template-columns: auto auto; justify-content: space-between; column-gap: var(--space-5); container-type: normal;
+    --rest: calc(var(--size-title) * var(--leading-title) + var(--space-3)); }
+  .reserve .veil .lower { align-self: end; }
+  .wide-only { display: none; }
+  .narrow-only { display: block; }
+  .upto1100 { display: inline; }
+  .plain > .head { grid-column: 1 / 13; margin-bottom: var(--space-4); }
+  .plain > .body { grid-column: 1 / 10; }
+}
+/* portrait tablets and anything narrower than 900px: the hero strip becomes a band at the top */
+@media (max-width: 899px), (max-width: 1100px) and (orientation: portrait) {
+  .hero .veil { left: 0; right: 0; bottom: auto; display: grid; grid-template-columns: auto auto; justify-content: space-between; column-gap: var(--space-5); container-type: normal;
+    --rest: calc(var(--size-body) * var(--leading-body) + var(--space-4) + var(--space-3) + var(--size-title) * var(--leading-title)); }
+  .hero .veil .lower { align-self: end; }
+  .hero .veil .glyph { font-size: min(var(--size-display), calc(var(--fh) * var(--veil-max) - 2 * var(--veil-padding) - var(--rest))); }
+}
+@media (max-width: 1100px) and (orientation: portrait) { .paths .veil { top: 30%; } .hero .veil { min-height: 44%; } .hero img { object-position: 50% 30%; } }
+@media (max-width: 767px) {
+  .frame { --fh: 80svh; }
+  .frame.hero { --fh: 100svh; }
+  .navrow { display: none; }
+  .menu-btn { display: block; }
+  .hero .veil { --rest: calc(var(--menu-h) + var(--space-3) + var(--space-3) + 2 * var(--size-title) * var(--leading-title)); }
+  .br { display: block; }
+  .desk-only { display: none; }
+  .bar nav { display: none; }
+  .plain { grid-template-columns: repeat(4, 1fr); margin-top: var(--space-7); }
+  .frame + .plain { margin-top: var(--space-7); }
+  .plain + .frame { margin-top: var(--space-9); }
+  .plain > .head, .plain > .body { grid-column: 1 / 5; }
+  .facts div { grid-template-columns: 1fr; row-gap: var(--space-1); }
+  .sessions { grid-template-columns: 1fr 1fr; }
+  .sessions .day { grid-column: 1 / 3; margin-top: var(--space-2); }
+  footer { grid-template-columns: 1fr; row-gap: var(--space-4); margin-top: var(--space-9); }
+  footer .who, footer .note { grid-column: 1; }
+}
+@media (min-width: 768px) { .bar .menu-btn { display: none; } }
+@media (max-width: 359px) {
+  :root { --size-display: 112px; }
+  .band, .hero .veil, .reserve .veil { column-gap: var(--space-3); }
+}
+/* landscape phones: the svh-based frames would leave no room for the glyph, so frames take a fixed height and scroll */
+@media (max-height: 560px) and (orientation: landscape) { .frame { --fh: 648px; } .frame.hero { --fh: 720px; } }
+@media (prefers-reduced-motion: reduce) { .bar, .bar.on { transition: none; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<header class="bar" id="bar">
+  <a class="brand" href="#top">栖苇植物园</a>
+  <nav aria-label="页面导航"><ul><li><a href="#info">须知</a></li><li><a href="#paths">路线</a></li><li><a href="#reserve">预约</a></li></ul></nav>
+  <button class="menu-btn" type="button" aria-controls="panel" aria-expanded="false">菜单</button>
+</header>
+<div class="panel" id="panel" hidden>
+  <div class="row"><span class="brand">栖苇植物园</span><button class="menu-btn" type="button" id="panel-close" aria-controls="panel" aria-expanded="true" style="display:block">收起</button></div>
+  <ul><li><a href="#info">须知</a></li><li><a href="#paths">路线</a></li><li><a href="#reserve">预约</a></li></ul>
+</div>
+
+<main>
+<section class="frame hero" id="top" data-mk="frame" aria-labelledby="h-top">
+  <picture>
+    <source media="(max-width: 1100px) and (orientation: portrait), (max-width: 767px)" srcset="hero-tall.jpg">
+    <img src="hero-wide.jpg" alt="起雾的湖岸，风把柳枝和岸边的芦苇吹成拖影">
+  </picture>
+  <div class="veil" data-mk="veil">
+    <div class="upper">
+      <button class="menu-btn" type="button" aria-controls="panel" aria-expanded="false">菜单</button>
+      <nav class="navrow" aria-label="首屏导航"><span class="brand">栖苇植物园</span><a href="#info">须知</a><a href="#paths">路线</a><a href="#reserve">预约</a></nav>
+      <div class="glyph" data-mk="glyph" aria-hidden="true">春</div>
+      <h1 class="title" id="h-top" data-mk="title"><span class="br">栖苇植物园</span> <span class="br">春季开放日</span></h1>
+    </div>
+    <div class="lower">
+      <p class="nw">2027.04.03—04.05</p>
+      <p class="desk-only">每天上午场、下午场 · 需预约</p>
+      <p><span class="br">栖苇植物园</span> <span class="br">南门入园</span></p>
+      <a class="cta" href="#book">预约入园</a>
+    </div>
+  </div>
+</section>
+
+<section class="plain" id="info" aria-labelledby="h-info">
+  <div class="head"><h2 class="sec" id="h-info">开放日须知</h2></div>
+  <div class="body">
+    <p class="lede">园子三天照常开门，只是入园改成按场次预约：每天上午、下午各一场，到南门出示预约信息入园。<span class="tag">示例</span></p>
+    <dl class="facts">
+      <div><dt>日期</dt><dd><span class="nw">2027.04.03—04.05</span>（周六至周一）</dd></div>
+      <div><dt>场次</dt><dd>每天两场：<span class="nw">上午场 09:00—12:00</span>，<span class="nw">下午场 13:30—16:30</span></dd></div>
+      <div><dt>限额</dt><dd><span class="nw">每场限 300 人</span>，<span class="nw">每次预约最多 6 人</span></dd></div>
+      <div><dt>入园</dt><dd>栖苇植物园 南门入园</dd></div>
+      <div><dt>主办</dt><dd>栖苇植物园</dd></div>
+      <div><dt>门票</dt><dd>待公布</dd></div>
+      <div><dt>交通</dt><dd>待公布</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="frame paths" id="paths" data-mk="frame" aria-labelledby="h-paths">
+  <picture>
+    <source media="(max-width: 1100px) and (orientation: portrait), (max-width: 767px)" srcset="paths-tall.jpg">
+    <img src="paths-wide.jpg" alt="温室里喷雾被吹成拖影，下方是被风吹动的芭蕉和龟背竹">
+  </picture>
+  <div class="veil band" data-mk="veil">
+    <div class="upper">
+      <div class="glyph" data-mk="glyph" aria-hidden="true">径</div>
+      <h2 class="title" id="h-paths" data-mk="title">三条看花路线</h2>
+    </div>
+    <div class="lower">
+      <p>柳岸、温室、樱坡</p>
+      <p>每条走完约一小时<span class="tag">示例</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="plain" aria-label="路线说明">
+  <div class="body">
+    <ol class="routes">
+      <li><h3>柳岸线</h3><p>沿湖岸走，看新出的柳叶和去年留下的芦苇。湖边风大，带一件外套。</p><p class="len">约一小时 · 平路</p></li>
+      <li><h3>温室线</h3><p>穿过热带温室的喷雾区，芭蕉和龟背竹都在这里。喷雾时段地面湿滑。</p><p class="len">约一小时 · 室内</p></li>
+      <li><h3>樱坡线</h3><p>从草坪走上樱花坡，花期以开放日当天为准。</p><p class="len">约一小时 · 有缓坡</p></li>
+    </ol>
+    <p class="group-tag">以上路线为示例</p>
+  </div>
+</section>
+
+<section class="frame reserve" id="reserve" data-mk="frame" aria-labelledby="h-reserve">
+  <picture>
+    <source media="(max-width: 1100px) and (orientation: portrait), (max-width: 767px)" srcset="reserve-tall.jpg">
+    <img src="reserve-wide.jpg" alt="大风里的樱花树，花瓣吹成白色拖影，树前是修剪整齐的深色树篱和雾中的草地">
+  </picture>
+  <div class="veil" data-mk="veil">
+    <div class="upper">
+      <div class="glyph wide-only" data-mk="glyph" aria-hidden="true">预约</div>
+      <div class="glyph narrow-only" data-mk="glyph" aria-hidden="true">约</div>
+      <h2 class="title" id="h-reserve" data-mk="title"><span class="sr wide-only">预约入园：</span><span class="upto1100">预约入园 · </span><span class="nw">每场限 300 人</span></h2>
+    </div>
+    <div class="lower">
+      <p class="figure" data-mk="figure">6<small>场</small></p>
+      <p class="desk-only">每天上午场、下午场</p>
+      <a class="cta" href="#book">选择场次</a>
+    </div>
+  </div>
+</section>
+
+<section class="plain" id="book" aria-label="预约表单">
+  <div class="body">
+    <form id="form" novalidate>
+      <p class="lede">选一个场次，留下称呼、人数和邮箱。<span class="tag">示例</span></p>
+      <fieldset class="field" id="f-session" aria-describedby="e-session">
+        <legend>场次</legend>
+        <div class="sessions">
+          <span class="day" aria-hidden="true">4 月 3 日 周六</span>
+          <label class="opt"><input type="radio" name="session" value="4 月 3 日 周六 上午场 09:00—12:00" aria-describedby="e-session"><span><span class="sr">4 月 3 日 周六 </span><b>上午场 </b>09:00—12:00</span></label>
+          <label class="opt"><input type="radio" name="session" value="4 月 3 日 周六 下午场 13:30—16:30" aria-describedby="e-session"><span><span class="sr">4 月 3 日 周六 </span><b>下午场 </b>13:30—16:30</span></label>
+          <span class="day" aria-hidden="true">4 月 4 日 周日</span>
+          <label class="opt"><input type="radio" name="session" value="4 月 4 日 周日 上午场 09:00—12:00" aria-describedby="e-session"><span><span class="sr">4 月 4 日 周日 </span><b>上午场 </b>09:00—12:00</span></label>
+          <label class="opt"><input type="radio" name="session" value="4 月 4 日 周日 下午场 13:30—16:30" aria-describedby="e-session"><span><span class="sr">4 月 4 日 周日 </span><b>下午场 </b>13:30—16:30</span></label>
+          <span class="day" aria-hidden="true">4 月 5 日 周一</span>
+          <label class="opt"><input type="radio" name="session" value="4 月 5 日 周一 上午场 09:00—12:00" aria-describedby="e-session"><span><span class="sr">4 月 5 日 周一 </span><b>上午场 </b>09:00—12:00</span></label>
+          <label class="opt"><input type="radio" name="session" value="4 月 5 日 周一 下午场 13:30—16:30" aria-describedby="e-session"><span><span class="sr">4 月 5 日 周一 </span><b>下午场 </b>13:30—16:30</span></label>
+        </div>
+        <p class="err" id="e-session" hidden></p>
+      </fieldset>
+      <div class="field">
+        <label for="name">称呼</label>
+        <input type="text" id="name" name="name" autocomplete="name" aria-describedby="e-name">
+        <p class="err" id="e-name" hidden></p>
+      </div>
+      <div class="field">
+        <label for="party">人数 <span class="hint">每次预约最多 6 人</span></label>
+        <select id="party" name="party"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+      </div>
+      <div class="field">
+        <label for="email">电子邮箱</label>
+        <input type="email" id="email" name="email" autocomplete="email" inputmode="email" aria-describedby="e-email">
+        <p class="err" id="e-email" hidden></p>
+      </div>
+      <div class="submit-row">
+        <button class="cta" type="submit">提交预约</button>
+        <p class="note">虚构示例活动：这张表不会发送任何信息。</p>
+      </div>
+    </form>
+    <div id="done" hidden tabindex="-1" aria-live="polite">
+      <h3>信息已填好，还没有发送</h3>
+      <p>这是示例页面，信息没有发送，也没有保存，关掉页面就会消失。正式的预约方式待公布。</p>
+      <dl class="facts">
+        <div><dt>场次</dt><dd id="d-session"></dd></div>
+        <div><dt>称呼</dt><dd id="d-name"></dd></div>
+        <div><dt>人数</dt><dd id="d-party"></dd></div>
+        <div><dt>邮箱</dt><dd id="d-email"></dd></div>
+      </dl>
+      <button class="cta ghost" type="button" id="again">重新填写</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p class="who"><b>栖苇植物园</b> 主办<br><span lang="en">Qiwei Botanical Garden · <span class="nw">Spring Open Days 2027</span></span></p>
+  <p class="note">虚构示例活动。园名、日期和场次都是为示例虚构的；门票、交通和联系方式待公布。</p>
+</footer>
+
+<script>
+// Ink metrics of each glyph, measured once after the fonts load (typography Seed: glyph-grotesk).
+document.fonts.ready.then(() => {
+  const c = document.createElement("canvas").getContext("2d");
+  for (const el of document.querySelectorAll(".glyph")) {
+    const cs = getComputedStyle(el);
+    c.font = `${cs.fontWeight} 100px ${cs.fontFamily}`;
+    const m = c.measureText(el.textContent.trim());
+    const base = (1 - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent) / 100) / 2 + m.fontBoundingBoxAscent / 100;
+    el.style.setProperty("--ink-w", (m.actualBoundingBoxLeft + m.actualBoundingBoxRight) / 100);
+    el.style.setProperty("--ink-l", -m.actualBoundingBoxLeft / 100);
+    el.style.setProperty("--ink-r", (m.width - m.actualBoundingBoxRight) / 100);
+    el.style.setProperty("--ink-t", base - m.actualBoundingBoxAscent / 100);
+    el.style.setProperty("--ink-b", 1 - base - m.actualBoundingBoxDescent / 100);
+    el.style.setProperty("--ink-h", (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / 100);
+  }
+  document.body.dataset.ready = "1";
+});
+
+// Sticky bar: shown once the hero frame has scrolled away.
+const bar = document.getElementById("bar");
+new IntersectionObserver(([e]) => bar.classList.toggle("on", !e.isIntersecting), { rootMargin: `-${64}px 0px 0px 0px` })
+  .observe(document.getElementById("top"));
+
+// Menu panel (phones).
+const panel = document.getElementById("panel");
+const openers = [...document.querySelectorAll('.menu-btn[aria-controls="panel"]')].filter((b) => b.id !== "panel-close");
+let opener = null;
+const setMenu = (open, from) => {
+  panel.hidden = !open;
+  openers.forEach((b) => b.setAttribute("aria-expanded", String(open)));
+  if (open) { opener = from; panel.querySelector("a").focus(); }
+  else if (opener) { opener.focus(); opener = null; }
+};
+openers.forEach((b) => b.addEventListener("click", () => setMenu(true, b)));
+document.getElementById("panel-close").addEventListener("click", () => setMenu(false));
+panel.addEventListener("click", (e) => { if (e.target.closest("a")) { opener = null; setMenu(false); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) setMenu(false); });
+// Tabbing out of the open panel closes it, so it never covers the control that has focus.
+panel.addEventListener("focusout", (e) => { if (!panel.hidden && e.relatedTarget && !panel.contains(e.relatedTarget)) { opener = null; setMenu(false); } });
+
+// Form: checks on submit; a field that shows an error is checked again as it changes. Nothing is sent.
+const form = document.getElementById("form");
+const done = document.getElementById("done");
+const F = form.elements;
+const checks = {
+  session: () => (F.session.value ? "" : "请选择一个场次"),
+  name: () => (F.name.value.trim() ? "" : "请填写称呼"),
+  email: () => {
+    const v = F.email.value.trim();
+    if (!v) return "请填写电子邮箱";
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? "" : "邮箱格式不对，例如 name@example.com";
+  },
+};
+const show = (key) => {
+  const msg = checks[key](), box = document.getElementById("e-" + key);
+  box.replaceChildren();
+  if (msg) { const x = document.createElement("span"); x.setAttribute("aria-hidden", "true"); x.textContent = "✕ "; box.append(x, msg); }
+  box.hidden = !msg;
+  const ctl = key === "session" ? null : F[key];
+  for (const c of key === "session" ? F.session : [ctl]) c.setAttribute("aria-invalid", String(!!msg));
+  return !msg;
+};
+for (const key of Object.keys(checks)) {
+  const ev = key === "session" ? "change" : "input";
+  form.addEventListener(ev, (e) => {
+    const k = e.target.name;
+    if (k === key && !document.getElementById("e-" + key).hidden) show(key);
+  });
+}
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const bad = Object.keys(checks).filter((k) => !show(k));
+  if (bad.length) {
+    const first = bad[0] === "session" ? (form.querySelector('input[name="session"]:checked') || F.session[0]) : F[bad[0]];
+    first.focus();
+    return;
+  }
+  document.getElementById("d-session").textContent = F.session.value;
+  document.getElementById("d-name").textContent = F.name.value.trim();
+  document.getElementById("d-party").textContent = F.party.value + " 人";
+  document.getElementById("d-email").textContent = F.email.value.trim();
+  form.hidden = true; done.hidden = false; done.focus();
+});
+document.getElementById("again").addEventListener("click", () => {
+  done.hidden = true; form.hidden = false;
+  (form.querySelector('input[name="session"]:checked') || F.session[0]).focus();
+});
+</script>
+</body>
+</html>
