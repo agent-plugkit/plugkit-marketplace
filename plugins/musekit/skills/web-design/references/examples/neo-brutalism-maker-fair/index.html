@@ -337,7 +337,7 @@ button, input, textarea { font: inherit; color: inherit; }
 /* ===== W3 报名：左小右大（左 5 栏：步骤板在上、须知在下；右 7 栏：表单主板）。没有墨底板，贴片压在两块浅色板之间 ===== */
 .signup {
   grid-template-columns: calc(var(--margin) + 5 * var(--step) - var(--gutter) / 2 - var(--rule-width) / 2) 1fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 3fr 2fr; /* 主板面积要压过步骤板 dominant-ratio 倍，步骤板不随表单一起拉高 */
 }
 .how { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-6) var(--pad) var(--space-6) var(--margin); z-index: 2; }
 .how ol { list-style: none; display: flex; flex-direction: column; gap: var(--space-4); }
@@ -496,11 +496,11 @@ legend { padding: 0; margin-bottom: var(--space-2); }
 
 <main>
   <!-- W1 首屏 -->
-  <section id="info" class="wall hero" aria-labelledby="hero-title">
-    <div class="panel hero-main bg-accent">
+  <section id="info" class="wall hero" data-mk="wall" aria-labelledby="hero-title">
+    <div class="panel hero-main bg-accent" data-mk="panel main">
       <div>
         <span class="tag">虚构示例活动</span>
-        <h1 class="hero-title" id="hero-title">造物集市</h1>
+        <h1 class="hero-title" data-mk="title hero" id="hero-title">造物集市</h1>
         <p class="headline hero-en">Maker Fair 2027</p>
       </div>
       <div>
@@ -510,24 +510,24 @@ legend { padding: 0; margin-bottom: var(--space-2); }
           <a class="link" href="#categories">看摊位类别</a>
         </div>
       </div>
-      <p class="sticker"><span class="s1">创作者摊位</span><br><span class="s2">报名中</span></p>
+      <p class="sticker" data-mk="sticker"><span class="s1">创作者摊位</span><br><span class="s2">报名中</span></p>
     </div>
-    <div class="panel fact bg-accent-3 is-right">
+    <div class="panel fact bg-accent-3 is-right" data-mk="panel">
       <p class="label">日期 DATE</p>
       <p class="title date-value">2027.08.09—08.10</p>
     </div>
-    <div class="panel fact is-right">
+    <div class="panel fact is-right" data-mk="panel">
       <p class="label">地点 VENUE</p>
       <p class="title nowrap">西岸创意园 B 栋</p>
       <p class="sub">交通方式：待公布</p>
     </div>
-    <div class="panel fact bg-ink is-right on-ink">
+    <div class="panel fact bg-ink is-right on-ink" data-mk="panel">
       <p class="label">主办 HOST</p>
       <p class="title nowrap">主办：造物集市志愿团</p>
     </div>
   </section>
 
-  <div class="strip" aria-label="2027.08.09—08.10，西岸创意园 B 栋，创作者摊位报名中">
+  <div class="strip" data-inspect-ignore aria-label="2027.08.09—08.10，西岸创意园 B 栋，创作者摊位报名中">
     <div class="strip-track" aria-hidden="true">
       <span>2027.08.09—08.10 ✶ 西岸创意园 B 栋 ✶ 造物集市 Maker Fair 2027 ✶ 创作者摊位报名中 ✶</span>
       <span>2027.08.09—08.10 ✶ 西岸创意园 B 栋 ✶ 造物集市 Maker Fair 2027 ✶ 创作者摊位报名中 ✶</span>
@@ -539,18 +539,18 @@ legend { padding: 0; margin-bottom: var(--space-2); }
   <div class="gap"></div>
 
   <!-- W2 摊位类别 -->
-  <section id="categories" class="wall cats" aria-labelledby="cats-title">
-    <div class="panel cats-main bg-accent">
+  <section id="categories" class="wall cats" data-mk="wall" aria-labelledby="cats-title">
+    <div class="panel cats-main bg-accent" data-mk="panel main">
       <span class="tag">示例 · 6 类</span>
-      <h2 class="wall-title" id="cats-title">摊位类别</h2>
+      <h2 class="wall-title" id="cats-title" data-mk="title">摊位类别</h2>
       <p class="lede"><span class="nowrap">下面的类别是示例。</span><span class="nowrap">选一个最接近你作品的，</span><span class="nowrap">点一个类别格直接去报名。</span></p>
-      <p class="sticker s-cats"><span class="s1">摊位类别</span><br><span class="s2">6 类</span></p>
+      <p class="sticker s-cats" data-mk="sticker"><span class="s1">摊位类别</span><br><span class="s2">6 类</span></p>
     </div>
-    <div class="panel cats-note bg-accent-3">
+    <div class="panel cats-note bg-accent-3" data-mk="panel">
       <h3 class="title">摊位的这些还没定</h3>
       <dl><div><dt>摊位费用</dt><dd>待公布</dd></div><div><dt>摊位尺寸</dt><dd>待公布</dd></div></dl>
     </div>
-    <div class="panel list-board">
+    <div class="panel list-board" data-mk="panel list">
       <a class="cat" href="#signup" data-cat="手作饰品"><span class="no">01</span><span class="title name">手作饰品</span><span class="desc">金属、串珠、树脂等随身小物</span></a>
       <a class="cat" href="#signup" data-cat="陶瓷器物"><span class="no">02</span><span class="title name">陶瓷器物</span><span class="desc">杯盘、花器和桌上的小摆件</span></a>
       <a class="cat" href="#signup" data-cat="织物与缝纫"><span class="no">03</span><span class="title name">织物与缝纫</span><span class="desc">布包、刺绣、编织与改造衣物</span></a>
@@ -563,26 +563,26 @@ legend { padding: 0; margin-bottom: var(--space-2); }
   <div class="gap"></div>
 
   <!-- W3 报名 -->
-  <section id="signup" class="wall signup" aria-labelledby="signup-title">
-    <div class="panel how bg-accent-3">
+  <section id="signup" class="wall signup" data-mk="wall" aria-labelledby="signup-title">
+    <div class="panel how bg-accent-3" data-mk="panel">
       <h3 class="title">怎么报名</h3>
       <ol>
         <li><span class="no">01</span><span>选一个摊位类别</span></li>
         <li><span class="no">02</span><span>留下称呼、邮箱和作品简介</span></li>
         <li><span class="no">03</span><span>提交后看页面说明：示例页面不会发出信息</span></li>
       </ol>
-      <p class="sticker s-signup"><span class="s1">示例表单</span><br><span class="s2">不会发出</span></p>
+      <p class="sticker s-signup" data-mk="sticker"><span class="s1">示例表单</span><br><span class="s2">不会发出</span></p>
     </div>
-    <div class="panel signup-note">
+    <div class="panel signup-note" data-mk="panel">
       <h3 class="title">报名的这些还没定</h3>
       <dl><div><dt>报名截止</dt><dd>待公布</dd></div><div><dt>正式报名渠道</dt><dd>待公布</dd></div><div><dt>联系方式</dt><dd>待公布</dd></div></dl>
     </div>
 
-    <div class="panel form-panel" id="form-panel">
+    <div class="panel form-panel" id="form-panel" data-mk="panel main">
       <div id="form-view">
         <div class="form-head">
           <span class="tag">示例表单</span>
-          <h2 class="wall-title" id="signup-title">报名摆摊</h2>
+          <h2 class="wall-title" id="signup-title" data-mk="title">报名摆摊</h2>
         </div>
         <p class="form-note">带 <b>必填</b> 的项目需要填写。示例页面：点「提交报名」不会发送任何信息。</p>
         <form id="signup-form" novalidate>

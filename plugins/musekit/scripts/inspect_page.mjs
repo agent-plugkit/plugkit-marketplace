@@ -413,7 +413,12 @@ async function audit({ facts, palette, canvas, scroll }) {
     for (const n of el.childNodes) {
       if (n.nodeType !== 3 || !n.textContent.trim()) continue;
       rg.selectNodeContents(n);
-      for (const q of rg.getClientRects()) if (x >= q.left && x <= q.right && y >= q.top && y <= q.bottom) return true;
+      for (const q of rg.getClientRects()) {
+        if (!(x >= q.left && x <= q.right && y >= q.top && y <= q.bottom)) continue;
+        // Text covers where its ink is: at a tight line-height the next line's em box overlaps this one.
+        const k = inkOf(n, el, q);
+        if (!k || (x >= k.left && x <= k.right && y >= k.top && y <= k.bottom)) return true;
+      }
     }
     return false;
   };
@@ -647,13 +652,19 @@ function measureRules({ rules, judgeFill, canvas }) {
   const area = (el) => { const r = rect(el); return r.width * r.height; };
   const r2 = (n) => Math.round(n * 100) / 100;
   // Text lines of an element: fragments that overlap vertically by half belong to one line.
+  // A tag hung outside the line with position: absolute (a 「示例」 label at the end of a centred line)
+  // is not part of the line: it neither moves the line's centre nor adds to its width.
+  const hung = (n, el) => {
+    for (let e = n.parentElement; e && e !== el; e = e.parentElement) if (["absolute", "fixed"].includes(getComputedStyle(e).position)) return true;
+    return false;
+  };
   const textLines = (el) => {
     const frags = [];
     const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     const rg = document.createRange();
     while (w.nextNode()) {
       const n = w.currentNode;
-      if (!n.textContent.trim() || !shown(n.parentElement)) continue;
+      if (!n.textContent.trim() || !shown(n.parentElement) || hung(n, el)) continue;
       rg.selectNodeContents(n);
       for (const q of rg.getClientRects()) if (q.width > 1 && q.height > 1) frags.push(q);
     }

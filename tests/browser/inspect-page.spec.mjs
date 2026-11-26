@@ -56,6 +56,8 @@ button:focus{outline:none}
 <div class="box">盒子里装不下的一长串文字内容</div>
 <div style="position:relative"><h2 style="font-size:120px;margin:0;line-height:1.1;white-space:nowrap">大标题</h2><div class="sticker" style="position:absolute;left:250px;top:70px;width:160px;height:70px;background:#cc2200;transform:rotate(-6deg)"></div></div>
 <p>城市里的植物，<br>南门书房二楼</p>
+<p style="font-size:40px;line-height:0.8;width:300px;margin:0"><span style="white-space:nowrap">ocean waves</span> <span style="white-space:nowrap">moon over sea</span></p>
+<p style="font-size:30px;margin:0">被字压住的一行</p><p style="font-size:30px;margin:-30px 0 0;position:relative">压上来的字</p>
 <span class="spin">✱</span>
 <button id="go">报名</button>
 <input class="field" aria-label="邮箱">
@@ -142,6 +144,7 @@ h2,h1{margin:0;white-space:nowrap}
   <p class="sticker" id="s2" data-mk="sticker">压</p>
 </section>
 <div style="width:600px"><p data-mk="axis">齐左的一行，不在中轴上</p></div>
+<p data-mk="axis" style="text-align:center"><span style="position:relative">居中的一句<span style="position:absolute;left:100%;white-space:nowrap">挂在行尾外的示例小标</span></span></p>
 <div class="vframe" data-mk="frame"><div class="veil" style="right:0;width:40%" data-mk="veil">
   <p data-mk="glyph" style="font-size:120px">字</p><p data-mk="vtitle" style="font-size:20px">标题</p><p data-mk="figure" style="font-size:72px">4</p>
 </div></div>
@@ -369,8 +372,11 @@ test("a web run screenshots each viewport, sweeps widths and walks keyboard, mot
   const [desk, phone] = report.views;
   // The overlay ignores the pointer, yet it still covers the text.
   // Also a display title whose corner alone is under a tilted sticker.
-  expect(desk.occlusions.map((o) => o.text)).toEqual(["被盖住的一行说明文字", "大标题"]);
+  // At a tight line-height the next line's em box overlaps this one, but its ink does not: not covered.
+  // A line pulled onto another one is.
+  expect(desk.occlusions.map((o) => o.text)).toEqual(["被盖住的一行说明文字", "大标题", "被字压住的一行"]);
   expect(desk.occlusions[1].by).toBe("div.sticker");
+  expect(desk.occlusions[2].by).toBe("p");
   expect(desk.clipped.map((o) => o.text)).toEqual(["盒子里装不下的一长串文字内容"]);
   expect(JSON.stringify(desk)).not.toContain("跑马灯");
   expect(desk.overflowX).toBe(0);
@@ -431,6 +437,8 @@ test("layout rules from style.md: each broken rule is named with its reading, th
   // A sticker inside one panel covers one; a sticker across the seam covers two but sits on the ink panel.
   expect(kind(d, "covers").items.map((i) => [i.covers, !!i.onAvoided, i.ok])).toEqual([[1, false, false], [2, true, false]]);
   expect(kind(d, "axis").items[0].ok).toBe(false);
+  // A label hung past the line end with position: absolute does not pull the centred line off the axis.
+  expect(kind(d, "axis").items[1].ok).toBe(true);
   expect(kind(d, "max-size").items.map((i) => [i.size, i.limit, i.ok])).toEqual([[40, 30, false]]);
   // An unmarked role is reported as not measured, never as a silent pass.
   expect(kind(d, "max-size", 1)).toMatchObject({ status: "unmarked" });
