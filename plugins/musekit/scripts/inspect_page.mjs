@@ -243,7 +243,7 @@ async function settle(fullReveal) {
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 }
 
-function audit({ facts, palette, canvas, scroll }) {
+async function audit({ facts, palette, canvas, scroll }) {
   // The layout viewport: a phone that zooms out to fit wide content keeps its own width here.
   const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
   const ignored = (el) => !!el.closest("[data-inspect-ignore]");
@@ -503,13 +503,20 @@ function audit({ facts, palette, canvas, scroll }) {
   if (scroll) {
     const H = document.documentElement.scrollHeight;
     const step = Math.max(200, Math.floor(vh * 0.75));
+    // A bar that gains its background in a scroll handler does so a frame after the scroll:
+    // wait for it, and finish the transition it starts, before reading what shows through.
+    const scrolled = async (top) => {
+      scrollTo(0, top);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      for (const a of document.getAnimations()) if (a.effect?.getComputedTiming?.().endTime !== Infinity) a.finish();
+    };
     for (let y = 0; ; y += step) {
-      scrollTo(0, Math.min(y, H - vh));
+      await scrolled(Math.min(y, H - vh));
       testLines();
       testHeaders();
       if (y >= H - vh) break;
     }
-    scrollTo(0, 0);
+    await scrolled(0);
   } else testLines();
 
   // Facts: whitespace-insensitive search over visible text, with the lines each match spans.

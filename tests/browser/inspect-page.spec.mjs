@@ -275,16 +275,18 @@ nav a.on{background:#cc2200}
 
 test("a pinned header that lets body text show through once scrolled is reported; an opaque or frosted one is not", async () => {
   test.setTimeout(90000);
-  const page = (header) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  const page = (header, extra = "") => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
 body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
 header{position:sticky;top:0;height:60px;display:flex;gap:40px;align-items:center;padding:0 20px;${header}}
 p{margin:0 20px;font-size:18px;line-height:30px}
 </style><header><a>首页</a><a>日程</a><a>报名</a></header>
 <h1 style="margin:20px">标题在导航下方</h1>
-${Array.from({ length: 80 }, (_, i) => `<p>正文第 ${i + 1} 行，滚动时会经过导航</p>`).join("\n")}`;
+${Array.from({ length: 80 }, (_, i) => `<p>正文第 ${i + 1} 行，滚动时会经过导航</p>`).join("\n")}${extra}`;
   write("bar-clear.html", page(""));
   write("bar-paper.html", page("background:#fff"));
   write("bar-glass.html", page("background:rgba(255,255,255,.7);backdrop-filter:blur(12px)"));
+  // Clear at the top of the page; a scroll handler gives it a background, faded in.
+  write("bar-js.html", page("transition:background-color .4s", '<style>header.on{background:#fff}</style><script>addEventListener("scroll",()=>document.querySelector("header").classList.toggle("on",scrollY>10))</script>'));
   const run = (name) => inspectPage(parseArgs([join(work, name), "--viewports", "800x600", "--style", join(work, "style.md"), "--out", join(work, `${name}-review`)]));
 
   const clear = await run("bar-clear.html");
@@ -298,7 +300,7 @@ ${Array.from({ length: 80 }, (_, i) => `<p>正文第 ${i + 1} 行，滚动时会
   // Ordinary occlusion still skips pinned elements: the same lines are not also "covered".
   expect(view.occlusions).toEqual([]);
 
-  for (const name of ["bar-paper.html", "bar-glass.html"]) {
+  for (const name of ["bar-paper.html", "bar-glass.html", "bar-js.html"]) {
     const report = await run(name);
     expect(report.views[0].underHeader).toEqual([]);
     expect(report.problems.some((p) => p.includes("pinned header"))).toBe(false);
